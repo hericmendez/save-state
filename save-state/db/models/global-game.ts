@@ -23,6 +23,14 @@ const GlobalGameSchema = new Schema(
       default: "manual",
     },
     sourceUrl: { type: String, trim: true },
+    // Canonical ATP identity. Additive and optional: manual games never set
+    // it; imported ATP games must set it. Sparse unique index is the
+    // database-level invariant against duplicate canonical records.
+    atpDomainId: {
+      type: String,
+      trim: true,
+      index: { unique: true, sparse: true },
+    },
     cover: { type: String, trim: true },
     genres: { type: [String], default: [] },
     platforms: { type: [String], default: [] },
@@ -44,6 +52,7 @@ export interface GlobalGameDocument extends mongoose.Document {
   name: string;
   source: "manual" | "atp";
   sourceUrl?: string;
+  atpDomainId?: string;
   cover?: string;
   genres: string[];
   platforms: string[];

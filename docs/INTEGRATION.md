@@ -285,3 +285,32 @@ If the contract changes incompatibly, the integration must be versioned or migra
 When in doubt:
 
 > Keep the dependency pointing from Save State toward the ATP HTTP contract, never from Save State toward ATP internals.
+
+---
+
+# 15. Implemented Phase 9 BFF (Save State side)
+
+The BFF is implemented as an explicit allowlist under `/api/atp/*`:
+
+```text
+GET  /api/atp/search          → ATP GET /api/v1/games/search
+GET  /api/atp/games/:id       → ATP GET /api/v1/games/:id (+ cover lookup)
+GET  /api/atp/games/:id/cover → ATP GET /api/v1/games/:id/cover
+POST /api/atp/import           → ATP lookup, writes only to Save State
+```
+
+Rules preserved from this document:
+
+* every endpoint requires the Save State session; no browser credentials,
+  cookies, or URLs are forwarded to ATP;
+* no generic proxy exists; admin/sync/history endpoints are not mapped;
+* ATP responses are Zod-validated at the boundary; failures become controlled
+  Save State errors, never raw upstream bodies;
+* covers resolve lazily per item (ADR-023); import snapshots the selected
+  cover URL into `GlobalGame.cover` with no re-resolution or sync;
+* imports create `GlobalGame(source: "atp", atpDomainId)` snapshots plus
+  `UserGame` rows through the existing mutation path (duplicate and race
+  semantics unchanged);
+* no ATP service credential exists: server-to-server BFF access removes the
+  browser dependency but does not itself make ATP's unauthenticated API
+  private — a deliberate, recorded limitation, not a claim otherwise.

@@ -145,7 +145,7 @@ exactly that way — not as COMPLETE.
 | 6     | UI Migration                       | COMPLETE (`44bb36d`)           |
 | 7     | RPGUI Integration                  | COMPLETE (`fdbdf81`)                 |
 | 8     | Regression Tests                   | COMPLETE (`fdbdf81`)                 |
-| 9     | ATP BFF Integration                | PLANNED, NOT AUTHORIZED        |
+| 9     | ATP BFF Integration                | IMPLEMENTED + VALIDATED, UNCOMMITTED |
 | 10    | Deployment and Parallel Validation | PLANNED                        |
 | 11    | Legacy Decommissioning             | PLANNED                        |
 

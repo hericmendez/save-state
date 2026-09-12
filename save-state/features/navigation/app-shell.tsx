@@ -10,6 +10,7 @@ import type { SafeUser } from "@/features/shared/types";
 const NAV_ITEMS = [
   { title: "Dashboard", path: "/dashboard" },
   { title: "Todos os jogos", path: "/backlog" },
+  { title: "Catálogo", path: "/catalog" },
   { title: "Novo jogo", path: "/backlog/new" },
   { title: "Minhas listas", path: "/backlog/lists" },
   { title: "Configurações", path: "/settings" },

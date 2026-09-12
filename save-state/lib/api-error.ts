@@ -29,6 +29,8 @@ export const ERROR_CODES = [
   "GAME_METADATA_IMMUTABLE",
   "LIST_ALREADY_EXISTS",
   "INVALID_ID",
+  "ATP_UNAVAILABLE",
+  "ATP_GAME_NOT_FOUND",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -63,6 +65,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   // translate known id shapes to INVALID_*_ID; this preserves the legacy
   // INVALID_ID safety net without importing Mongoose here.
   INVALID_ID: 400,
+  // Phase 9 ATP BFF codes.
+  ATP_UNAVAILABLE: 503,
+  ATP_GAME_NOT_FOUND: 404,
 };
 
 export class ApiError extends Error {
