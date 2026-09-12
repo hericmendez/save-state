@@ -32,8 +32,17 @@ describe("toErrorResponse", () => {
     });
   });
 
-  it("converts unknown failures to INTERNAL_ERROR without leaking internals", async () => {
-    const response = toErrorResponse(new Error("mongodb://secret/internal"));
+  it("maps unanticipated Mongoose CastErrors to INVALID_ID", async () => {
+    const castError = new Error("Cast to ObjectId failed");
+    castError.name = "CastError";
+    const response = toErrorResponse(castError);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: "INVALID_ID", message: "Invalid id" },
+    });
+  });
+
+  it("converts unknown failures to INTERNAL_ERROR without leaking internals", async () => {    const response = toErrorResponse(new Error("mongodb://secret/internal"));
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body).toEqual({

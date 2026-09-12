@@ -38,7 +38,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rpgui-content flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <h1 className="font-display text-center text-xl">Criar conta</h1>
       {error && <p role="alert">{error}</p>}
       <label>

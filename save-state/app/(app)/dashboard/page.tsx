@@ -7,6 +7,12 @@ function Bar({ label, value, max }: { label: string; value: number; max: number 
   return (
     <div className="flex items-center gap-2">
       <span className="w-32 truncate">{label}</span>
+      {/*
+        data-rpguitype="progress" documents the theme hook, but no RPGUI
+        create() call is made here: React renders the fill width directly,
+        and running the runtime transform would duplicate the injected
+        track/edge/fill nodes inside React-owned DOM (see Phase 7).
+      */}
       <div className="rpgui-progress flex-1" data-rpguitype="progress">
         <div className="rpgui-progress-fill" style={{ width: `${width}%` }} />
       </div>

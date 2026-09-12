@@ -28,6 +28,7 @@ export const ERROR_CODES = [
   "GAME_ALREADY_IN_LIBRARY",
   "GAME_METADATA_IMMUTABLE",
   "LIST_ALREADY_EXISTS",
+  "INVALID_ID",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -58,6 +59,10 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   GAME_ALREADY_IN_LIBRARY: 400,
   GAME_METADATA_IMMUTABLE: 400,
   LIST_ALREADY_EXISTS: 400,
+  // Fallback for unanticipated Mongoose cast failures. Individual services
+  // translate known id shapes to INVALID_*_ID; this preserves the legacy
+  // INVALID_ID safety net without importing Mongoose here.
+  INVALID_ID: 400,
 };
 
 export class ApiError extends Error {
@@ -87,6 +92,13 @@ export class ApiError extends Error {
  */
 export function toErrorResponse(error: unknown): NextResponse<ErrorBody> {
   if (error instanceof ApiError) return error.toResponse();
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "CastError"
+  ) {
+    return new ApiError("INVALID_ID", "Invalid id", 400).toResponse();
+  }
   return NextResponse.json(
     { error: { code: "INTERNAL_ERROR", message: "Internal server error" } },
     { status: 500 },

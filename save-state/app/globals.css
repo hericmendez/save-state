@@ -35,3 +35,36 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/*
+ * Text-input styling for elements carrying .rpgui-input.
+ * The vendored theme only styles inputs under an .rpgui-content ancestor,
+ * but that ancestor is position:fixed and would break App Router layouts,
+ * so the same declarations are applied here through the class our
+ * components already use. Values mirror styles/vendor/rpgui/rpgui.css.
+ */
+.rpgui-input,
+textarea.rpgui-input {
+  box-sizing: border-box;
+  color: white;
+  text-shadow:
+    -2px 0 black,
+    0 2px black,
+    2px 0 black,
+    0 -2px black;
+  font-size: 0.9em;
+  line-height: 32px;
+  background: #4e4a4e;
+  max-width: 100%;
+  width: 100%;
+  padding-left: 10px;
+  min-height: 30px;
+  user-select: text;
+}
+
+textarea.rpgui-input {
+  line-height: 22px;
+  padding-top: 7px;
+  height: 80px;
+  resize: none;
+}
