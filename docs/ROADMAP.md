@@ -145,7 +145,7 @@ exactly that way — not as COMPLETE.
 | 6     | UI Migration                       | COMPLETE (`44bb36d`)           |
 | 7     | RPGUI Integration                  | COMPLETE (`fdbdf81`)                 |
 | 8     | Regression Tests                   | COMPLETE (`fdbdf81`)                 |
-| 9     | ATP BFF Integration                | IMPLEMENTED + VALIDATED, UNCOMMITTED |
+| 9     | ATP BFF Integration                | COMPLETE (`a4d9190`)                 |
 | 10    | Deployment and Parallel Validation | PLANNED                        |
 | 11    | Legacy Decommissioning             | PLANNED                        |
 
@@ -287,7 +287,7 @@ verification records, not invented detail.
 
 ---
 
-## 6. Phase 9 — ATP BFF Integration — PLANNED, NOT AUTHORIZED
+## 6. Phase 9 — ATP BFF Integration — COMPLETE (`a4d9190`)
 
 Intended architecture:
 
@@ -464,13 +464,14 @@ Phase 5
 Phase 6
 Phase 7 — RPGUI Integration (`fdbdf81`)
 Phase 8 — Regression Tests (`fdbdf81`)
+Phase 9 — ATP BFF Integration (`a4d9190`)
 
 Next:
-Phase 9 — ATP BFF Integration
+Phase 10 — Deployment and Parallel Validation
 
-Phase 9 status:
-NOT AUTHORIZED
+Phase 10 status:
+PLANNED / NOT AUTHORIZED
 ```
 
-The next implementation action is **not automatically Phase 9**. Required first:
-commit Phases 7–8, re-verify green, satisfy §7, obtain explicit authorization.
+The next implementation action is **not automatically Phase 10**. It requires
+explicit authorization per §7-equivalent gates for future phases.
