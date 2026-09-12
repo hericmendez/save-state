@@ -24,8 +24,9 @@ import { ApiError, type ErrorCode } from "@/lib/api-error";
 function formatIssues(error: z.ZodError): string {
   return error.issues
     .map((issue) => {
-      const path = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
-      return `${path}${issue.message}`;
+      const path =
+        issue.path.length > 0 ? issue.path.join(".") : "value";
+      return `${path}: ${issue.message}`;
     })
     .join("; ");
 }

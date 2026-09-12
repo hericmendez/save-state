@@ -12,6 +12,22 @@ export const ERROR_CODES = [
   "UNAUTHENTICATED",
   "NOT_FOUND",
   "ROUTE_NOT_FOUND",
+  // Auth-phase codes (Phase 3). The registry grows with each migration
+  // phase; domain codes arrive with their own phases.
+  "USER_NOT_FOUND",
+  "EMAIL_ALREADY_IN_USE",
+  "INVALID_PASSWORD",
+  "INVALID_TOKEN",
+  "RATE_LIMIT_EXCEEDED",
+  // Read-phase codes (Phase 4).
+  "GAME_NOT_FOUND",
+  "INVALID_GAME_ID",
+  "LIST_NOT_FOUND",
+  "INVALID_LIST_ID",
+  // Mutation-phase codes (Phase 5).
+  "GAME_ALREADY_IN_LIBRARY",
+  "GAME_METADATA_IMMUTABLE",
+  "LIST_ALREADY_EXISTS",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -30,6 +46,18 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   UNAUTHENTICATED: 401,
   NOT_FOUND: 404,
   ROUTE_NOT_FOUND: 404,
+  USER_NOT_FOUND: 404,
+  EMAIL_ALREADY_IN_USE: 400,
+  INVALID_PASSWORD: 400,
+  INVALID_TOKEN: 400,
+  RATE_LIMIT_EXCEEDED: 429,
+  GAME_NOT_FOUND: 404,
+  INVALID_GAME_ID: 400,
+  LIST_NOT_FOUND: 404,
+  INVALID_LIST_ID: 400,
+  GAME_ALREADY_IN_LIBRARY: 400,
+  GAME_METADATA_IMMUTABLE: 400,
+  LIST_ALREADY_EXISTS: 400,
 };
 
 export class ApiError extends Error {

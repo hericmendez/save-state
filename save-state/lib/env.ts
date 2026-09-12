@@ -4,6 +4,7 @@ import { z } from "zod";
 const serverEnvSchema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  JWT_EXPIRES_IN: z.string().default("7d"),
   APP_URL: z.string().min(1, "APP_URL is required"),
   // Reserved for Phase 9 ATP BFF integration. Optional until then.
   ATP_BASE_URL: z.string().optional(),
@@ -25,6 +26,7 @@ export function loadServerEnv(
   const parsed = serverEnvSchema.safeParse({
     MONGODB_URI: source.MONGODB_URI,
     JWT_SECRET: source.JWT_SECRET,
+    JWT_EXPIRES_IN: source.JWT_EXPIRES_IN,
     APP_URL: source.APP_URL,
     ATP_BASE_URL: source.ATP_BASE_URL,
   });
