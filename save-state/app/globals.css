@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --font-body: system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display), monospace;
+}
+
+/* Crisp pixel-art rendering for RPGUI surfaces (mirrors legacy foundation). */
+.rpgui-container,
+.rpgui-button,
+.rpgui-content {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

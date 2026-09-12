@@ -1,0 +1,39 @@
+{
+  "name": "save-state",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Save State — Next.js modular monolith (Phase 1 skeleton)",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mongoose": "^8.16.0",
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@tailwindcss/postcss": "^4.1.1",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.21.0",
+    "eslint-config-next": "^15.5.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.1",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.11"
+  }
+}

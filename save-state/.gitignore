@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# next
+.next/
+out/
+
+# env (never commit real values; see .env.example)
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+coverage/
