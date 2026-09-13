@@ -14,21 +14,41 @@ body {
   scroll-behavior: smooth;
 }
 
-.pixel-frame-height {
-  height: calc(100vh - 60px);
-}
-
-@media (min-width: 768px) {
+@media screen and (min-width: 768px) {
   .pixel-frame-height {
     height: calc(100vh - 60px);
+    margin-top: 30px;
+    margin-bottom: 30px;
   }
+}
+
+.press-start-2p-regular {
+  font-family: "Press Start 2P", system-ui !important;
+  font-weight: 400;
+  font-style: normal;
 }
 
 .font-display {
   font-family: var(--font-display), monospace;
 }
 
-/* Crisp pixel-art rendering for RPGUI surfaces (mirrors legacy foundation). */
+/* Pixel-art rendering foundation (mirrors the legacy global rules). */
+.rpgui-content {
+  -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -o-crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* Keep the RPGUI typography consistent. */
+.rpgui-container,
+.rpgui-button {
+  font-family: "Press Start 2P", system-ui !important;
+}
+
+/* Crisp rendering for RPGUI surfaces wherever they appear. */
 .rpgui-container,
 .rpgui-button,
 .rpgui-content {
