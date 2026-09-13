@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --font-body: system-ui, sans-serif;
+  --font-body: "JetBrains Mono", ui-monospace, monospace;
 }
 
 body {
   font-family: var(--font-body);
+  color: white;
   background: url("/chrono_bg.webp") no-repeat center center fixed;
   background-size: cover;
 }
@@ -32,6 +33,31 @@ body {
   font-family: var(--font-display), monospace;
 }
 
+/*
+ * Highlight typography: Press Start 2P, white with the classic black
+ * outline from the RPGUI theme. Applied ONLY to explicit highlight
+ * selectors — never to structural containers.
+ */
+.font-display,
+.press-start-2p-regular,
+.rpgui-button {
+  color: white;
+  text-shadow:
+    -2px 0 black,
+    0 2px black,
+    2px 0 black,
+    0 -2px black;
+}
+
+.font-display,
+.press-start-2p-regular {
+  font-family: "Press Start 2P", system-ui;
+}
+
+.rpgui-button {
+  font-family: "Press Start 2P", system-ui !important;
+}
+
 /* Pixel-art rendering foundation (mirrors the legacy global rules). */
 .rpgui-content {
   -ms-interpolation-mode: nearest-neighbor;
@@ -42,11 +68,10 @@ body {
   image-rendering: pixelated;
 }
 
-/* Keep the RPGUI typography consistent. */
-.rpgui-container,
-.rpgui-button {
-  font-family: "Press Start 2P", system-ui !important;
-}
+/* Keep the RPGUI typography consistent for interactive highlights.
+ * NOTE: .rpgui-container is intentionally NOT a font selector — containers
+ * hold body text (JetBrains Mono); only buttons and explicit highlight
+ * classes below use the pixel font. */
 
 /* Crisp rendering for RPGUI surfaces wherever they appear. */
 .rpgui-container,

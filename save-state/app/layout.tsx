@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Press_Start_2P } from "next/font/google";
+import { JetBrains_Mono, Press_Start_2P } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 // Vendored RPGUI styles (Phase 1). The runtime loads via RpguiInitializer;
@@ -13,6 +13,11 @@ const displayFont = Press_Start_2P({
   variable: "--font-display",
 });
 
+const bodyFont = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-body",
+});
+
 export const metadata: Metadata = {
   title: "Save State",
 };
@@ -23,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={displayFont.variable}>
+    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
       <body>
         {children}
         {/*

@@ -12,6 +12,12 @@ export interface ContextMenuItem {
 }
 
 function MenuList({ items, onClose }: { items: ContextMenuItem[]; onClose: () => void }) {
+  // Submenu visibility is driven by React state (hover + tap-to-toggle),
+  // not by CSS :hover. This works on touch devices and in environments
+  // without hover-capable pointers, where Tailwind v4 gates hover variants
+  // behind @media (hover:hover) and CSS-only submenus can never appear.
+  const [openKey, setOpenKey] = useState<string | null>(null);
+
   return (
     <ul className="rpgui-container framed-grey min-w-48 p-1">
       {items.map((item) =>
@@ -20,20 +26,35 @@ function MenuList({ items, onClose }: { items: ContextMenuItem[]; onClose: () =>
             <hr />
           </li>
         ) : (
-          <li key={item.key} className="relative">
+          <li
+            key={item.key}
+            className="relative"
+            onMouseEnter={() => {
+              if (item.children) setOpenKey(item.key);
+            }}
+            onMouseLeave={() => {
+              if (item.children) setOpenKey(null);
+            }}
+          >
             <button
               className="rpgui-button w-full text-left"
               type="button"
               onClick={() => {
+                if (item.children) {
+                  setOpenKey((current) =>
+                    current === item.key ? null : item.key,
+                  );
+                  return;
+                }
                 item.onClick?.();
-                if (!item.children) onClose();
+                onClose();
               }}
             >
               {item.label}
               {item.children ? " ▶" : ""}
             </button>
-            {item.children && (
-              <div className="absolute left-full top-0 hidden hover:block group-hover:block">
+            {item.children && openKey === item.key && (
+              <div className="absolute left-full top-0 z-10 max-md:left-0 max-md:top-full">
                 <MenuList items={item.children} onClose={onClose} />
               </div>
             )}
@@ -56,17 +77,26 @@ export function CustomContextMenu({
 
   useEffect(() => {
     if (!position) return;
-    function close() {
+    function close(event?: Event) {
+      // Clicks inside the menu itself (e.g. toggling a submenu) must not
+      // close it; only outside interactions and Escape do.
+      if (
+        event instanceof MouseEvent &&
+        menuRef.current?.contains(event.target as Node)
+      ) {
+        return;
+      }
       setPosition(null);
     }
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") close();
     }
-    document.addEventListener("click", close);
+    const handleClick = (event: Event) => close(event);
+    document.addEventListener("click", handleClick);
     document.addEventListener("scroll", close, true);
     document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("click", close);
+      document.removeEventListener("click", handleClick);
       document.removeEventListener("scroll", close, true);
       document.removeEventListener("keydown", handleEscape);
     };
