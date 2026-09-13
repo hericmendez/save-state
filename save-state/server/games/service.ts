@@ -35,9 +35,57 @@ export interface UserGameWithGame {
   rating?: number | null;
   review?: string | null;
   listIds: Types.ObjectId[];
+  favorite: boolean;
+  finished: boolean;
+  fullyCompleted: boolean;
+  achievements: boolean;
+  achievementProgress?: number | null;
+  achievementsCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
   game: GlobalGameDocument;
+}
+
+function deriveFinished(timesFinished: number): boolean {
+  return timesFinished > 0;
+}
+
+function deriveAchievementsCompleted(
+  achievements: boolean,
+  achievementProgress?: number | null,
+): boolean {
+  return achievements === true && achievementProgress === 100;
+}
+
+function normalizeAchievements(
+  achievements?: boolean,
+  achievementProgress?: number | null,
+): { achievements?: boolean; achievementProgress?: number | null; achievementsCompleted?: boolean } {
+  if (achievements === false) {
+    return {
+      achievements: false,
+      achievementProgress: undefined,
+      achievementsCompleted: false,
+    };
+  }
+  if (achievements === true) {
+    const completed = achievementProgress === 100;
+    return {
+      achievements: true,
+      achievementProgress: achievementProgress ?? undefined,
+      achievementsCompleted: completed,
+    };
+  }
+  if (achievementProgress !== undefined) {
+    if (achievementProgress === null) {
+      return { achievementProgress: undefined, achievementsCompleted: false };
+    }
+    return {
+      achievementProgress,
+      achievementsCompleted: achievementProgress === 100,
+    };
+  }
+  return {};
 }
 
 export type PaginatedUserGame = PaginatedResponse<UserGameWithGame>;
@@ -82,6 +130,21 @@ function buildFilters(
     if (filters.ratingMax !== undefined) {
       query.rating.$lte = filters.ratingMax;
     }
+  }
+  if (filters.favorite !== undefined) {
+    query.favorite = filters.favorite;
+  }
+  if (filters.finished !== undefined) {
+    query.finished = filters.finished;
+  }
+  if (filters.fullyCompleted !== undefined) {
+    query.fullyCompleted = filters.fullyCompleted;
+  }
+  if (filters.achievements !== undefined) {
+    query.achievements = filters.achievements;
+  }
+  if (filters.achievementsCompleted !== undefined) {
+    query.achievementsCompleted = filters.achievementsCompleted;
   }
 
   return query;
@@ -261,14 +324,26 @@ export async function createGame(input: {
 
   let userGame: UserGameDocument;
   try {
+    const timesFinished = input.timesFinished ?? 0;
+    const finished = deriveFinished(timesFinished);
+    const achNorm = normalizeAchievements(
+      input.achievements,
+      input.achievementProgress ?? undefined,
+    );
     userGame = await UserGame.create({
       userId: input.userId,
       gameId: globalGame._id,
       status: input.status,
       hoursPlayed: input.hoursPlayed,
-      timesFinished: input.timesFinished,
+      timesFinished,
       rating: input.rating,
       review: input.review,
+      favorite: input.favorite ?? false,
+      finished,
+      fullyCompleted: input.fullyCompleted ?? false,
+      achievements: achNorm.achievements ?? input.achievements ?? false,
+      achievementProgress: achNorm.achievementProgress,
+      achievementsCompleted: achNorm.achievementsCompleted ?? false,
     });
   } catch (error) {
     if (isDuplicateKeyError(error)) {
@@ -292,19 +367,64 @@ export async function updateGame(
   await connectDatabase();
   const userGame = await findOwnedUserGameOrThrow(userId, gameId);
 
-  const personalUpdates: Partial<UserGameDocument> = {};
+  const personalUpdates: Record<string, unknown> = {};
   for (const field of [
     "status",
     "hoursPlayed",
-    "timesFinished",
     "rating",
     "review",
+    "favorite",
+    "fullyCompleted",
   ] as const) {
     if (input[field] !== undefined) {
-      (personalUpdates as Record<string, unknown>)[field] = input[field];
+      personalUpdates[field] = input[field];
     }
   }
+  if (input.timesFinished !== undefined) {
+    personalUpdates.timesFinished = input.timesFinished;
+    personalUpdates.finished = deriveFinished(input.timesFinished);
+  }
+  if (
+    input.achievements !== undefined ||
+    input.achievementProgress !== undefined
+  ) {
+    const nextAchievements =
+      input.achievements !== undefined
+        ? input.achievements
+        : userGame.achievements;
+    const nextProgressRaw =
+      input.achievementProgress !== undefined
+        ? input.achievementProgress
+        : userGame.achievementProgress;
+    const nextProgress =
+      input.achievementProgress === null ? undefined : nextProgressRaw ?? undefined;
+    const norm = normalizeAchievements(
+      nextAchievements,
+      nextProgress as number | null | undefined,
+    );
+    if (input.achievements !== undefined) {
+      personalUpdates.achievements = norm.achievements;
+    }
+    if (input.achievementProgress !== undefined) {
+      personalUpdates.achievementProgress = norm.achievementProgress;
+      // Prepare document for $unset when clearing
+      if (norm.achievementProgress === undefined) {
+        userGame.achievementProgress = undefined as unknown as number;
+      }
+    } else if (input.achievements === false) {
+      personalUpdates.achievementProgress = undefined;
+      userGame.achievementProgress = undefined as unknown as number;
+    }
+    personalUpdates.achievementsCompleted = norm.achievementsCompleted ?? false;
+  }
   Object.assign(userGame, personalUpdates);
+  // Ensure achievementProgress unset is applied when cleared via achievements=false or null progress
+  if (
+    personalUpdates.achievementProgress === undefined &&
+    (input.achievementProgress === null || input.achievements === false)
+  ) {
+    (userGame as unknown as { achievementProgress?: unknown }).achievementProgress = undefined;
+  }
   await userGame.save();
 
   if (input.game && Object.keys(input.game).length > 0) {
@@ -335,6 +455,37 @@ export async function updateGame(
 
   const game = await GlobalGame.findById(userGame.gameId);
   return { ...userGame.toObject(), game: game! };
+}
+
+export async function incrementTimesFinished(
+  userId: string,
+  gameId: string,
+): Promise<UserGameWithGame> {
+  await connectDatabase();
+  const updated = await UserGame.findOneAndUpdate(
+    { _id: new Types.ObjectId(gameId), userId: new Types.ObjectId(userId) },
+    { $inc: { timesFinished: 1 }, $set: { finished: true } },
+    { new: true },
+  );
+  if (!updated) {
+    // Distinguish invalid id vs not found: try to detect malformed id
+    try {
+      new Types.ObjectId(gameId);
+    } catch {
+      throw new ApiError("INVALID_GAME_ID", "Invalid game id", 400);
+    }
+    // Check if exists for another user to preserve 404 semantics
+    const exists = await UserGame.findById(gameId).lean();
+    if (!exists) {
+      throw new ApiError("GAME_NOT_FOUND", "Game not found", 404);
+    }
+    throw new ApiError("GAME_NOT_FOUND", "Game not found", 404);
+  }
+  const game = await GlobalGame.findById(updated.gameId);
+  if (!game) {
+    throw new ApiError("GAME_NOT_FOUND", "Game not found", 404);
+  }
+  return { ...updated.toObject(), game };
 }
 
 export async function deleteGame(

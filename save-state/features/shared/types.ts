@@ -24,6 +24,12 @@ export interface Game {
   rating?: number | null;
   review?: string | null;
   listIds?: string[];
+  favorite?: boolean;
+  finished?: boolean;
+  fullyCompleted?: boolean;
+  achievements?: boolean;
+  achievementProgress?: number | null;
+  achievementsCompleted?: boolean;
   game: GlobalGameSummary | null;
 }
 

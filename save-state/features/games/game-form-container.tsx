@@ -31,6 +31,13 @@ function gameToForm(game: Game): GameFormState {
         ? ""
         : String(game.rating),
     review: game.review ?? "",
+    favorite: game.favorite ?? false,
+    fullyCompleted: game.fullyCompleted ?? false,
+    achievements: game.achievements ?? false,
+    achievementProgress:
+      game.achievementProgress === undefined || game.achievementProgress === null
+        ? ""
+        : String(game.achievementProgress),
   };
 }
 

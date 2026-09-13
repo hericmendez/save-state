@@ -16,6 +16,10 @@ export interface GameFormState {
   timesFinished: string;
   rating: string;
   review: string;
+  favorite: boolean;
+  fullyCompleted: boolean;
+  achievements: boolean;
+  achievementProgress: string;
 }
 
 export const EMPTY_GAME_FORM: GameFormState = {
@@ -32,6 +36,10 @@ export const EMPTY_GAME_FORM: GameFormState = {
   timesFinished: "0",
   rating: "",
   review: "",
+  favorite: false,
+  fullyCompleted: false,
+  achievements: false,
+  achievementProgress: "",
 };
 
 function splitList(value: string): string[] {
@@ -46,7 +54,15 @@ export function formToPayload(form: GameFormState): Record<string, unknown> {
     status: form.status,
     hoursPlayed: Number(form.hoursPlayed) || 0,
     timesFinished: Number(form.timesFinished) || 0,
+    favorite: form.favorite,
+    fullyCompleted: form.fullyCompleted,
+    achievements: form.achievements,
   };
+  if (form.achievements && form.achievementProgress.trim() !== "") {
+    personal.achievementProgress = Number(form.achievementProgress);
+  } else if (!form.achievements) {
+    personal.achievementProgress = null;
+  }
   if (form.rating.trim() !== "") personal.rating = Number(form.rating);
   if (form.review.trim() !== "") personal.review = form.review.trim();
   const metadata: Record<string, unknown> = { name: form.name.trim() };
@@ -166,6 +182,31 @@ export function GameForm({
             value={form.cover}
             onChange={(event) => onChange({ cover: event.target.value })}
             maxLength={2048}
+          />,
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={form.favorite} onChange={(e) => onChange({ favorite: e.target.checked })} />
+          Favorito
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={form.fullyCompleted} onChange={(e) => onChange({ fullyCompleted: e.target.checked })} />
+          100% completo
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={form.achievements} onChange={(e) => onChange({ achievements: e.target.checked })} />
+          Tem conquistas
+        </label>
+        {form.achievements && field(
+          "Progresso conquistas (0-100)",
+          <input
+            className="rpgui-input w-full"
+            type="number"
+            min={0}
+            max={100}
+            value={form.achievementProgress}
+            onChange={(e) => onChange({ achievementProgress: e.target.value })}
           />,
         )}
       </div>

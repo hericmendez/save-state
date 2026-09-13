@@ -2,26 +2,44 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useListModalStore } from "@/features/lists/list-modal-store";
 
 export interface NavEntry {
   id: string;
   title: string;
   path?: string;
+  action?: "create-list";
   children?: NavEntry[];
 }
 
 export const NAV_STRUCTURE: NavEntry[] = [
+  { id: "home", title: "Home", path: "/" },
   { id: "dashboard", title: "Dashboard", path: "/dashboard" },
   {
-    id: "games",
-    title: "Meus jogos",
+    id: "buscar-jogos",
+    title: "Buscar Jogos",
     children: [
-      { id: "all-games", title: "Todos os jogos", path: "/backlog" },
-      { id: "catalog", title: "Catálogo", path: "/catalog" },
-      { id: "new-game", title: "Novo jogo", path: "/backlog/new" },
+      { id: "busca-geral", title: "Busca Geral", path: "/catalog" },
+      { id: "por-plataforma", title: "Por Plataforma", path: "/catalog/plataformas" },
     ],
   },
-  { id: "lists", title: "Minhas listas", path: "/backlog/lists" },
+  {
+    id: "games",
+    title: "Meus Jogos",
+    children: [
+      { id: "new-game", title: "Novo Jogo", path: "/backlog/new" },
+      { id: "all-games", title: "Todos os Jogos", path: "/backlog" },
+      { id: "favorites", title: "Favoritos", path: "/backlog/favoritos" },
+    ],
+  },
+  {
+    id: "lists",
+    title: "Minhas Listas",
+    children: [
+      { id: "new-list", title: "Nova Lista", action: "create-list" },
+      { id: "custom-lists", title: "Listas Personalizadas", path: "/backlog/lists" },
+    ],
+  },
   { id: "settings", title: "Configurações", path: "/settings" },
 ];
 
@@ -82,6 +100,37 @@ export function NavItem({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const openListModal = useListModalStore((s) => s.open);
+  if (entry.action === "create-list") {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.();
+          openListModal();
+        }}
+        className="
+        rpgui-button !h-[50px] golden mx-4 text-sm md:text-lg
+
+        w-full
+        text-lg
+        md:text-2xl
+        flex
+        items-center
+        justify-center
+
+        transition
+        duration-300
+        ease-in-out
+      "
+      >
+        <span>
+          <strong>{entry.title}</strong>
+        </span>
+      </button>
+    );
+  }
+
   const hasChildren = !!entry.children?.length;
 
   if (!hasChildren) {
@@ -152,10 +201,9 @@ function NavItemGroup({
       {isOpen && (
         <div className="mt-2 mx-4 space-y-2">
           {(entry.children ?? []).map((child) => (
-            <NavLink
+            <NavItem
               key={child.id}
               entry={child}
-              isChild
               pathname={pathname}
               onNavigate={onNavigate}
             />

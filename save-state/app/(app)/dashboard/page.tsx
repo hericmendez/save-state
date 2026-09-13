@@ -93,6 +93,24 @@ export default async function DashboardPage() {
           </p>
         </div>
       </section>
+      <section className="rpgui-container framed-grey grid grid-cols-2 gap-4 p-4 md:grid-cols-4">
+        <div>
+          <p>Jogos zerados</p>
+          <p className="font-display text-2xl">{stats.totalFinished}</p>
+        </div>
+        <div>
+          <p>Favoritos</p>
+          <p className="font-display text-2xl">{stats.totalFavorites}</p>
+        </div>
+        <div>
+          <p>100% completados</p>
+          <p className="font-display text-2xl">{stats.totalFullyCompleted}</p>
+        </div>
+        <div>
+          <p>Platinas (100%)</p>
+          <p className="font-display text-2xl">{stats.totalAchievementsCompleted}</p>
+        </div>
+      </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DistributionCard title="Por status" entries={stats.byStatus} limit={10} />
         <DistributionCard title="Gêneros favoritos" entries={stats.byGenre} />

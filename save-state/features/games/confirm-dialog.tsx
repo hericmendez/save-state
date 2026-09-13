@@ -6,12 +6,14 @@ export function ConfirmDialog({
   confirmLabel = "Confirmar",
   onConfirm,
   onCancel,
+  isLoading,
 }: {
   title: string;
   message: string;
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }) {
   return (
     <div
@@ -24,12 +26,28 @@ export function ConfirmDialog({
         <h2 className="font-display text-lg">{title}</h2>
         <p className="mt-2">{message}</p>
         <div className="mt-4 flex gap-2">
-          <button className="rpgui-button" type="button" onClick={onConfirm}>
-            {confirmLabel}
+          <button
+            className="rpgui-button"
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            aria-busy={isLoading}
+          >
+            {isLoading ? `${confirmLabel}…` : confirmLabel}
           </button>
-          <button className="rpgui-button" type="button" onClick={onCancel}>
+          <button
+            className="rpgui-button"
+            type="button"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
             Cancelar
           </button>
+          {isLoading && (
+            <span className="font-display text-xs self-center" aria-live="polite">
+              [ Carregando... ]
+            </span>
+          )}
         </div>
       </div>
     </div>

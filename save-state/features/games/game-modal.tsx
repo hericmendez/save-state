@@ -17,12 +17,16 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export function GameModal({
   game,
   onClose,
+  onUpdated,
 }: {
   game: Game | null;
   onClose: () => void;
+  onUpdated?: () => void;
 }) {
   const [details, setDetails] = useState<Game | null>(game);
   const [error, setError] = useState<string | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   useEffect(() => {
     setDetails(game);
@@ -128,13 +132,27 @@ export function GameModal({
                       value={String(shown.hoursPlayed)}
                     />
                   )}
-                  {typeof shown.timesFinished === "number" &&
-                    shown.timesFinished > 0 && (
-                      <DetailRow
-                        label="Vezes zerado"
-                        value={String(shown.timesFinished)}
-                      />
-                    )}
+                  <DetailRow
+                    label="Vezes zerado"
+                    value={String(shown.timesFinished ?? 0)}
+                  />
+                  {shown.finished && <DetailRow label="Zerado" value="Sim" />}
+                  {shown.fullyCompleted && (
+                    <DetailRow label="100% completo" value="Sim" />
+                  )}
+                  {shown.favorite && <DetailRow label="Favorito" value="★" />}
+                  {shown.achievements ? (
+                    <DetailRow
+                      label="Conquistas"
+                      value={
+                        shown.achievementProgress !== null && shown.achievementProgress !== undefined
+                          ? `${shown.achievementProgress}%${shown.achievementsCompleted ? " (100%)" : ""}`
+                          : "0%"
+                      }
+                    />
+                  ) : (
+                    <DetailRow label="Conquistas" value="N/A" />
+                  )}
                   {typeof shown.rating === "number" && (
                     <DetailRow label="Nota" value={String(shown.rating)} />
                   )}
@@ -146,9 +164,73 @@ export function GameModal({
                 )}
               </>
             )}
-            <button className="rpgui-button mt-4" type="button" onClick={onClose}>
-              Fechar
-            </button>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                className="rpgui-button"
+                type="button"
+                disabled={isFinishing || isTogglingFavorite}
+                aria-busy={isFinishing}
+                onClick={async () => {
+                  if (!shown || isFinishing || isTogglingFavorite) return;
+                  setIsFinishing(true);
+                  setError(null);
+                  try {
+                    const updated = await apiRequest<Game>(
+                      `/api/games/${shown._id}/finish`,
+                      { method: "POST" },
+                    );
+                    setDetails(updated);
+                    onUpdated?.();
+                  } catch {
+                    setError("Falha ao incrementar");
+                  } finally {
+                    setIsFinishing(false);
+                  }
+                }}
+              >
+                {isFinishing ? "Zerei +1…" : "Zerei +1"}
+              </button>
+              <button
+                className="rpgui-button"
+                type="button"
+                disabled={isFinishing || isTogglingFavorite}
+                aria-busy={isTogglingFavorite}
+                onClick={async () => {
+                  if (!shown || isFinishing || isTogglingFavorite) return;
+                  setIsTogglingFavorite(true);
+                  setError(null);
+                  try {
+                    const updated = await apiRequest<Game>(
+                      `/api/games/${shown._id}`,
+                      {
+                        method: "PATCH",
+                        body: { favorite: !shown.favorite },
+                      },
+                    );
+                    setDetails(updated);
+                    onUpdated?.();
+                  } catch {
+                    setError("Falha ao favoritar");
+                  } finally {
+                    setIsTogglingFavorite(false);
+                  }
+                }}
+              >
+                {isTogglingFavorite
+                  ? "Aguarde…"
+                  : shown?.favorite
+                    ? "Desfavoritar"
+                    : "Favoritar"}
+              </button>
+              <button className="rpgui-button" type="button" onClick={onClose}>
+                Fechar
+              </button>
+              {(isFinishing || isTogglingFavorite) && (
+                <span className="font-display text-xs" aria-live="polite">
+                  [ Carregando... ]
+                </span>
+              )}
+            </div>
           </motion.aside>
         </motion.div>
       )}

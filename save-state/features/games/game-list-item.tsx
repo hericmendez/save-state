@@ -32,7 +32,11 @@ export function GameListItem({
     >
       <article className="rpgui-container framed-golden grid grid-cols-[1fr_auto] items-center gap-3 p-3">
         <div>
-          <h3 className="font-display text-sm">{game.game?.name ?? "Jogo"}</h3>
+          <h3 className="font-display text-sm">
+            {game.favorite ? "★ " : ""}
+            {game.game?.name ?? "Jogo"}
+            {game.finished ? ` · Zerado ${game.timesFinished}×` : ""}
+          </h3>
           <div className="mt-1 flex flex-wrap gap-1">
             {(game.game?.genres ?? []).map((genre) => (
               <span key={genre} className="rpgui-container framed-grey px-2 text-xs">

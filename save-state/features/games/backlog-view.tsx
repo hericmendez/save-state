@@ -34,12 +34,14 @@ export function BacklogView({
   lists,
   listId,
   listName,
+  favorite,
 }: {
   initialGames: Game[];
   initialPagination: Pagination;
   lists: GameList[];
   listId?: string;
   listName?: string;
+  favorite?: boolean;
 }) {
   const router = useRouter();
   const [games, setGames] = useState<Game[]>(initialGames);
@@ -55,6 +57,7 @@ export function BacklogView({
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Game | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search.trim());
   const firstLoad = useRef(true);
@@ -69,6 +72,7 @@ export function BacklogView({
       });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (listId) params.set("listId", listId);
+      if (favorite) params.set("favorite", "true");
       const result = await apiRequest<PaginatedResponse<Game>>(
         `/api/games?${params.toString()}`,
       );
@@ -81,7 +85,7 @@ export function BacklogView({
     } finally {
       setIsLoading(false);
     }
-  }, [page, perPage, debouncedSearch, listId]);
+  }, [page, perPage, debouncedSearch, listId, favorite]);
 
   useEffect(() => {
     // Initial payload comes from the server; refetch on interaction or retry.
@@ -97,13 +101,14 @@ export function BacklogView({
   }, [debouncedSearch, perPage]);
 
   async function handleDelete() {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
     const target = deleteTarget;
-    setDeleteTarget(null);
+    setIsDeleting(true);
     try {
       await apiRequest<void>(`/api/games/${target._id}`, {
         method: "DELETE",
       });
+      setDeleteTarget(null);
       if (selectedGame?._id === target._id) setSelectedGame(null);
       router.refresh();
       await fetchGames();
@@ -111,6 +116,8 @@ export function BacklogView({
       setBanner(
         err instanceof ApiRequestError ? err.message : "Falha ao excluir",
       );
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -162,14 +169,19 @@ export function BacklogView({
         itemsPerPage={perPage}
         onItemsPerPageChange={setPerPage}
       />
-      <GameModal game={selectedGame} onClose={() => setSelectedGame(null)} />
+      <GameModal
+        game={selectedGame}
+        onClose={() => setSelectedGame(null)}
+        onUpdated={() => fetchGames()}
+      />
       {deleteTarget && (
         <ConfirmDialog
           title="Excluir jogo"
           message={`Remover "${deleteTarget.game?.name ?? "este jogo"}" da sua biblioteca? O jogo global será preservado.`}
           confirmLabel="Excluir"
+          isLoading={isDeleting}
           onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onCancel={() => !isDeleting && setDeleteTarget(null)}
         />
       )}
     </div>

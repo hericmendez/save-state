@@ -18,6 +18,12 @@ const UserGameSchema = new Schema(
     rating: { type: Number, min: 0, max: 10 },
     review: { type: String, trim: true },
     listIds: [{ type: Schema.Types.ObjectId, ref: "GameList" }],
+    favorite: { type: Boolean, default: false, index: true },
+    finished: { type: Boolean, default: false, index: true },
+    fullyCompleted: { type: Boolean, default: false, index: true },
+    achievements: { type: Boolean, default: false },
+    achievementProgress: { type: Number, min: 0, max: 100 },
+    achievementsCompleted: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
@@ -33,6 +39,12 @@ export interface UserGameDocument extends mongoose.Document {
   rating?: number;
   review?: string;
   listIds: Types.ObjectId[];
+  favorite: boolean;
+  finished: boolean;
+  fullyCompleted: boolean;
+  achievements: boolean;
+  achievementProgress?: number;
+  achievementsCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

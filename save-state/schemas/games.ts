@@ -57,6 +57,26 @@ export const listGamesQuerySchema = z.object({
   ...listQueryBase,
   releaseDateFrom: z.coerce.date().optional(),
   releaseDateTo: z.coerce.date().optional(),
+  favorite: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  finished: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  fullyCompleted: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  achievements: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  achievementsCompleted: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
 });
 
 export const gameIdParamSchema = z.object({ gameId: objectIdSchema });
@@ -74,7 +94,21 @@ const personalFieldsBase = {
   status: statusEnum.optional(),
   hoursPlayed: z.number().min(0).max(100000).optional(),
   timesFinished: z.number().int().min(0).max(10000).optional(),
+  favorite: z.boolean().optional(),
+  fullyCompleted: z.boolean().optional(),
+  achievements: z.boolean().optional(),
+  achievementProgress: z.number().int().min(0).max(100).nullable().optional(),
 };
+
+function validateAchievements(data: {
+  achievements?: boolean;
+  achievementProgress?: number | null;
+}): boolean {
+  if (data.achievements === false && data.achievementProgress !== undefined && data.achievementProgress !== null) {
+    return false;
+  }
+  return true;
+}
 
 export const createGameSchema = z
   .object({
@@ -92,6 +126,10 @@ export const createGameSchema = z
   })
   .refine((data) => data.gameId !== undefined || data.game !== undefined, {
     message: "either gameId or game metadata is required",
+  })
+  .refine(validateAchievements, {
+    message: "achievementProgress must be null when achievements is false",
+    path: ["achievementProgress"],
   });
 
 export const updateGameSchema = z
@@ -112,7 +150,11 @@ export const updateGameSchema = z
       Object.keys(data).length > 0 &&
       (data.game === undefined || Object.keys(data.game).length > 0),
     { message: "at least one field is required" },
-  );
+  )
+  .refine(validateAchievements, {
+    message: "achievementProgress must be null when achievements is false",
+    path: ["achievementProgress"],
+  });
 
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type UpdateGameInput = z.infer<typeof updateGameSchema>;

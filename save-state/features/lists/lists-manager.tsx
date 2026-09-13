@@ -16,6 +16,8 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
   const [deleteTarget, setDeleteTarget] = useState<GameList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function refresh() {
     try {
@@ -49,8 +51,9 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
   }
 
   async function handleRename(listId: string) {
-    if (!renamingName.trim()) return;
+    if (!renamingName.trim() || isRenaming) return;
     setError(null);
+    setIsRenaming(true);
     try {
       await apiRequest(`/api/game-lists/${listId}`, {
         method: "PATCH",
@@ -62,20 +65,25 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
       await refresh();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Falha ao renomear");
+    } finally {
+      setIsRenaming(false);
     }
   }
 
   async function handleDelete() {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
     const target = deleteTarget;
-    setDeleteTarget(null);
     setError(null);
+    setIsDeleting(true);
     try {
       await apiRequest(`/api/game-lists/${target._id}`, { method: "DELETE" });
+      setDeleteTarget(null);
       router.refresh();
       await refresh();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Falha ao excluir");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -126,16 +134,24 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
                     className="rpgui-button"
                     type="button"
                     onClick={() => handleRename(list._id)}
+                    disabled={isRenaming}
+                    aria-busy={isRenaming}
                   >
-                    Salvar
+                    {isRenaming ? "Salvando…" : "Salvar"}
                   </button>
                   <button
                     className="rpgui-button"
                     type="button"
                     onClick={() => setRenamingId(null)}
+                    disabled={isRenaming}
                   >
                     Cancelar
                   </button>
+                  {isRenaming && (
+                    <span className="font-display text-xs" aria-live="polite">
+                      [ Carregando... ]
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
@@ -179,8 +195,9 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
           title="Excluir lista"
           message={`Excluir a lista "${deleteTarget.name}"? Os jogos serão preservados.`}
           confirmLabel="Excluir"
+          isLoading={isDeleting}
           onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onCancel={() => !isDeleting && setDeleteTarget(null)}
         />
       )}
     </div>

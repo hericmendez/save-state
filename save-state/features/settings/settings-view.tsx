@@ -1,8 +1,11 @@
 "use client";
 
 import { useUiStore, type LayoutMode } from "@/features/shared/ui-store";
+import { ExportButtons } from "./export-buttons";
+import { UsernameForm } from "./username-form";
+import { PasswordForm } from "./password-form";
 
-export function SettingsView() {
+export function SettingsView({ initialUsername }: { initialUsername: string }) {
   const layoutMode = useUiStore((state) => state.layoutMode);
   const setLayoutMode = useUiStore((state) => state.setLayoutMode);
 
@@ -12,6 +15,7 @@ export function SettingsView() {
         <h1 className="font-display text-2xl">Configurações</h1>
       </header>
       <section className="rpgui-container framed-golden flex flex-col gap-3 p-4">
+        <h2 className="font-display">Aparência</h2>
         <label className="flex flex-col gap-1">
           Modo de layout
           <select
@@ -25,6 +29,18 @@ export function SettingsView() {
             <option value="fullscreen">Tela cheia</option>
           </select>
         </label>
+      </section>
+      <section className="rpgui-container framed-grey flex flex-col gap-3 p-4">
+        <h2 className="font-display">Usuário</h2>
+        <UsernameForm initialName={initialUsername} />
+        <div className="mt-4">
+          <h3 className="font-display text-sm">Alterar Senha</h3>
+          <PasswordForm />
+        </div>
+      </section>
+      <section className="rpgui-container framed-golden flex flex-col gap-3 p-4">
+        <h2 className="font-display">Exportar Dados</h2>
+        <ExportButtons />
       </section>
     </div>
   );

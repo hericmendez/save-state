@@ -76,7 +76,11 @@ export function Collection<T>({
       </div>
       {listHeader}
       {isLoading ? (
-        <p>Carregando…</p>
+        <div className="rpgui-container framed-grey p-4 text-center">
+          <p className="font-display text-sm" aria-live="polite">
+            [ Carregando... ]
+          </p>
+        </div>
       ) : error ? (
         <div className="rpgui-container framed-grey p-4">
           <p role="alert">{error}</p>

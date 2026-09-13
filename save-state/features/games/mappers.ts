@@ -19,6 +19,12 @@ export function toPlainGame(value: unknown): Game {
     listIds: Array.isArray(raw.listIds)
       ? (raw.listIds as unknown[]).map(String)
       : undefined,
+    favorite: raw.favorite as boolean | undefined,
+    finished: raw.finished as boolean | undefined,
+    fullyCompleted: raw.fullyCompleted as boolean | undefined,
+    achievements: raw.achievements as boolean | undefined,
+    achievementProgress: raw.achievementProgress as number | null | undefined,
+    achievementsCompleted: raw.achievementsCompleted as boolean | undefined,
     game:
       game === null
         ? null

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 
@@ -185,9 +185,12 @@ export function CatalogSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<AtpPreview | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   async function runSearch(nextQuery: string, nextPage: number) {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
     try {
@@ -199,11 +202,13 @@ export function CatalogSearch() {
       const page_ = await apiRequest<AtpSearchPage>(
         `/api/atp/search?${params.toString()}`,
       );
+      if (requestId !== requestIdRef.current) return;
       setResult(page_);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(err instanceof ApiRequestError ? err.message : "Falha na busca");
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   }
 
@@ -216,6 +221,7 @@ export function CatalogSearch() {
   }
 
   async function handlePreview(atpId: string) {
+    setIsPreviewLoading(true);
     setError(null);
     try {
       const detail = await apiRequest<AtpPreview>(
@@ -224,6 +230,8 @@ export function CatalogSearch() {
       setPreview(detail);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Falha ao carregar");
+    } finally {
+      setIsPreviewLoading(false);
     }
   }
 
@@ -271,8 +279,17 @@ export function CatalogSearch() {
           {error}
         </p>
       )}
+      {isPreviewLoading && (
+        <p className="rpgui-container framed-grey p-3 font-display text-xs" aria-live="polite">
+          [ Carregando detalhes... ]
+        </p>
+      )}
       {isLoading ? (
-        <p>Buscando…</p>
+        <div className="rpgui-container framed-grey p-4 text-center">
+          <p className="font-display text-sm" aria-live="polite">
+            [ Buscando... ]
+          </p>
+        </div>
       ) : result ? (
         result.data.length === 0 ? (
           <p>Nenhum jogo encontrado para “{submitted}”.</p>

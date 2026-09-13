@@ -22,6 +22,11 @@ export interface GameStats {
   averageRating: number | null;
   averageHoursPlayed: number;
   averageTimesFinished: number;
+  totalFinished: number;
+  totalFavorites: number;
+  totalFullyCompleted: number;
+  totalAchievementsCompleted: number;
+  averageAchievementProgress: number | null;
   byStatus: Distribution;
   byGenre: Distribution;
   byPlatform: Distribution;
@@ -55,6 +60,11 @@ export async function getGameStats(
     averageRating: number | null;
     averageHoursPlayed: number;
     averageTimesFinished: number;
+    totalFinished: number;
+    totalFavorites: number;
+    totalFullyCompleted: number;
+    totalAchievementsCompleted: number;
+    averageAchievementProgress: number | null;
   }>([
     { $match: query },
     {
@@ -66,6 +76,19 @@ export async function getGameStats(
         averageRating: { $avg: "$rating" },
         averageHoursPlayed: { $avg: "$hoursPlayed" },
         averageTimesFinished: { $avg: "$timesFinished" },
+        totalFinished: {
+          $sum: { $cond: [{ $gt: ["$timesFinished", 0] }, 1, 0] },
+        },
+        totalFavorites: {
+          $sum: { $cond: ["$favorite", 1, 0] },
+        },
+        totalFullyCompleted: {
+          $sum: { $cond: ["$fullyCompleted", 1, 0] },
+        },
+        totalAchievementsCompleted: {
+          $sum: { $cond: ["$achievementsCompleted", 1, 0] },
+        },
+        averageAchievementProgress: { $avg: "$achievementProgress" },
       },
     },
     { $project: { _id: 0 } },
@@ -146,6 +169,11 @@ export async function getGameStats(
     averageRating: totals?.averageRating ?? null,
     averageHoursPlayed: totals?.averageHoursPlayed ?? 0,
     averageTimesFinished: totals?.averageTimesFinished ?? 0,
+    totalFinished: totals?.totalFinished ?? 0,
+    totalFavorites: totals?.totalFavorites ?? 0,
+    totalFullyCompleted: totals?.totalFullyCompleted ?? 0,
+    totalAchievementsCompleted: totals?.totalAchievementsCompleted ?? 0,
+    averageAchievementProgress: totals?.averageAchievementProgress ?? null,
     byStatus: orderedByStatus,
     byGenre: toDistribution(facetResult?.byGenre ?? []),
     byPlatform: toDistribution(facetResult?.byPlatform ?? []),

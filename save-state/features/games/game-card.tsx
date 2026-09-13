@@ -40,8 +40,13 @@ export function GameCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute bottom-0 w-full p-3">
-          <h3 className="font-display text-sm">{game.game?.name ?? "Jogo"}</h3>
+          <h3 className="font-display text-sm">
+            {game.favorite ? "★ " : ""}
+            {game.game?.name ?? "Jogo"}
+          </h3>
           {game.status && <p className="text-xs capitalize">{game.status}</p>}
+          {game.finished && <p className="text-xs">Zerado {game.timesFinished}×</p>}
+          {game.fullyCompleted && <p className="text-xs">100% completo</p>}
           <button
             className="rpgui-button mt-2"
             type="button"
