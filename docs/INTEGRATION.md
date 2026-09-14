@@ -217,7 +217,10 @@ GlobalGame.source = atp
 
 ATP-originated metadata should be treated as a snapshot/reference to ATP rather than arbitrary user-editable canonical data.
 
-The exact synchronization policy is deferred until ATP integration is implemented.
+Synchronization policy (decided, ADR-024 decision C): imports are
+write-once snapshots. ATP changes do not propagate, Save State does not
+poll ATP on reads, and no background sync exists. ATP also persists no
+game summary, so ATP imports leave `GlobalGame.summary` unset by design.
 
 ---
 
@@ -311,6 +314,12 @@ Rules preserved from this document:
 * imports create `GlobalGame(source: "atp", atpDomainId)` snapshots plus
   `UserGame` rows through the existing mutation path (duplicate and race
   semantics unchanged);
+* `POST /api/atp/import` quarantines non-durable ATP identities
+  (`atp-unknown-*`, `admin-*`) with `UNSTABLE_ATP_IDENTITY` (422) before
+  any database or ATP access (ADR-024 decision F);
+* `GET /api/atp/games/:id` returns a warning-only `manualDuplicate`
+  signal on exact case-insensitive manual name matches — no merge, no
+  dedup (ADR-024 decision E);
 * no ATP service credential exists: server-to-server BFF access removes the
   browser dependency but does not itself make ATP's unauthenticated API
   private — a deliberate, recorded limitation, not a claim otherwise.

@@ -328,6 +328,14 @@ UserGame.gameId
 
 This allows ATP metadata to remain externally identified without replacing Save State's persistence identity.
 
+Implemented mapping (Phase 9, policy closed by ADR-024): the chain above
+is live. `GlobalGame._id` stays primary; `atpDomainId` is an optional,
+sparse-unique external reference; ATP imports are write-once snapshots
+with no synchronization. Terminology convention: `atpGameId`/`atpDomainId`
+= ATP `Game.domainId`; `GlobalGameId` = `GlobalGame._id`; `UserGameId` =
+`UserGame._id`. (The `/api/games/[gameId]` route param addresses a
+UserGame and is intentionally left renamed-out-of-scope.)
+
 ---
 
 # 12. ATP Boundary

@@ -529,6 +529,139 @@ This decision is a Phase 9 input, not a Phase 1 blocker, and may be revisited du
 
 ---
 
+## ADR-024 — Save State ↔ ATP Game Identity and Snapshot Policy
+
+### Status
+
+Accepted as domain-contract closure (Phase 9 follow-up, pre-Phase 10)
+
+### Context
+
+The system has three distinct game concepts:
+
+```text
+ATP Engine
+  Game
+    domainId            e.g. atp-wikipedia-6509467
+      ↓
+Save State
+  GlobalGame
+    _id                 primary Save State identity
+    atpDomainId         optional external reference
+      ↓
+  UserGame
+    user-specific state
+```
+
+ATP is the canonical game catalog (titles, releases, platforms, genres,
+developers, publishers, external identifiers, relationships, classification,
+completeness, evidence, cover metadata). ATP owns no user data.
+
+A domain audit (verdict: consistent with conditions) left open: snapshot
+semantics, manual-game coexistence, unstable ATP ID namespaces, the missing
+ATP summary, cover durability, and `gameId` terminology.
+
+### Decision
+
+**A — ATP is the canonical catalog.** When a game is imported through ATP,
+ATP is the canonical source of that catalog identity. Save State never
+becomes the canonical owner of it.
+
+**B — GlobalGame identity remains independent.** `GlobalGame._id` is the
+primary Save State identity and is never replaced by `atpDomainId`. The
+relationship is `ATP Game.domainId → GlobalGame.atpDomainId`, never
+`GlobalGame._id = ATP Game.domainId`.
+
+**C — ATP imports are snapshots (official V1 policy).** An imported
+GlobalGame is not a live mirror of ATP. After import, ATP changes do not
+propagate; Save State does not poll ATP on reads; there is no automatic
+re-import and no background synchronization. User-owned data remains fully
+independent. No synchronization is to be implemented under this ADR.
+
+**D — Manual GlobalGames remain valid.** `source = manual` with no
+`atpDomainId` and `source = atp` with `atpDomainId = ATP Game.domainId`
+are both first-class GlobalGames. Nothing forces every GlobalGame to
+carry an ATP identity.
+
+**E — No automatic manual ↔ ATP merge in V1 (intentional limitation).**
+A manual game and an ATP import of the same real-world game may coexist
+as separate GlobalGames. No automatic merging, no fuzzy deduplication,
+no UserGame rewrites. The preview endpoint exposes a deterministic,
+warning-only signal — an exact case-insensitive name match against an
+existing manual GlobalGame — with no destructive behavior attached.
+
+**F — Unstable ATP identities are quarantined at the BFF.** ATP fallback
+namespaces `atp-unknown-*` (discovery/sync persistence without external
+identifiers) and `admin-*` (manual admin creates) are not durable
+cross-system identities and are rejected by `POST /api/atp/import` with
+`UNSTABLE_ATP_IDENTITY` (422) before any database or ATP access.
+`discovery-*` IDs are transient (overwritten before ATP persistence) and
+therefore fail lookups naturally; they need no BFF rule. The ATP ID is
+otherwise opaque — no broader format restriction is imposed.
+
+**G — Summary gap is declared, not patched.** ATP persists no
+game summary/description on its canonical Game model, so ATP imports
+leave `GlobalGame.summary` unset. `summary` stays nullable; the ATP
+domain model is not expanded for symmetry. The UI renders summary only
+when present and assumes nothing.
+
+**H — Cover remains a snapshotted URL.** Import stores the selected ATP
+cover URL in `GlobalGame.cover`. No download, no media storage, no
+re-resolution, no expiration tracking. The URL may theoretically become
+unavailable later; that is accepted V1 behavior.
+
+**I — The API boundary is unchanged.** Browser → Save State `/api/atp/*`
+→ BFF → HTTP → ATP. The BFF authenticates the Save State session,
+validates input and ATP identity, shapes responses, translates errors,
+and forwards no cookies, Authorization headers, userIds, or UserGame
+data. ATP must not be exposed directly to the public internet in its
+current unauthenticated state; only the Save State BFF is a public
+surface. ATP authentication/authorization remains a future
+deployment/security task.
+
+**J — Terminology convention (no rename).** `atpGameId`/`atpDomainId` =
+ATP `Game.domainId`; `GlobalGameId` = `GlobalGame._id`; `UserGameId` =
+`UserGame._id`. The existing overloaded `gameId` (notably the
+`/api/games/[gameId]` route param, which addresses a UserGame) is left
+as-is to avoid scope creep; new documentation uses the convention above.
+
+### Reason
+
+The audit proved the plumbing (connectivity, BFF allowlist, find-or-create
+import, duplicate/concurrency protection, auth boundary, browser isolation)
+but left policy gaps that would otherwise become silent second sources of
+truth or corrupted references. Each decision above closes one gap with the
+smallest possible mechanism: documentation where behavior is already
+correct, a narrow import guard where ATP can emit non-durable IDs, and a
+warning-only signal where coexistence is possible but merging is out of
+scope.
+
+### Alternatives considered
+
+* Live ATP-backed GlobalGame view with sync/refresh — rejected: turns a
+  personal library into a remote dependency and contradicts snapshot
+  immutability (`GAME_METADATA_IMMUTABLE`).
+* Fuzzy manual↔ATP merge on import — rejected for V1: non-deterministic,
+  destructive-adjacent, and unnecessary for contract closure.
+* Broad ATP ID format allowlist in the BFF — rejected: ATP IDs are opaque
+  by design; only the two evidenced fallback namespaces are quarantined.
+* Adding `summary` to the ATP Game model — rejected: schema expansion for
+  symmetry, with no V1 product requirement behind it.
+
+### Consequences
+
+* `POST /api/atp/import` rejects `atp-unknown-*`/`admin-*` with a
+  domain-specific 422; all other ATP IDs flow unchanged.
+* `GET /api/atp/games/:id` may include `manualDuplicate: { name } | null`.
+* Manual/ATP duplicates remain possible and visible (via the warning),
+  never silent and never auto-merged.
+* Imported snapshots can drift from ATP over time; this is declared
+  policy, surfaced in integration docs.
+* ATP stays privately reachable only; its open admin/sync surface is a
+  recorded pre-deployment risk, not a redesigned system.
+
+---
+
 # Decision Discipline
 
 When proposing a new architectural decision, document:

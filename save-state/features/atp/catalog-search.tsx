@@ -41,6 +41,9 @@ export interface AtpPreview {
   }>;
   externalIdentifiers: Array<{ source: string; id: string }>;
   coverUrl: string | null;
+  // ADR-024 decision E: warning-only duplicate signal from the preview
+  // endpoint. Exact case-insensitive manual name match; never a merge.
+  manualDuplicate: { name: string } | null;
 }
 
 function useAtpCover(atpId: string): string | null {
@@ -157,6 +160,13 @@ function PreviewDialog({
               <strong>Publicadoras:</strong> {preview.publishers.join(", ")}
             </p>
           )}
+          {preview.manualDuplicate ? (
+            <p>
+              <strong>Atenção:</strong> você já tem o jogo manual{" "}
+              &ldquo;{preview.manualDuplicate.name}&rdquo;. Importar criará um
+              registro separado.
+            </p>
+          ) : null}
         </div>
         <div className="mt-4 flex gap-2">
           <button

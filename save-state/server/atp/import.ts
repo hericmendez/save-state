@@ -22,6 +22,7 @@ import {
   getAtpGameCover,
 } from "@/server/atp/client";
 import { mapAtpGameToSnapshot } from "@/server/atp/mapping";
+import { assertStableAtpIdentity } from "@/server/atp/identity";
 import type { AtpImportInput } from "@/schemas/atp";
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -64,6 +65,9 @@ export async function importAtpGame(
   userId: string,
   input: AtpImportInput,
 ): Promise<UserGameWithGame> {
+  // ADR-024 decision F: quarantine non-durable ATP identities before any
+  // database lookup or ATP call — fail fast, no durable reference created.
+  assertStableAtpIdentity(input.atpId);
   const globalGame = await findOrCreateSnapshotGlobalGame(input.atpId);
   if (globalGame.source !== "atp") {
     // Defensive: an atpDomainId must never alias a manual record.

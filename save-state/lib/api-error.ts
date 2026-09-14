@@ -31,6 +31,10 @@ export const ERROR_CODES = [
   "INVALID_ID",
   "ATP_UNAVAILABLE",
   "ATP_GAME_NOT_FOUND",
+  // Domain-contract closure (ADR-024): import guard for non-durable ATP
+  // identities. 422 (not 400) signals "syntactically valid, semantically
+  // unacceptable as a durable reference — do not retry with the same id".
+  "UNSTABLE_ATP_IDENTITY",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -68,6 +72,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   // Phase 9 ATP BFF codes.
   ATP_UNAVAILABLE: 503,
   ATP_GAME_NOT_FOUND: 404,
+  // ADR-024 ATP identity quarantine.
+  UNSTABLE_ATP_IDENTITY: 422,
 };
 
 export class ApiError extends Error {
