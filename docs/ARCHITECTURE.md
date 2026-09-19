@@ -536,6 +536,22 @@ Exact names may be chosen during implementation, but configuration must not be h
 
 Client-exposed configuration must be explicitly identified.
 
+## 19.1 Ecosystem Databases and Ports
+
+Each system owns its database. Names are intentionally distinct and must not be "standardized" into one:
+
+| System | Database | Default port | `MONGODB_URI` default |
+|---|---|---|---|
+| Save State (new, `save-state/`) | `save-state` | 27017 | `mongodb://localhost:27017/save-state` |
+| Save State API (legacy, `save-state-api/`) | `savestate` | 27018 (isolated dev, no auth) | `mongodb://localhost:27017/savestate` (fallback; real dev uses `.env` on 27018) |
+| ATP Engine (`atp-engine/`) | `atp-engine` | 27017 | `mongodb://localhost:27017/atp-engine` |
+
+Notes:
+
+* the legacy API uses port 27018 for its isolated dev instance (`pnpm mongo:dev`) so it never collides with a system Mongo on 27017;
+* the legacy seed (`pnpm seed`) writes only to the database named in `MONGODB_URI` and falls back to `mongodb://127.0.0.1:27018/savestate`;
+* environments do not share Mongo state: a catalog populated on one host (e.g. Linux) is not automatically present on another (e.g. Windows). No automatic database copying or syncing is performed.
+
 ---
 
 # 20. Deployment
