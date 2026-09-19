@@ -367,6 +367,22 @@ export async function updateGame(
   await connectDatabase();
   const userGame = await findOwnedUserGameOrThrow(userId, gameId);
 
+  // Permission for metadata edits is validated BEFORE any write: a
+  // rejected request must never partially commit personal changes.
+  const wantsMetadataEdit =
+    input.game !== undefined && Object.keys(input.game).length > 0;
+  let globalGame: GlobalGameDocument | null = null;
+  if (wantsMetadataEdit) {
+    globalGame = await GlobalGame.findById(userGame.gameId);
+    if (!globalGame || globalGame.source !== "manual") {
+      throw new ApiError(
+        "GAME_METADATA_IMMUTABLE",
+        "Metadata can only be edited on manually created games",
+        400,
+      );
+    }
+  }
+
   const personalUpdates: Record<string, unknown> = {};
   for (const field of [
     "status",
@@ -427,16 +443,8 @@ export async function updateGame(
   }
   await userGame.save();
 
-  if (input.game && Object.keys(input.game).length > 0) {
-    const globalGame = await GlobalGame.findById(userGame.gameId);
-    if (!globalGame || globalGame.source !== "manual") {
-      throw new ApiError(
-        "GAME_METADATA_IMMUTABLE",
-        "Metadata can only be edited on manually created games",
-        400,
-      );
-    }
-    const metadata = input.game;
+  if (wantsMetadataEdit && globalGame) {
+    const metadata = input.game!;
     if (metadata.name !== undefined) globalGame.name = metadata.name;
     if (metadata.cover !== undefined) globalGame.cover = metadata.cover;
     if (metadata.genres !== undefined) globalGame.genres = metadata.genres;
@@ -453,7 +461,7 @@ export async function updateGame(
     await globalGame.save();
   }
 
-  const game = await GlobalGame.findById(userGame.gameId);
+  const game = globalGame ?? (await GlobalGame.findById(userGame.gameId));
   return { ...userGame.toObject(), game: game! };
 }
 
