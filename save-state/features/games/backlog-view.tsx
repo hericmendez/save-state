@@ -1,104 +1,69 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type {
   Game,
   GameList,
-  PaginatedResponse,
   Pagination,
 } from "@/features/shared/types";
-import { toPlainGame } from "./mappers";
-import {
-  Collection,
-  type ViewMode,
-} from "./collection";
+import type { CollectionQuery } from "@/features/collection/collection-query";
+import { Collection } from "./collection";
 import { GameCard } from "./game-card";
 import { GameListItem } from "./game-list-item";
 import { GameModal } from "./game-modal";
 import { ConfirmDialog } from "./confirm-dialog";
-
-function useDebouncedValue(value: string, delay = 300): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
+import { UserGameFilters } from "./user-game-filters";
+import { hasActiveLibraryFilters } from "./user-game-query";
+import { useUserGameCollection } from "./use-user-game-collection";
 
 export function BacklogView({
   initialGames,
   initialPagination,
+  initialQuery,
   lists,
   listId,
   listName,
   favorite,
+  withoutList,
+  emptyMessage = "Nenhum jogo encontrado.",
 }: {
   initialGames: Game[];
   initialPagination: Pagination;
+  initialQuery: CollectionQuery;
   lists: GameList[];
   listId?: string;
   listName?: string;
   favorite?: boolean;
+  withoutList?: boolean;
+  emptyMessage?: string;
 }) {
   const router = useRouter();
-  const [games, setGames] = useState<Game[]>(initialGames);
-  const [pagination, setPagination] = useState<Pagination | null>(
+  const {
+    query,
+    searchInput,
+    setSearchInput,
+    updateQuery,
+    updateFilters,
+    filterDraft,
+    games,
+    pagination,
+    isLoading,
+    error,
+    refresh,
+    retry,
+  } = useUserGameCollection({
+    initialQuery,
+    initialGames,
     initialPagination,
-  );
-  const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+    scope: { favorite, withoutList, listId },
+  });
+
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Game | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const debouncedSearch = useDebouncedValue(search.trim());
-  const firstLoad = useRef(true);
-
-  const fetchGames = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(perPage),
-      });
-      if (debouncedSearch) params.set("search", debouncedSearch);
-      if (listId) params.set("listId", listId);
-      if (favorite) params.set("favorite", "true");
-      const result = await apiRequest<PaginatedResponse<Game>>(
-        `/api/games?${params.toString()}`,
-      );
-      setGames(result.data.map(toPlainGame));
-      setPagination(result.pagination);
-    } catch (err) {
-      setError(
-        err instanceof ApiRequestError ? err.message : "Falha ao carregar jogos",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, perPage, debouncedSearch, listId, favorite]);
-
-  useEffect(() => {
-    // Initial payload comes from the server; refetch on interaction or retry.
-    if (firstLoad.current) {
-      firstLoad.current = false;
-      return;
-    }
-    fetchGames();
-  }, [fetchGames, reloadKey]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, perPage]);
 
   async function handleDelete() {
     if (!deleteTarget || isDeleting) return;
@@ -110,8 +75,7 @@ export function BacklogView({
       });
       setDeleteTarget(null);
       if (selectedGame?._id === target._id) setSelectedGame(null);
-      router.refresh();
-      await fetchGames();
+      refresh();
     } catch (err) {
       setBanner(
         err instanceof ApiRequestError ? err.message : "Falha ao excluir",
@@ -124,13 +88,14 @@ export function BacklogView({
   return (
     <div className="flex flex-col gap-4">
       <header className="rpgui-container framed-grey p-4">
-        <h1 className="font-display text-2xl">{listName ?? "Meus jogos"}</h1>
+        <h1 className="font-display text-2xl">{listName ?? "Jogos"}</h1>
       </header>
       {banner && (
         <p role="alert" className="rpgui-container framed-grey p-3">
           {banner}
         </p>
       )}
+      <UserGameFilters draft={filterDraft} onChange={updateFilters} />
       <Collection
         items={games}
         getItemKey={(game) => game._id}
@@ -141,7 +106,7 @@ export function BacklogView({
             onDetails={() => setSelectedGame(game)}
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
-            onListChanged={() => fetchGames()}
+            onListChanged={() => refresh()}
             onError={setBanner}
           />
         )}
@@ -152,27 +117,32 @@ export function BacklogView({
             onDetails={() => setSelectedGame(game)}
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
-            onListChanged={() => fetchGames()}
+            onListChanged={() => refresh()}
             onError={setBanner}
           />
         )}
-        search={search}
-        onSearchChange={setSearch}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        viewMode={query.viewMode}
+        onViewModeChange={(mode) => updateQuery({ viewMode: mode }, false)}
         isLoading={isLoading}
         error={error}
-        onRetry={() => setReloadKey((key) => key + 1)}
+        onRetry={retry}
+        emptyMessage={
+          hasActiveLibraryFilters(query)
+            ? "Nenhum jogo corresponde aos filtros."
+            : emptyMessage
+        }
         pagination={pagination}
-        currentPage={page}
-        onPageChange={setPage}
-        itemsPerPage={perPage}
-        onItemsPerPageChange={setPerPage}
+        currentPage={query.page}
+        onPageChange={(page) => updateQuery({ page }, false)}
+        itemsPerPage={query.limit}
+        onItemsPerPageChange={(limit) => updateQuery({ limit })}
       />
       <GameModal
         game={selectedGame}
         onClose={() => setSelectedGame(null)}
-        onUpdated={() => fetchGames()}
+        onUpdated={() => refresh()}
       />
       {deleteTarget && (
         <ConfirmDialog

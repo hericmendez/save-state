@@ -2,6 +2,7 @@
 
 import type { Game, GameList } from "@/features/shared/types";
 import { GameContextMenu } from "./game-context-menu";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function GameCard({
   game,
@@ -33,7 +34,7 @@ export function GameCard({
       <article className="rpgui-container framed-golden relative aspect-[3/4] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/yugioh.png"
+          src={game.game?.cover || "/yugioh.png"}
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
@@ -47,13 +48,7 @@ export function GameCard({
           {game.status && <p className="text-xs capitalize">{game.status}</p>}
           {game.finished && <p className="text-xs">Zerado {game.timesFinished}×</p>}
           {game.fullyCompleted && <p className="text-xs">100% completo</p>}
-          <button
-            className="rpgui-button mt-2"
-            type="button"
-            onClick={onDetails}
-          >
-            Detalhes
-          </button>
+            <RPGUIButton type="button" title="Detalhes" onClick={onDetails} className="mt-2" />
         </div>
       </article>
     </GameContextMenu>

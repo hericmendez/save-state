@@ -3,54 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useListModalStore } from "@/features/lists/list-modal-store";
+import RPGUIButton from "@/components/RPGUI/Button";
+import { NAV_STRUCTURE, flattenNavPaths, type NavEntry } from "./nav-structure";
 
-export interface NavEntry {
-  id: string;
-  title: string;
-  path?: string;
-  action?: "create-list";
-  children?: NavEntry[];
-}
-
-export const NAV_STRUCTURE: NavEntry[] = [
-  { id: "home", title: "Home", path: "/" },
-  { id: "dashboard", title: "Dashboard", path: "/dashboard" },
-  {
-    id: "buscar-jogos",
-    title: "Buscar Jogos",
-    children: [
-      { id: "busca-geral", title: "Busca Geral", path: "/catalog" },
-      { id: "por-plataforma", title: "Por Plataforma", path: "/catalog/plataformas" },
-    ],
-  },
-  {
-    id: "games",
-    title: "Meus Jogos",
-    children: [
-      { id: "new-game", title: "Novo Jogo", path: "/backlog/new" },
-      { id: "all-games", title: "Todos os Jogos", path: "/backlog" },
-      { id: "favorites", title: "Favoritos", path: "/backlog/favoritos" },
-    ],
-  },
-  {
-    id: "lists",
-    title: "Minhas Listas",
-    children: [
-      { id: "new-list", title: "Nova Lista", action: "create-list" },
-      { id: "custom-lists", title: "Listas Personalizadas", path: "/backlog/lists" },
-    ],
-  },
-  { id: "settings", title: "Configurações", path: "/settings" },
-];
-
-export function flattenNavPaths(entries: NavEntry[]): string[] {
-  const paths: string[] = [];
-  for (const entry of entries) {
-    if (entry.path) paths.push(entry.path);
-    if (entry.children) paths.push(...flattenNavPaths(entry.children));
-  }
-  return paths;
-}
+export type { NavEntry };
+export { NAV_STRUCTURE, flattenNavPaths };
 
 function NavLink({
   entry,
@@ -64,29 +21,16 @@ function NavLink({
   onNavigate?: () => void;
 }) {
   const isActive = entry.path === pathname;
+
   return (
-    <Link
-      href={entry.path ?? "#"}
-      onClick={onNavigate}
-      className={`
-        rpgui-button ${isChild ? "!h-[50px] golden mx-4 text-sm md:text-lg" : ""}
-
-        w-full
-        text-lg
-        md:text-2xl
-        flex
-        items-center
-        justify-center
-
-        transition
-        duration-300
-        ease-in-out
-        ${isActive ? "down" : ""}
-      `}
-    >
-      <span>
-        <strong>{entry.title}</strong>
-      </span>
+    <Link href={entry.path ?? "#"} onClick={onNavigate} className="w-full">
+      <RPGUIButton
+        title={entry.title}
+        golden={!isChild}
+        className={`w-full         
+          ${isActive ? "down" : ""}
+        `}
+      />{" "}
     </Link>
   );
 }
@@ -95,39 +39,28 @@ export function NavItem({
   entry,
   pathname,
   onNavigate,
+  isChild = false,
 }: {
   entry: NavEntry;
   pathname: string;
   onNavigate?: () => void;
+  isChild?: boolean;
 }) {
-  const openListModal = useListModalStore((s) => s.open);
+  const openListModal = useListModalStore((state) => state.open);
+
   if (entry.action === "create-list") {
     return (
-      <button
+      <RPGUIButton
         type="button"
+        title={entry.title}
+        golden={!isChild}
+        className="w-full"
         onClick={() => {
           onNavigate?.();
           openListModal();
         }}
-        className="
-        rpgui-button !h-[50px] golden mx-4 text-sm md:text-lg
-
-        w-full
-        text-lg
-        md:text-2xl
-        flex
-        items-center
-        justify-center
-
-        transition
-        duration-300
-        ease-in-out
-      "
-      >
-        <span>
-          <strong>{entry.title}</strong>
-        </span>
-      </button>
+        
+      />
     );
   }
 
@@ -137,6 +70,7 @@ export function NavItem({
     return (
       <NavLink
         entry={entry}
+        isChild={isChild}
         pathname={pathname}
         onNavigate={onNavigate}
       />
@@ -153,6 +87,7 @@ export function NavItem({
       pathname={pathname}
       onNavigate={onNavigate}
       hasActiveChild={!!hasActiveChild}
+      isChild={isChild}
     />
   );
 }
@@ -162,41 +97,27 @@ function NavItemGroup({
   pathname,
   onNavigate,
   hasActiveChild,
+  isChild,
 }: {
   entry: NavEntry;
   pathname: string;
   onNavigate?: () => void;
   hasActiveChild: boolean;
+  isChild: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(hasActiveChild);
 
   return (
     <div className="w-full">
-      <button
+      <RPGUIButton
         type="button"
+        title={entry.title}
+        golden
         onClick={() => setIsOpen((previous) => !previous)}
-        className={`
-          rpgui-button
-
-          w-full
-          text-lg
-          md:text-2xl
-          flex
-          items-center
-          justify-center
-
-          transition
-          duration-300
-          ease-in-out
-          ${hasActiveChild ? "down" : ""}
-        `}
+        className={`w-full ${hasActiveChild ? "down" : ""}`}
       >
-        <span>
-          <strong>{entry.title}</strong>
-        </span>
-
-        <span className="ml-3">{isOpen ? "⌃" : "⌄"}</span>
-      </button>
+        {isOpen ? "⌃" : "⌄"}
+      </RPGUIButton>
 
       {isOpen && (
         <div className="mt-2 mx-4 space-y-2">
@@ -206,6 +127,7 @@ function NavItemGroup({
               entry={child}
               pathname={pathname}
               onNavigate={onNavigate}
+              isChild
             />
           ))}
         </div>

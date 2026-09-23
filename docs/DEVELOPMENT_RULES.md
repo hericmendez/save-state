@@ -304,3 +304,19 @@ The agent should stop and ask the user when:
 Do not guess when guessing could alter the architecture.
 
 ---
+
+# 20. Parallel Development Sessions
+
+This is an operational recommendation, not an application bug fix.
+
+One `next dev` instance must use a working tree at a time. Parallel
+sessions must not run `next dev` simultaneously while sharing the same
+directory (and therefore the same `.next` folder): concurrent dev
+servers can cause transient inconsistencies in route manifests and
+compiled route artifacts (sporadic HTML 404s or `ENOENT` for route
+chunks that exist in source).
+
+This does not represent an Activity Feed bug, does not change any
+production configuration, and requires no locking mechanism or code.
+
+---

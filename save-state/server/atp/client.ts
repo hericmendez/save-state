@@ -21,11 +21,16 @@ import { logger } from "@/server/shared/logger";
 import { atpIdSchema } from "@/schemas/atp";
 import {
   atpCoverResponseSchema,
+  atpCoverSearchResponseSchema,
   atpErrorSchema,
   atpGameSchema,
+  atpPlatformListResponseSchema,
+  atpPlatformSchema,
   atpSearchResponseSchema,
   type AtpCoverResponse,
   type AtpGame,
+  type AtpPlatform,
+  type AtpPlatformListResponse,
   type AtpSearchResponse,
 } from "@/server/atp/schemas";
 
@@ -167,24 +172,68 @@ export interface AtpSearchParams {
   q: string;
   page: number;
   limit: number;
+  platform?: string;
+  genre?: string;
+  year?: number;
+  developer?: string;
+  publisher?: string;
+  family?: string;
+  discover?: boolean;
+}
+
+function hasSearchFilters(params: AtpSearchParams): boolean {
+  return (
+    params.platform !== undefined ||
+    params.genre !== undefined ||
+    params.year !== undefined ||
+    params.developer !== undefined ||
+    params.publisher !== undefined ||
+    params.family !== undefined
+  );
 }
 
 export async function searchAtpGames(
   params: AtpSearchParams,
 ): Promise<AtpSearchResponse> {
+  // Routing rule (audited contract): bare text search uses ATP
+  // GET /api/v1/games/search (DB-first with live-discovery fallback).
+  // Any refinement filter — or a filter-only browse without text — switches
+  // to ATP GET /api/v1/games, the pure-DB deterministic listing. Discovery
+  // results are unfiltered by nature and must never silently narrow a
+  // filtered query. Both endpoints share the same paginated GameResponse
+  // envelope.
+  if (!hasSearchFilters(params) && params.q !== "") {
+    const query = new URLSearchParams({
+      q: params.q,
+      page: String(params.page),
+      limit: String(params.limit),
+    });
+    // Metadata lookup explicitly opts into live discovery on catalog
+    // miss; browsing stays database-only unless requested.
+    if (params.discover === true) query.set("discover", "true");
+    return atpFetch(`/api/v1/games/search?${query.toString()}`, atpSearchResponseSchema, {
+      timeoutMs: ATP_SEARCH_TIMEOUT_MS,
+      route: "GET /api/v1/games/search",
+    });
+  }
   const query = new URLSearchParams({
-    q: params.q,
     page: String(params.page),
     limit: String(params.limit),
   });
-  return atpFetch(`/api/v1/games/search?${query.toString()}`, atpSearchResponseSchema, {
+  if (params.q !== "") query.set("search", params.q);
+  if (params.platform !== undefined) query.set("platform", params.platform);
+  if (params.genre !== undefined) query.set("genre", params.genre);
+  if (params.year !== undefined) query.set("releaseYear", String(params.year));
+  if (params.developer !== undefined) query.set("developer", params.developer);
+  if (params.publisher !== undefined) query.set("publisher", params.publisher);
+  if (params.family !== undefined) query.set("platformFamily", params.family);
+  return atpFetch(`/api/v1/games?${query.toString()}`, atpSearchResponseSchema, {
     timeoutMs: ATP_SEARCH_TIMEOUT_MS,
-    route: "GET /api/v1/games/search",
+    route: "GET /api/v1/games",
   });
 }
 
-export async function getAtpGame(id: string): Promise<AtpGame> {
-  assertValidAtpId(id);
+export async function getAtpGame(id: string): Promise<AtpGame> {  assertValidAtpId(id);
   const data = await atpFetch(
     `/api/v1/games/${encodeURIComponent(id)}`,
     z.object({ data: atpGameSchema }).passthrough(),
@@ -198,6 +247,74 @@ export interface AtpCover {
   width: number | null;
   height: number | null;
   source: string | null;
+}
+
+export interface AtpCoverSearchResult {
+  url: string;
+  source: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface AtpPlatformListParams {
+  companyName?: string;
+  platformStatus?: string;
+  releaseYear?: number;
+  showEmptyPlatforms?: boolean;
+  page: number;
+  limit: number;
+  sort?: "name" | "releaseYear" | "gameCount";
+  order?: "asc" | "desc";
+}
+
+export async function listAtpPlatforms(
+  params: AtpPlatformListParams,
+): Promise<AtpPlatformListResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit),
+  });
+  if (params.companyName !== undefined) query.set("companyName", params.companyName);
+  if (params.platformStatus !== undefined) query.set("platformStatus", params.platformStatus);
+  if (params.releaseYear !== undefined) query.set("releaseYear", String(params.releaseYear));
+  if (params.showEmptyPlatforms === true) query.set("showEmptyPlatforms", "true");
+  if (params.sort !== undefined) query.set("sort", params.sort);
+  if (params.order !== undefined) query.set("order", params.order);
+  return atpFetch(`/api/v1/platforms/summary?${query.toString()}`, atpPlatformListResponseSchema, {
+    timeoutMs: ATP_SEARCH_TIMEOUT_MS,
+    route: "GET /api/v1/platforms/summary",
+  });
+}
+
+export async function getAtpPlatform(id: string): Promise<AtpPlatform> {
+  // Catalog slugs share the opaque-id charset; same SSRF-safe validation.
+  assertValidAtpId(id);
+  const data = await atpFetch(
+    `/api/v1/platforms/${encodeURIComponent(id)}`,
+    z.object({ data: atpPlatformSchema }).passthrough(),
+    { timeoutMs: ATP_SEARCH_TIMEOUT_MS, route: "GET /api/v1/platforms/:platformId" },
+  );
+  return data.data;
+}
+
+export async function searchAtpCovers(
+  params: { q: string; limit: number },
+): Promise<AtpCoverSearchResult[]> {
+  const query = new URLSearchParams({
+    q: params.q,
+    limit: String(params.limit),
+  });
+  const data = await atpFetch(
+    `/api/v1/covers/search?${query.toString()}`,
+    atpCoverSearchResponseSchema,
+    { timeoutMs: ATP_SEARCH_TIMEOUT_MS, route: "GET /api/v1/covers/search" },
+  );
+  return data.data.candidates.map((candidate) => ({
+    url: candidate.url,
+    source: candidate.source ?? null,
+    width: candidate.width ?? null,
+    height: candidate.height ?? null,
+  }));
 }
 
 export async function getAtpGameCover(id: string): Promise<AtpCover | null> {

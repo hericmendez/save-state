@@ -6,6 +6,9 @@
 export interface GlobalGameSummary {
   _id?: string;
   name: string;
+  // Catalog origin. ATP snapshots are metadata-immutable; the edit form
+  // uses this to lock metadata fields (personal fields stay editable).
+  source?: "manual" | "atp";
   cover?: string | null;
   genres?: string[];
   platforms?: string[];

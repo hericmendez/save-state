@@ -31,6 +31,10 @@ export function toPlainGame(value: unknown): Game {
         : {
             _id: game._id === undefined ? undefined : String(game._id),
             name: String(game.name),
+            source:
+              game.source === "manual" || game.source === "atp"
+                ? game.source
+                : undefined,
             cover: (game.cover as string | null | undefined) ?? undefined,
             genres: (game.genres as string[] | undefined) ?? undefined,
             platforms: (game.platforms as string[] | undefined) ?? undefined,

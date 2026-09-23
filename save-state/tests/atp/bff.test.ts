@@ -5,6 +5,7 @@ import { POST as login } from "@/app/api/auth/login/route";
 import { GET as search } from "@/app/api/atp/search/route";
 import { GET as detail } from "@/app/api/atp/games/[id]/route";
 import { GET as cover } from "@/app/api/atp/games/[id]/cover/route";
+import { GET as coversSearch } from "@/app/api/atp/covers/search/route";
 import { POST as importGame } from "@/app/api/atp/import/route";
 import { GET as listGames } from "@/app/api/games/route";
 import { GlobalGame } from "@/db/models/global-game";
@@ -123,10 +124,120 @@ describe("GET /api/atp/search", () => {
           year: 1995,
           platforms: ["SNES", "PlayStation"],
           genres: ["RPG"],
+          owned: false,
         },
       ],
-      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
     });
+  });
+
+  it("derives paging flags absent from the ATP envelope", async () => {
+    stubAtp((path) => {
+      if (path === "/api/v1/games/search") {
+        return jsonResponse({
+          data: [ATP_GAME_FIXTURE],
+          pagination: { page: 2, limit: 1, total: 3, totalPages: 3 },
+        });
+      }
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await search(authed("/api/atp/search?q=chrono&page=2&limit=1", token));
+    expect(response.status).toBe(200);
+    expect((await response.json()).pagination).toEqual({
+      page: 2,
+      limit: 1,
+      total: 3,
+      totalPages: 3,
+      hasNextPage: true,
+      hasPreviousPage: true,
+    });
+  });
+
+  it("excludes unstable ATP identities from search cards", async () => {
+    const junk = {
+      id: "atp-unknown-1789413911077",
+      titles: [{ value: "Junk Game", type: "primary" }],
+      releases: [],
+      developers: [],
+      publishers: [],
+      genres: [],
+      externalIdentifiers: [],
+    };
+    const admin = { ...junk, id: "admin-123" };
+    stubAtp((path) => {
+      if (path === "/api/v1/games/search") {
+        return jsonResponse({
+          data: [junk, ATP_GAME_FIXTURE, admin],
+          pagination: { page: 1, limit: 20, total: 3, totalPages: 1 },
+        });
+      }
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=junk", token),
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    // Only the stable canonical candidate is selectable; unstable
+    // identities would preview empty metadata and apply empty patches.
+    expect(body.data.map((card: { atpId: string }) => card.atpId)).toEqual([ATP_ID]);
+  });
+
+  it("forwards an explicit discover opt-in to ATP search", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.startsWith("http://atp.test")) {
+          seen.push(url);
+          return jsonResponse({
+            data: [ATP_GAME_FIXTURE],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          });
+        }
+        throw new Error(`unexpected fetch: ${url}`);
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=zelda&discover=true", token),
+    );
+    expect(response.status).toBe(200);
+    expect(seen).toEqual([
+      "http://atp.test/api/v1/games/search?q=zelda&page=1&limit=20&discover=true",
+    ]);
+  });
+
+  it("omits discover on ATP search by default", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.startsWith("http://atp.test")) {
+          seen.push(url);
+          return jsonResponse({
+            data: [ATP_GAME_FIXTURE],
+            pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          });
+        }
+        throw new Error(`unexpected fetch: ${url}`);
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(authed("/api/atp/search?q=zelda", token));
+    expect(response.status).toBe(200);
+    expect(seen).toEqual(["http://atp.test/api/v1/games/search?q=zelda&page=1&limit=20"]);
   });
 
   it("validates the query with INVALID_QUERY", async () => {
@@ -134,6 +245,168 @@ describe("GET /api/atp/search", () => {
     const response = await search(authed("/api/atp/search", token));
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe("INVALID_QUERY");
+  });
+
+  it("routes filtered searches to the deterministic ATP listing", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        seen.push(url);
+        return jsonResponse({
+          data: [ATP_GAME_FIXTURE],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        });
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(
+      authed(
+        "/api/atp/search?q=chrono&platform=SNES&genre=RPG&year=1995",
+        token,
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(seen).toHaveLength(1);
+    const called = new URL(seen[0]);
+    expect(called.pathname).toBe("/api/v1/games");
+    expect(called.searchParams.get("search")).toBe("chrono");
+    expect(called.searchParams.get("platform")).toBe("SNES");
+    expect(called.searchParams.get("genre")).toBe("RPG");
+    expect(called.searchParams.get("releaseYear")).toBe("1995");
+    const body = await response.json();
+    expect(body.data[0]).toMatchObject({ atpId: ATP_ID, name: "Chrono Trigger" });
+  });
+
+  it("rejects an out-of-range year with INVALID_QUERY", async () => {
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=chrono&year=1800", token),
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("INVALID_QUERY");
+  });
+
+  it("strips non-allowlisted params instead of forwarding them", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        seen.push(String(input));
+        return jsonResponse({
+          data: [],
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        });
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=chrono&classification=GAME&admin=true", token),
+    );
+    expect(response.status).toBe(200);
+    expect(seen).toHaveLength(1);
+    const called = new URL(seen[0]);
+    expect(called.pathname).toBe("/api/v1/games/search");
+    expect(called.searchParams.has("classification")).toBe(false);
+    expect(called.searchParams.has("admin")).toBe(false);
+  });
+
+  it("returns empty results for filtered searches with no match", async () => {
+    stubAtp(() =>
+      jsonResponse({
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=chrono&platform=Atari", token),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    });
+  });
+
+  it("normalizes ATP failures on the filtered listing", async () => {
+    stubAtp(() => jsonResponse({ error: { code: "BOOM" } }, 500));
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?q=chrono&genre=RPG", token),
+    );
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("ATP_UNAVAILABLE");
+  });
+
+  it("browses by platform without text through the listing", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        seen.push(String(input));
+        return jsonResponse({
+          data: [ATP_GAME_FIXTURE],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        });
+      }),
+    );
+    const token = await tokenFor();
+    const response = await search(
+      authed("/api/atp/search?platform=SNES", token),
+    );
+    expect(response.status).toBe(200);
+    expect(seen).toHaveLength(1);
+    const called = new URL(seen[0]);
+    expect(called.pathname).toBe("/api/v1/games");
+    expect(called.searchParams.has("search")).toBe(false);
+    expect(called.searchParams.get("platform")).toBe("SNES");
+  });
+
+  it("rejects empty text without filters", async () => {
+    const token = await tokenFor();
+    const response = await search(authed("/api/atp/search?q=++", token));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("INVALID_QUERY");
+  });
+
+  it("forwards developer and publisher to the correct ATP dimensions", async () => {
+    const seen: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown) => {
+        seen.push(String(input));
+        return jsonResponse({
+          data: [ATP_GAME_FIXTURE],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        });
+      }),
+    );
+    const token = await tokenFor();
+    const dev = await search(
+      authed("/api/atp/search?developer=Nintendo", token),
+    );
+    expect(dev.status).toBe(200);
+    const devUrl = new URL(seen[0]);
+    expect(devUrl.pathname).toBe("/api/v1/games");
+    expect(devUrl.searchParams.get("developer")).toBe("Nintendo");
+    expect(devUrl.searchParams.has("publisher")).toBe(false);
+
+    const pub = await search(
+      authed("/api/atp/search?publisher=Nintendo", token),
+    );
+    expect(pub.status).toBe(200);
+    const pubUrl = new URL(seen[1]);
+    expect(pubUrl.searchParams.get("publisher")).toBe("Nintendo");
+    expect(pubUrl.searchParams.has("developer")).toBe(false);
   });
 });
 
@@ -159,6 +432,60 @@ describe("GET /api/atp/games/:id", () => {
     expect(body.data).not.toHaveProperty("evidence");
   });
 
+  it("exposes full release dates alongside the year", async () => {
+    stubAtp((path) => {
+      if (path === `/api/v1/games/${ATP_ID}`) return jsonResponse(atpGamePayload());
+      if (path === `/api/v1/games/${ATP_ID}/cover`) return jsonResponse(atpCoverPayload());
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await detail(authed(`/api/atp/games/${ATP_ID}`, token), params);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data.releases[0]).toMatchObject({
+      platform: "SNES",
+      year: 1995,
+      month: 3,
+      day: 11,
+      precision: "day",
+    });
+    expect(body.data.releases[1]).toMatchObject({
+      platform: "PlayStation",
+      year: 1999,
+      month: null,
+      day: null,
+    });
+  });
+
+  it("passes ATP description through as preview summary", async () => {
+    stubAtp((path) => {
+      if (path === `/api/v1/games/${ATP_ID}`) {
+        return jsonResponse({
+          data: { ...ATP_GAME_FIXTURE, description: "A time-traveling RPG." },
+          origin: "database",
+        });
+      }
+      if (path === `/api/v1/games/${ATP_ID}/cover`) return jsonResponse(atpCoverPayload());
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await detail(authed(`/api/atp/games/${ATP_ID}`, token), params);
+    expect(response.status).toBe(200);
+    expect((await response.json()).data.summary).toBe("A time-traveling RPG.");
+  });
+
+  it("returns a null preview summary when ATP has no description", async () => {
+    stubAtp((path) => {
+      if (path === `/api/v1/games/${ATP_ID}`) return jsonResponse(atpGamePayload());
+      if (path === `/api/v1/games/${ATP_ID}/cover`) return jsonResponse(atpCoverPayload());
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await detail(authed(`/api/atp/games/${ATP_ID}`, token), params);
+    expect(response.status).toBe(200);
+    expect((await response.json()).data.summary).toBeNull();
+  });
+
   it("maps unknown ATP ids to ATP_GAME_NOT_FOUND", async () => {
     stubAtp(() => jsonResponse({ error: { code: "NOT_FOUND" } }, 404));
     const token = await tokenFor();
@@ -168,6 +495,21 @@ describe("GET /api/atp/games/:id", () => {
     );
     expect(response.status).toBe(404);
     expect((await response.json()).error.code).toBe("ATP_GAME_NOT_FOUND");
+  });
+
+  it("rejects unstable ATP identities before any ATP access", async () => {
+    const atpFetch = vi.fn(async () => {
+      throw new Error("ATP must not be contacted for unstable identities");
+    });
+    vi.stubGlobal("fetch", atpFetch);
+    const token = await tokenFor();
+    const response = await detail(
+      authed("/api/atp/games/atp-unknown-1789413911077", token),
+      { params: Promise.resolve({ id: "atp-unknown-1789413911077" }) },
+    );
+    expect(response.status).toBe(422);
+    expect((await response.json()).error.code).toBe("UNSTABLE_ATP_IDENTITY");
+    expect(atpFetch).not.toHaveBeenCalled();
   });
 
   it("reports no manual duplicate when names do not match", async () => {
@@ -233,6 +575,85 @@ describe("GET /api/atp/games/:id/cover", () => {
     const response = await cover(authed(`/api/atp/games/${ATP_ID}/cover`, token), params);
     expect(response.status).toBe(200);
     expect((await response.json()).data.coverUrl).toBeNull();
+  });
+});
+
+describe("GET /api/atp/covers/search", () => {
+  function atpCoverSearchPayload() {
+    return {
+      data: {
+        query: "chrono",
+        type: "cover",
+        limit: 6,
+        selected: null,
+        candidates: [
+          { url: "https://img.example/c1.jpg", source: "steam", width: 300, height: 400 },
+          { url: "https://img.example/c2.jpg", source: "wikipedia" },
+        ],
+        errors: [],
+      },
+      origin: "scraper",
+    };
+  }
+
+  it("requires authentication", async () => {
+    const response = await coversSearch(
+      new NextRequest("http://localhost/api/atp/covers/search?q=x"),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("returns flattened cover candidates", async () => {
+    stubAtp((path) => {
+      if (path === "/api/v1/covers/search") return jsonResponse(atpCoverSearchPayload());
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await coversSearch(
+      authed("/api/atp/covers/search?q=chrono", token),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: [
+        { url: "https://img.example/c1.jpg", source: "steam", width: 300, height: 400 },
+        { url: "https://img.example/c2.jpg", source: "wikipedia", width: null, height: null },
+      ],
+    });
+  });
+
+  it("returns an empty list when ATP finds no covers", async () => {
+    stubAtp((path) => {
+      if (path === "/api/v1/covers/search") {
+        return jsonResponse({
+          data: { query: "zzz", candidates: [], errors: [] },
+          origin: "scraper",
+        });
+      }
+      return jsonResponse({ error: { code: "NOT_FOUND" } }, 404);
+    });
+    const token = await tokenFor();
+    const response = await coversSearch(
+      authed("/api/atp/covers/search?q=zzz-no-cover", token),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: [] });
+  });
+
+  it("validates the query with INVALID_QUERY", async () => {
+    const token = await tokenFor();
+    const response = await coversSearch(authed("/api/atp/covers/search", token));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("INVALID_QUERY");
+  });
+
+  it("maps ATP failures to ATP_UNAVAILABLE without leaking", async () => {
+    stubAtp(() => jsonResponse({ error: { code: "SOURCE_ERROR" } }, 502));
+    const token = await tokenFor();
+    const response = await coversSearch(
+      authed("/api/atp/covers/search?q=chrono", token),
+    );
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("ATP_UNAVAILABLE");
   });
 });
 

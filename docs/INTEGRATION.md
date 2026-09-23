@@ -299,7 +299,11 @@ The BFF is implemented as an explicit allowlist under `/api/atp/*`:
 GET  /api/atp/search          → ATP GET /api/v1/games/search
 GET  /api/atp/games/:id       → ATP GET /api/v1/games/:id (+ cover lookup)
 GET  /api/atp/games/:id/cover → ATP GET /api/v1/games/:id/cover
+GET  /api/atp/covers/search   → ATP GET /api/v1/covers/search (candidates only)
 POST /api/atp/import           → ATP lookup, writes only to Save State
+GET  /api/atp/platforms        → ATP GET /api/v1/platforms/summary
+GET  /api/atp/platforms/:id    → ATP GET /api/v1/platforms/:platformId
+GET  /api/atp/families         → derived server-side from platforms/summary
 ```
 
 Rules preserved from this document:
@@ -319,7 +323,20 @@ Rules preserved from this document:
   any database or ATP access (ADR-024 decision F);
 * `GET /api/atp/games/:id` returns a warning-only `manualDuplicate`
   signal on exact case-insensitive manual name matches — no merge, no
-  dedup (ADR-024 decision E);
+  dedup (ADR-024 decision E); it also carries `owned` (true when the ATP
+  game already produced a `UserGame` for the caller);
+* `GET /api/atp/search` accepts `family` (mapped onto ATP `platformFamily`;
+  values come from ATP platform data) and enriches cards with `owned`
+  (batched Save State lookups, no N+1) plus derived `hasNextPage` /
+  `hasPreviousPage` flags absent from the ATP envelope;
+* `GET /api/atp/games/:id` also exposes per-release `month/day/precision`
+  alongside `year` so the game form can fill a complete calendar date
+  without inventing month/day (year-only releases leave the field empty);
+* the game form reuses BFF detail (`GET /api/atp/games/:id`) for metadata
+  lookup and `GET /api/atp/covers/search` for cover lookup; both map to
+  plain strings before touching `GameFormState`, and both actions are
+  hidden when editing ATP snapshots (`metadataLocked`); ATP provides no
+  summary, so summaries stay manual;
 * no ATP service credential exists: server-to-server BFF access removes the
   browser dependency but does not itself make ATP's unauthenticated API
   private — a deliberate, recorded limitation, not a claim otherwise.

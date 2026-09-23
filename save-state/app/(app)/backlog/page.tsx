@@ -4,8 +4,16 @@ import { listGames } from "@/server/games/service";
 import { listGameLists } from "@/server/lists/service";
 import { BacklogView } from "@/features/games/backlog-view";
 import { toPlainGame, toPlainGameList } from "@/features/games/mappers";
+import {
+  parseLibrarySearchParams,
+  toLibraryServiceFilters,
+} from "@/features/games/user-game-query";
 
-export default async function BacklogPage() {
+export default async function BacklogPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   let session;
   try {
     session = await getCurrentSession();
@@ -13,8 +21,9 @@ export default async function BacklogPage() {
     redirect("/login?from=/backlog");
   }
 
+  const initialQuery = parseLibrarySearchParams(await searchParams);
   const [games, lists] = await Promise.all([
-    listGames(session.id, { page: 1, limit: 20 }),
+    listGames(session.id, toLibraryServiceFilters(initialQuery)),
     listGameLists(session.id, { page: 1, limit: 100, withCount: false }),
   ]);
 
@@ -22,6 +31,7 @@ export default async function BacklogPage() {
     <BacklogView
       initialGames={games.data.map(toPlainGame)}
       initialPagination={games.pagination}
+      initialQuery={initialQuery}
       lists={lists.data.map(toPlainGameList)}
     />
   );

@@ -69,7 +69,7 @@ inside your html file.
   max-width: 100%;
   min-width: 140px;
   height: 60px;
-  display: inline-block;
+  display: flex;
   /* padding */
   padding-left: 35px;
   padding-right: 35px; }

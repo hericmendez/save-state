@@ -60,6 +60,7 @@ export const atpGameSchema = z
     publishers: z.array(organizationSchema).default([]),
     genres: z.array(genreSchema).default([]),
     externalIdentifiers: z.array(externalIdentifierSchema).default([]),
+    description: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -80,6 +81,47 @@ export const atpSearchResponseSchema = z
   .passthrough();
 
 export type AtpSearchResponse = z.infer<typeof atpSearchResponseSchema>;
+
+export const atpPlatformSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    company: z.string(),
+    releaseYear: z.number().int().nullable().optional(),
+    status: z.string(),
+    family: z.string().nullable().optional(),
+    type: z.string().nullable().optional(),
+    // Canonical ATP contract (Fase 7.1): PlatformThumb object, not a
+    // string. The Save State UI does not render platform thumbs; the
+    // shape is validated structurally and otherwise ignored.
+    thumb: z
+      .object({
+        logo: z.string().nullable(),
+        image: z.string().nullable(),
+      })
+      .nullable()
+      .optional(),
+    gameCount: z.number().int(),
+  })
+  .passthrough();
+
+export type AtpPlatform = z.infer<typeof atpPlatformSchema>;
+
+export const atpPlatformListResponseSchema = z
+  .object({
+    data: z.array(atpPlatformSchema),
+    pagination: z
+      .object({
+        page: z.number(),
+        limit: z.number(),
+        total: z.number(),
+        totalPages: z.number(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+export type AtpPlatformListResponse = z.infer<typeof atpPlatformListResponseSchema>;
 
 const coverCandidateSchema = z
   .object({
@@ -113,6 +155,18 @@ export const atpCoverResponseSchema = z
   .passthrough();
 
 export type AtpCoverResponse = z.infer<typeof atpCoverResponseSchema>;
+
+export const atpCoverSearchResponseSchema = z
+  .object({
+    data: z
+      .object({
+        candidates: z.array(coverCandidateSchema).default([]),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+export type AtpCoverSearchResponse = z.infer<typeof atpCoverSearchResponseSchema>;
 
 export const atpErrorSchema = z
   .object({

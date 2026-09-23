@@ -3,8 +3,9 @@
 import type { ReactNode } from "react";
 import type { Pagination } from "@/features/shared/types";
 import { CollectionPagination } from "./collection-pagination";
-
-export type ViewMode = "grid" | "list";
+import RPGUIButton from "@/components/RPGUI/Button";
+import { ViewModeToggle } from "@/features/collection/view-mode-toggle";
+import type { CollectionViewMode } from "@/features/collection/collection-query";
 
 export function Collection<T>({
   items,
@@ -35,8 +36,8 @@ export function Collection<T>({
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
+  viewMode: CollectionViewMode;
+  onViewModeChange: (mode: CollectionViewMode) => void;
   isLoading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -57,22 +58,7 @@ export function Collection<T>({
           placeholder={searchPlaceholder}
           onChange={(event) => onSearchChange(event.target.value)}
         />
-        <button
-          className={`rpgui-button ${viewMode === "grid" ? "down" : ""}`}
-          type="button"
-          onClick={() => onViewModeChange("grid")}
-          aria-label="Ver em grade"
-        >
-          ▦
-        </button>
-        <button
-          className={`rpgui-button ${viewMode === "list" ? "down" : ""}`}
-          type="button"
-          onClick={() => onViewModeChange("list")}
-          aria-label="Ver em lista"
-        >
-          ☰
-        </button>
+        <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
       </div>
       {listHeader}
       {isLoading ? (
@@ -84,9 +70,7 @@ export function Collection<T>({
       ) : error ? (
         <div className="rpgui-container framed-grey p-4">
           <p role="alert">{error}</p>
-          <button className="rpgui-button" type="button" onClick={onRetry}>
-            Tentar novamente
-          </button>
+          <RPGUIButton type="button" title="Tentar novamente" onClick={onRetry} />
         </div>
       ) : items.length === 0 ? (
         <p>{emptyMessage}</p>

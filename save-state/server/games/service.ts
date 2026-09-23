@@ -6,13 +6,17 @@
  */
 
 import "server-only";
-import type { FilterQuery } from "mongoose";
+import type { FilterQuery, PipelineStage } from "mongoose";
 import { Types } from "mongoose";
 import slugify from "slugify";
 import { ApiError } from "@/lib/api-error";
 import { connectDatabase } from "@/db/connection";
 import { GlobalGame, type GlobalGameDocument } from "@/db/models/global-game";
 import { UserGame, type UserGameDocument } from "@/db/models/user-game";
+import { UserGameNote } from "@/db/models/user-game-note";
+import { parseActivityEvent } from "@/schemas/activity";
+import { recordActivity } from "@/server/activity/service";
+import { removeFromTop10 } from "@/server/top10/service";
 import type {
   CreateGameInput,
   ListGamesQuery,
@@ -90,6 +94,18 @@ function normalizeAchievements(
 
 export type PaginatedUserGame = PaginatedResponse<UserGameWithGame>;
 
+/**
+ * Minimal immutable game snapshot for Activity events.
+ * The diary freezes `{ name, cover }` at event time so future catalog
+ * changes can never rewrite history.
+ */
+function gameActivitySnapshot(game: {
+  name: string;
+  cover?: string | null;
+}): { name: string; cover?: string } {
+  return game.cover ? { name: game.name, cover: game.cover } : { name: game.name };
+}
+
 function buildFilters(
   userId: string,
   filters: GameQuery,
@@ -100,6 +116,27 @@ function buildFilters(
 
   if (filters.listId) {
     query.listIds = new Types.ObjectId(filters.listId);
+  }
+  if (filters.withoutList === true) {
+    // Derived "Sem lista" view: listIds.length === 0. This is not the
+    // absence of a listId filter. When combined with listId (a
+    // contradictory request: "in list X" AND "in no list"), all library
+    // filters stay conjunctive and the result is intentionally empty —
+    // the same way any other impossible combination behaves. No silent
+    // precedence, no validation error: list context simply narrows.
+    if (filters.listId) {
+      query.$and = [
+        ...(query.$and ?? []),
+        { listIds: query.listIds },
+        { listIds: { $size: 0 } },
+      ];
+      delete query.listIds;
+    } else {
+      query.listIds = { $size: 0 };
+    }
+  }
+  if (filters.status !== undefined) {
+    query.status = filters.status;
   }
   if (filters.hoursPlayedMin !== undefined || filters.hoursPlayedMax !== undefined) {
     query.hoursPlayed = {};
@@ -180,6 +217,30 @@ function buildGlobalGameFilters(
       query.releaseDate.$lte = filters.releaseDateTo;
     }
   }
+  // Library year filters reuse the stored releaseDate: yearFrom means
+  // year >= value and yearTo means year <= value. Bounds merge with (never
+  // widen) explicit releaseDateFrom/To when both are present.
+  if (filters.yearFrom !== undefined || filters.yearTo !== undefined) {
+    const lower = filters.yearFrom !== undefined
+      ? new Date(Date.UTC(filters.yearFrom, 0, 1))
+      : undefined;
+    const upper = filters.yearTo !== undefined
+      ? new Date(Date.UTC(filters.yearTo, 11, 31, 23, 59, 59, 999))
+      : undefined;
+    query.releaseDate = query.releaseDate ?? {};
+    if (lower !== undefined) {
+      const current = query.releaseDate.$gte as Date | undefined;
+      if (current === undefined || lower > current) {
+        query.releaseDate.$gte = lower;
+      }
+    }
+    if (upper !== undefined) {
+      const current = query.releaseDate.$lte as Date | undefined;
+      if (current === undefined || upper < current) {
+        query.releaseDate.$lte = upper;
+      }
+    }
+  }
 
   return query;
 }
@@ -223,16 +284,44 @@ export async function resolveGameQuery(
   return query;
 }
 
+export type LibraryOrderBy = "title" | "platform" | "releaseYear" | "status";
+
+function librarySortDirection(filters: ListGamesQuery): 1 | -1 {
+  return filters.order === "desc" ? -1 : 1;
+}
+
+/**
+ * Server-side ordering for the library. Without orderBy the legacy
+ * newest-first order is preserved. `status` lives on UserGame and sorts
+ * directly; `title`/`platform`/`releaseYear` live on GlobalGame and need
+ * the aggregation path below.
+ *
+ * Derived-field strategy (documented, deterministic):
+ * - title: case-insensitive game name, missing → "".
+ * - platform: case-insensitive FIRST platform of platforms[], missing → "".
+ * - releaseYear: UTC year of releaseDate; games without a date always sort
+ *   last, in both directions, then _id breaks remaining ties.
+ */
 export async function listGames(
   userId: string,
   filters: ListGamesQuery,
 ): Promise<PaginatedUserGame> {
   const query = await resolveGameQuery(userId, filters);
+  const orderBy = filters.orderBy as LibraryOrderBy | undefined;
 
+  if (orderBy === "title" || orderBy === "platform" || orderBy === "releaseYear") {
+    return listGamesOrderedByGlobalField(query, filters, orderBy);
+  }
+
+  const direction = orderBy === "status" ? librarySortDirection(filters) : undefined;
   const [total, userGames] = await Promise.all([
     UserGame.countDocuments(query),
     UserGame.find(query)
-      .sort({ updatedAt: -1 })
+      .sort(
+        direction === undefined
+          ? { updatedAt: -1 }
+          : { status: direction, _id: 1 },
+      )
       .skip(pageOffset(filters))
       .limit(filters.limit)
       .populate<{ gameId: GlobalGameDocument | null }>("gameId"),
@@ -243,6 +332,95 @@ export async function listGames(
       ...userGame.toObject(),
       game: userGame.gameId!,
     })),
+    total,
+    filters,
+  );
+}
+
+async function listGamesOrderedByGlobalField(
+  query: FilterQuery<UserGameDocument>,
+  filters: ListGamesQuery,
+  orderBy: Exclude<LibraryOrderBy, "status">,
+): Promise<PaginatedUserGame> {
+  const direction = librarySortDirection(filters);
+  const join: PipelineStage[] = [
+    { $match: query },
+    {
+      $lookup: {
+        from: "globalgames",
+        localField: "gameId",
+        foreignField: "_id",
+        as: "game",
+      },
+    },
+    { $unwind: { path: "$game", preserveNullAndEmptyArrays: true } },
+  ];
+  const stages: PipelineStage[] =
+    orderBy === "releaseYear"
+      ? [
+          ...join,
+          {
+            $addFields: {
+              // $gt (not $ne): a missing releaseDate must count as dateless,
+              // and only $gt evaluates missing as false against null.
+              __hasYear: { $gt: ["$game.releaseDate", null] },
+              __sortYear: {
+                $year: { date: "$game.releaseDate", timezone: "UTC" },
+              },
+            },
+          },
+          { $sort: { __hasYear: -1, __sortYear: direction, _id: 1 } },
+        ]
+      : [
+          ...join,
+          {
+            $addFields: {
+              __sortKey:
+                orderBy === "title"
+                  ? { $toLower: { $ifNull: ["$game.name", ""] } }
+                  : {
+                      $toLower: {
+                        $ifNull: [
+                          { $arrayElemAt: ["$game.platforms", 0] },
+                          "",
+                        ],
+                      },
+                    },
+            },
+          },
+          { $sort: { __sortKey: direction, _id: 1 } },
+        ];
+
+  // Paginate over the already-ordered result so pages are stable.
+  const [result] = await UserGame.aggregate<{
+    total: { count: number }[];
+    data: Record<string, unknown>[];
+  }>([
+    ...stages,
+    {
+      $facet: {
+        total: [{ $count: "count" }],
+        data: [{ $skip: pageOffset(filters) }, { $limit: filters.limit }],
+      },
+    },
+  ]);
+
+  const total = result?.total[0]?.count ?? 0;
+  const data = (result?.data ?? []).map((doc) => {
+    const {
+      __sortKey: _sortKey,
+      __sortYear: _sortYear,
+      __hasYear: _hasYear,
+      ...rest
+    } = doc;
+    const game = (rest.game as GlobalGameDocument | null) ?? null;
+    // Mirror the find-path shape ({...toObject(), game}), including its
+    // gameId quirk (populated game object when present).
+    return { ...rest, gameId: game ?? rest.gameId, game };
+  });
+
+  return buildPaginatedResponse(
+    data as unknown as UserGameWithGame[],
     total,
     filters,
   );
@@ -356,6 +534,19 @@ export async function createGame(input: {
     throw error;
   }
 
+  // Activity Feed (best effort): the library mutation already succeeded.
+  // Persistence failures are logged inside recordActivity and never fail
+  // this creation.
+  await recordActivity(
+    input.userId,
+    parseActivityEvent({
+      type: "game.added",
+      userGameId: String(userGame._id),
+      game: gameActivitySnapshot(globalGame),
+      metadata: { source: globalGame.source },
+    }),
+  );
+
   return { ...userGame.toObject(), game: globalGame };
 }
 
@@ -384,6 +575,20 @@ export async function updateGame(
   }
 
   const personalUpdates: Record<string, unknown> = {};
+  // Previous personal state, captured BEFORE any document mutation, so the
+  // Activity Feed can diff real changes (same-value rewrites emit nothing).
+  const previous = {
+    status: userGame.status,
+    timesFinished: userGame.timesFinished,
+    finished: userGame.finished,
+    favorite: userGame.favorite,
+    fullyCompleted: userGame.fullyCompleted,
+    rating: (userGame.rating ?? null) as number | null,
+    hoursPlayed: userGame.hoursPlayed,
+    achievements: userGame.achievements,
+    achievementProgress:
+      (userGame.achievementProgress ?? null) as number | null,
+  };
   for (const field of [
     "status",
     "hoursPlayed",
@@ -443,6 +648,17 @@ export async function updateGame(
   }
   await userGame.save();
 
+  // Top 10 integrity: a game that stops being a favorite cannot remain
+  // ranked. The reference is pulled by the Top 10 mutation, which owns the
+  // `top10.removed` event (reason "unfavorited") — games never emit top10.*.
+  if (personalUpdates.favorite === false) {
+    await removeFromTop10(
+      String(userGame.userId),
+      String(userGame._id),
+      "unfavorited",
+    );
+  }
+
   if (wantsMetadataEdit && globalGame) {
     const metadata = input.game!;
     if (metadata.name !== undefined) globalGame.name = metadata.name;
@@ -462,6 +678,134 @@ export async function updateGame(
   }
 
   const game = globalGame ?? (await GlobalGame.findById(userGame.gameId));
+
+  // Activity Feed (best effort, deterministic order): one event per real
+  // change, validated up-front, recorded after the state already persisted.
+  // `review` and GlobalGame metadata edits intentionally emit nothing.
+  if (game) {
+    const snapshot = gameActivitySnapshot(game);
+    const userGameId = String(userGame._id);
+    const rawEvents: unknown[] = [];
+    if (
+      personalUpdates.status !== undefined &&
+      personalUpdates.status !== previous.status
+    ) {
+      rawEvents.push({
+        type: "game.status_changed",
+        userGameId,
+        game: snapshot,
+        metadata: { from: previous.status, to: personalUpdates.status },
+      });
+    }
+    if (personalUpdates.timesFinished !== undefined) {
+      const nextTimes = personalUpdates.timesFinished as number;
+      const nextFinished = deriveFinished(nextTimes);
+      if (nextFinished && !previous.finished) {
+        rawEvents.push({
+          type: "game.finished",
+          userGameId,
+          game: snapshot,
+          metadata: { timesFinished: nextTimes },
+        });
+      } else if (nextTimes !== previous.timesFinished) {
+        rawEvents.push({
+          type: "game.times_finished_changed",
+          userGameId,
+          game: snapshot,
+          metadata: { from: previous.timesFinished, to: nextTimes },
+        });
+      }
+    }
+    if (
+      personalUpdates.favorite !== undefined &&
+      personalUpdates.favorite !== previous.favorite
+    ) {
+      rawEvents.push({
+        type:
+          personalUpdates.favorite === true
+            ? "game.favorited"
+            : "game.unfavorited",
+        userGameId,
+        game: snapshot,
+        metadata: {},
+      });
+    }
+    if (
+      personalUpdates.fullyCompleted !== undefined &&
+      personalUpdates.fullyCompleted !== previous.fullyCompleted
+    ) {
+      rawEvents.push({
+        type:
+          personalUpdates.fullyCompleted === true
+            ? "game.completed"
+            : "game.uncompleted",
+        userGameId,
+        game: snapshot,
+        metadata: {},
+      });
+    }
+    if (personalUpdates.rating !== undefined) {
+      const nextRating = (personalUpdates.rating ?? null) as number | null;
+      if (nextRating !== previous.rating) {
+        rawEvents.push({
+          type: "game.rating_changed",
+          userGameId,
+          game: snapshot,
+          metadata: { from: previous.rating, to: nextRating },
+        });
+      }
+    }
+    if (
+      personalUpdates.hoursPlayed !== undefined &&
+      personalUpdates.hoursPlayed !== previous.hoursPlayed
+    ) {
+      rawEvents.push({
+        type: "game.hours_changed",
+        userGameId,
+        game: snapshot,
+        metadata: { from: previous.hoursPlayed, to: personalUpdates.hoursPlayed },
+      });
+    }
+    if (
+      input.achievements !== undefined ||
+      input.achievementProgress !== undefined
+    ) {
+      const nextEnabled =
+        input.achievements !== undefined
+          ? input.achievements
+          : previous.achievements;
+      let nextProgress: number | null;
+      if (input.achievementProgress !== undefined) {
+        nextProgress = input.achievementProgress;
+      } else if (input.achievements === false) {
+        nextProgress = null;
+      } else {
+        nextProgress = previous.achievementProgress;
+      }
+      if (
+        nextEnabled !== previous.achievements ||
+        nextProgress !== previous.achievementProgress
+      ) {
+        rawEvents.push({
+          type: "game.achievements_changed",
+          userGameId,
+          game: snapshot,
+          metadata: {
+            from: {
+              enabled: previous.achievements,
+              progress: previous.achievementProgress,
+            },
+            to: { enabled: nextEnabled, progress: nextProgress },
+          },
+        });
+      }
+    }
+    const validated = rawEvents.map((event) => parseActivityEvent(event));
+    for (const event of validated) {
+      await recordActivity(userId, event);
+    }
+  }
+
   return { ...userGame.toObject(), game: game! };
 }
 
@@ -493,6 +837,17 @@ export async function incrementTimesFinished(
   if (!game) {
     throw new ApiError("GAME_NOT_FOUND", "Game not found", 404);
   }
+  // Activity Feed (best effort): exactly one `game.finished` per finish
+  // action — never an additional `game.times_finished_changed`.
+  await recordActivity(
+    userId,
+    parseActivityEvent({
+      type: "game.finished",
+      userGameId: String(updated._id),
+      game: gameActivitySnapshot(game),
+      metadata: { timesFinished: updated.timesFinished },
+    }),
+  );
   return { ...updated.toObject(), game };
 }
 
@@ -502,7 +857,37 @@ export async function deleteGame(
 ): Promise<void> {
   await connectDatabase();
   const userGame = await findOwnedUserGameOrThrow(userId, gameId);
+  // Snapshot BEFORE removal: the diary must keep the game name even after
+  // the UserGame no longer exists. The shared GlobalGame record itself is
+  // preserved by this operation.
+  const snapshotGame = await GlobalGame.findById(userGame.gameId);
+  const snapshot = snapshotGame
+    ? gameActivitySnapshot(snapshotGame)
+    : { name: "Unknown game" };
   // Only the user's relationship is removed. The shared GlobalGame record
   // is preserved, and list references die with the UserGame document.
   await userGame.deleteOne();
+  // Notes die with their UserGame. Creation activities (`note.created`)
+  // remain as history, like every other event in the append-only diary.
+  await UserGameNote.deleteMany({ userGameId: userGame._id });
+  // Top 10 integrity: no orphan references may survive UserGame deletion.
+  // The Top 10 mutation owns the `top10.removed` event (reason
+  // "game_deleted") and receives the pre-captured snapshot, since the
+  // UserGame no longer exists at this point.
+  await removeFromTop10(
+    String(userGame.userId),
+    String(userGame._id),
+    "game_deleted",
+    snapshot,
+  );
+  // Activity Feed (best effort): recorded only after effective removal.
+  await recordActivity(
+    userId,
+    parseActivityEvent({
+      type: "game.removed",
+      userGameId: String(userGame._id),
+      game: snapshot,
+      metadata: {},
+    }),
+  );
 }

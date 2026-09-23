@@ -87,6 +87,21 @@ describe("searchAtpGames", () => {
     expect(result.data[0].id).toBe("atp-wikipedia-6509467");
   });
 
+  it("forwards an explicit discover opt-in to ATP search", async () => {
+    const seen: string[] = [];
+    stubFetchOnce((url) => {
+      seen.push(url);
+      return jsonResponse({
+        data: [ATP_GAME_FIXTURE],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      });
+    });
+    await searchAtpGames({ q: "chrono", page: 1, limit: 20, discover: true });
+    expect(seen).toEqual([
+      "http://atp.test/api/v1/games/search?q=chrono&page=1&limit=20&discover=true",
+    ]);
+  });
+
   it("maps ATP 404 on search to an empty result contract error", async () => {
     stubFetchOnce(() => jsonResponse({ error: { code: "NOT_FOUND" } }, 404));
     await expect(

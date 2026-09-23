@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function LoginForm() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export function LoginForm() {
     try {
       await api.login(email, password);
       router.refresh();
-      router.push(searchParams.get("from") ?? "/dashboard");
+      router.push(searchParams.get("from") ?? "/home");
     } catch (err) {
       setError(
         err instanceof ApiRequestError ? err.message : "Login failed",
@@ -56,13 +57,11 @@ export function LoginForm() {
           autoComplete="current-password"
         />
       </label>
-      <button
-        className="rpgui-button"
+      <RPGUIButton
         type="submit"
+        title={isLoading ? "Entrando…" : "Entrar"}
         disabled={isLoading}
-      >
-        {isLoading ? "Entrando…" : "Entrar"}
-      </button>
+      />
       <p className="text-center">
         Sem conta? <Link href="/register">Criar conta</Link>
       </p>

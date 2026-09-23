@@ -1,0 +1,22 @@
+
+
+Mudanças manuais
+> Mudar/diminuir fonte dos botões (está muito grande)
+> Botões "filhos" devem ser visualmente diferentes dos botões pais. Definir manualmente.
+
+Pedir pro agente
+> Formulário não está formatado (visuallmente) nem possui as features do projeto antigo (busca de metadados via scraper+autofill, busca de capa via scraper), 
+> Buscar jogos (ATP Engine):
+ - Busca Geral: criar página de busca por texto e filtros
+ - Por plataforma: Lista/Grid com imagens dos consoles (filtro ativo/descontinuado)
+ - Por empresa: Sony, Nintendo, Capcom, Rockstar, etc.
+ - Por gênero: Action, RPG, Strategy, Survival Horror, etc.
+     Obs: "Por empresa" e "por gênero" poderiam ter uma arte ou capa de jogo icônico relacionado.
+     Ex: Nintendo com a capa de Zelda Ocarina of Time, Survival Horror de Resident Evil.
+     Obs2: Essas imagens serão definidas manualmente e ficarão no front end.
+> Home será separada da dashboard, atualmente os dois botões levam para a dashboard
+> Menu de contexto fica fora da tela quando o jogo está muito à direita ou quando não há espaço para exibir (principalmente no mobile); fazer o menu ter posição dinâmica.
+> Add "Favoritar/Desfavoritar"(dinâmico) ao menu de contexto.
+> Add capa (quando existir) ao card modal de detalhes do jogo.
+> New Feature: Feed de atividades/timeline (Home page)
+> New Feature: "Meu top 10" (indexed/draggable list, parecido com a wishlist da steam)

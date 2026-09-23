@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type { GameList } from "@/features/shared/types";
 import { ConfirmDialog } from "@/features/games/confirm-dialog";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
   const router = useRouter();
@@ -108,9 +109,7 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
           placeholder="Nova lista"
           maxLength={100}
         />
-        <button className="rpgui-button" type="submit" disabled={isSubmitting}>
-          Criar
-        </button>
+        <RPGUIButton type="submit" title="Criar" disabled={isSubmitting} />
       </form>
       {lists.length === 0 ? (
         <p>Nenhuma lista ainda. Crie a primeira acima.</p>
@@ -130,23 +129,19 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
                     maxLength={100}
                     autoFocus
                   />
-                  <button
-                    className="rpgui-button"
+                  <RPGUIButton
                     type="button"
+                    title={isRenaming ? "Salvando…" : "Salvar"}
                     onClick={() => handleRename(list._id)}
                     disabled={isRenaming}
                     aria-busy={isRenaming}
-                  >
-                    {isRenaming ? "Salvando…" : "Salvar"}
-                  </button>
-                  <button
-                    className="rpgui-button"
+                  />
+                  <RPGUIButton
                     type="button"
+                    title="Cancelar"
                     onClick={() => setRenamingId(null)}
                     disabled={isRenaming}
-                  >
-                    Cancelar
-                  </button>
+                  />
                   {isRenaming && (
                     <span className="font-display text-xs" aria-live="polite">
                       [ Carregando... ]
@@ -161,29 +156,22 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
                       <p className="text-xs">{list.gameCount} jogos</p>
                     )}
                   </div>
-                  <Link
-                    className="rpgui-button"
-                    href={`/backlog/lists/${list._id}`}
-                  >
-                    Ver jogos
+                  <Link href={`/backlog/lists/${list._id}`}>
+                    <RPGUIButton title="Ver jogos" />
                   </Link>
-                  <button
-                    className="rpgui-button"
+                  <RPGUIButton
                     type="button"
+                    title="Renomear"
                     onClick={() => {
                       setRenamingId(list._id);
                       setRenamingName(list.name);
                     }}
-                  >
-                    Renomear
-                  </button>
-                  <button
-                    className="rpgui-button"
+                  />
+                  <RPGUIButton
                     type="button"
+                    title="Excluir"
                     onClick={() => setDeleteTarget(list)}
-                  >
-                    Excluir
-                  </button>
+                  />
                 </>
               )}
             </li>

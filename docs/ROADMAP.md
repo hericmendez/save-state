@@ -391,7 +391,7 @@ at explicitly authorized steps (decommissioning).
 
 | Item | Status | Reason | Owner phase |
 | ---- | ------ | ------ | ----------- |
-| Export migration (`/api/auth/export[/csv]`) | DEFERRED | Payload needs game models; fabrication forbidden | TBD — assign before implementation |
+| Export migration (`/api/auth/export[/csv]`) | IMPLEMENTED (Fase 9B) | Routes + settings UI + `tests/auth/export.test.ts`; payload from real models | Done |
 | Durable/distributed rate limiting | DEFERRED | Preserved in-memory per ADR-021; evaluate pre-production | Phase 10 at latest |
 | Real email provider | DEFERRED | Console stub per ADR-020 | Phase 3 follow-up / pre-production |
 | No-global-`RPGUI.init()` documentation | CANDIDATE | Load-bearing but no ADR (decision: do not auto-create) | ADR candidate for a docs pass |

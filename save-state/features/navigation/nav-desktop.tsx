@@ -87,7 +87,7 @@ export function NavDesktop({ user }: { user: SafeUser }) {
       {/* PROFILE */}
       <div className="flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/shotgun.png" alt="Profile" className="w-24 h-24 p-0" />
+        <img src="/shotgun2.png" alt="Profile" className="w-24 h-24 p-0" />
 
         <h2 className="text-xl !mb-0 press-start-2p-regular">Save State</h2>
         <p className="text-sm!">

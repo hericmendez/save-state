@@ -307,6 +307,14 @@ Not part of the migration by default:
 * new list semantics;
 * RPGUI redesign.
 
+### Note (Fase 9B — divergence recorded, history preserved)
+
+The shipped product diverged on one example: `UserGame.favorite` exists as
+a first-class field (filter, `/backlog/favoritos` view, dashboard
+"Jogos Favoritos" count). The ADR's rule against unrelated features stands;
+this note only records that favorites entered scope through explicit redesign
+decisions (Fases 0–3), not by accident.
+
 ---
 
 ## ADR-015 — ATP Admin Lives Behind Save State

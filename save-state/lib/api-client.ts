@@ -30,11 +30,12 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
 export async function apiRequest<T>(
   path: string,
-  init?: { method?: string; body?: unknown },
+  init?: { method?: string; body?: unknown; signal?: AbortSignal },
 ): Promise<T> {
   const res = await fetch(path, {
     method: init?.method ?? "GET",
     credentials: "include",
+    signal: init?.signal,
     headers:
       init?.body === undefined
         ? undefined

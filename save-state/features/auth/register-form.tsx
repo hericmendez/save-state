@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export function RegisterForm() {
       // Registration does not establish a session; sign in afterwards.
       await api.login(email, password);
       router.refresh();
-      router.push("/dashboard");
+      router.push("/home");
     } catch (err) {
       setError(
         err instanceof ApiRequestError ? err.message : "Registration failed",
@@ -87,9 +88,11 @@ export function RegisterForm() {
           autoComplete="new-password"
         />
       </label>
-      <button className="rpgui-button" type="submit" disabled={isLoading}>
-        {isLoading ? "Criando…" : "Criar conta"}
-      </button>
+      <RPGUIButton
+        type="submit"
+        title={isLoading ? "Criando…" : "Criar conta"}
+        disabled={isLoading}
+      />
       <p className="text-center">
         Já tem conta? <Link href="/login">Entrar</Link>
       </p>

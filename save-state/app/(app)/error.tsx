@@ -1,5 +1,7 @@
 "use client";
 
+import RPGUIButton from "@/components/RPGUI/Button";
+
 export default function AppError({
   error,
   reset,
@@ -12,9 +14,7 @@ export default function AppError({
       <div className="rpgui-container framed-grey p-6" role="alert">
         <h1 className="font-display text-2xl">Algo deu errado</h1>
         <p className="mt-2">Não foi possível carregar esta página.</p>
-        <button className="rpgui-button mt-4" type="button" onClick={reset}>
-          Tentar novamente
-        </button>
+        <RPGUIButton type="button" title="Tentar novamente" onClick={reset} className="mt-4" />
       </div>
     </main>
   );

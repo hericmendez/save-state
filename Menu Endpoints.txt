@@ -1,0 +1,80 @@
+
+> HISTORICAL NOTE (Fase 9B): early intention sketch, superseded by the
+> implemented routes (Fases 1-8). Some entries are invalid against the real
+> contracts (e.g. `&=scrape`, `{{gameId}}` placeholders, wrong methods).
+> Do not treat this file as a contract; see docs/ + tests for truth.
+
+Save State Menu and Navigation
+---------------------------------------------------------------------------
+
+- Items between [ ] are sidebar menu buttons.
+- Identation means menu children.
+- /api/* are save state api endpoints.
+- /api/v1/* are atp engine endpoints.
+
+
+[Home] (still don't quite know what to do here)
+    GET /api/auth/me ==> To show username
+
+[Dashboard] - Already working, just need a few adjustments
+    GET /api/games/stats ==> multiple params
+
+[Search Games] (page does not exist yet)
+    [General Search] (multiple filters)
+    GET /api/v1/games?page=1&limit=20 > GET /api/v1/games/:id
+
+    [Search by Platforms]
+    GET /api/v1/platforms/summary?page=1&limit=20 > GET /api/v1/platforms/:platformId
+
+    (still thinking about more search menus)
+
+[My Games]
+    [New Game] (form - I will migrate from old Next project)
+    GET /api/v1/games/search?q=zelda ==> Fills up game metadata (scraper)
+    GET /api/v1/covers/search?q=ZELDA&type=cover&limit=1&=scrape ==> Cover Search
+    GET /api/games/{{gameId}}
+    POST /api/games
+    PATCH /api/games/{{gameId}}
+    GET    /api/game-lists
+    POST /api/game-lists
+
+    [All Games] (Page with Game General Filters, same as Global Search )
+    GET /api/games?page=1&limit=20&search=zelda > GET /api/games/{{gameId}}
+
+    [Favorites]
+    (add favorite=true to type Game)
+
+[My Game Lists] ==>
+    [New List] (create modal; modify nav to call a modal component instead of redirecting to page)
+    POST /api/game-lists
+
+    [Custom Lists]
+    GET /api/game-lists?page=1&limit=20&search=Backlog&withCount=true ==> All lists
+    GET /api/game-lists/{{listId}}/games?page=1&limit=20&genre=RPG ==> Games in a determined list
+    GET /api/game-lists/{{listId}} ==> List details, no games
+    POST /api/game-lists/{{listId}}
+    DELETE /api/game-lists/{{listId}}
+
+    (still don't know where to put fixed list "Game status": [backlog | playing | replaying | stalled | dropped | limbo | endless | achievement | finished | wishlist] - Here or in 'All Games'? )
+
+[Minhas Listas] ==>
+    [Nova Lista] Não é uma página, é um modal
+[Configs] => Pode ser tudo numa página só, não botões separados
+    - Não tenho mais acesso à opçao view mode [pixel-perfect/fullscreen]
+    - Change username, change-password, export (json), export/csv
+
+[Logout]
+    POST /api/logout
+
+
+Context Menu
+GET /api/games/{{gameId}}
+POST   /api/games/{{gameId}}/lists/{{listId}}
+DELETE /api/games/{{gameId}}/lists/{{listId}}
+
+Auth Screen
+POST  /api/auth/register
+POST  /api/auth/login
+POST  /reset-password ==> A password reset link is sent to the user email
+
+

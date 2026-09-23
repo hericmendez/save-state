@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type { Game, GameList } from "@/features/shared/types";
 import { CustomContextMenu, type ContextMenuItem } from "./context-menu";
@@ -37,6 +37,15 @@ export function GameContextMenu({
   children: React.ReactNode;
 }) {
   const [localListIds, setLocalListIds] = useState<string[]>(game.listIds ?? []);
+  // Favorite label follows the real UserGame state: updated by our own
+  // toggle below and re-synced when the parent row changes (e.g. the
+  // details modal favorited the same game). No parallel favorite state.
+  const [favorite, setFavorite] = useState(game.favorite ?? false);
+  const [favPending, setFavPending] = useState(false);
+
+  useEffect(() => {
+    if (!favPending) setFavorite(game.favorite ?? false);
+  }, [game.favorite, favPending]);
 
   function reportError(err: unknown, fallback: string) {
     onError?.(err instanceof ApiRequestError ? err.message : fallback);
@@ -65,6 +74,26 @@ export function GameContextMenu({
     }
   }
 
+  async function handleToggleFavorite() {
+    // Double-click / repeated taps while pending are ignored: a single
+    // PATCH decides the outcome, mirroring the details modal behavior.
+    if (favPending) return;
+    const next = !favorite;
+    setFavPending(true);
+    try {
+      await apiRequest(`/api/games/${game._id}`, {
+        method: "PATCH",
+        body: { favorite: next },
+      });
+      setFavorite(next);
+      onListChanged?.();
+    } catch (err) {
+      reportError(err, "Falha ao favoritar");
+    } finally {
+      setFavPending(false);
+    }
+  }
+
   const currentLists = useMemo(
     () => lists.filter((list) => localListIds.includes(list._id)),
     [lists, localListIds],
@@ -75,6 +104,12 @@ export function GameContextMenu({
   );
 
   const items: ContextMenuItem[] = [
+    {
+      key: "favorite",
+      label: favPending ? "Aguarde…" : favorite ? "Desfavoritar" : "Favoritar",
+      onClick: handleToggleFavorite,
+      disabled: favPending,
+    },
     { key: "details", label: "Ver detalhes", onClick: onDetails },
     ...(onEdit ? [{ key: "edit", label: "Editar", onClick: onEdit }] : []),
     ...(onDelete ? [{ key: "delete", label: "Excluir", onClick: onDelete }] : []),

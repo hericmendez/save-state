@@ -10,7 +10,7 @@ export default async function AuthLayout({
   // would swallow it — resolve the session to null instead.
   const session = await getCurrentSession().catch(() => null);
   if (session) {
-    redirect("/dashboard");
+    redirect("/home");
   }
   return (
     <main className="rpgui-container framed-grey flex min-h-screen items-center justify-center">

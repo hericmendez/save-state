@@ -1,5 +1,7 @@
 "use client";
 
+import RPGUIButton from "@/components/RPGUI/Button";
+
 export function ConfirmDialog({
   title,
   message,
@@ -26,23 +28,19 @@ export function ConfirmDialog({
         <h2 className="font-display text-lg">{title}</h2>
         <p className="mt-2">{message}</p>
         <div className="mt-4 flex gap-2">
-          <button
-            className="rpgui-button"
+          <RPGUIButton
             type="button"
+            title={isLoading ? `${confirmLabel}…` : confirmLabel}
             onClick={onConfirm}
             disabled={isLoading}
             aria-busy={isLoading}
-          >
-            {isLoading ? `${confirmLabel}…` : confirmLabel}
-          </button>
-          <button
-            className="rpgui-button"
+          />
+          <RPGUIButton
             type="button"
+            title="Cancelar"
             onClick={onCancel}
             disabled={isLoading}
-          >
-            Cancelar
-          </button>
+          />
           {isLoading && (
             <span className="font-display text-xs self-center" aria-live="polite">
               [ Carregando... ]

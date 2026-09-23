@@ -1,0 +1,25 @@
+{
+  "name": "agora-vai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Orchestrator for Save State (Next.js) + ATP Engine — runs both via a single pnpm command",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "bash ./scripts/dev.sh",
+    "dev:sh": "bash ./scripts/dev.sh",
+    "dev:concurrently": "concurrently --kill-others --names \"ATP,SAVE\" --prefix-colors \"cyan,magenta\" \"pnpm --filter atp-engine dev\" \"wait-on http://localhost:3000/health --timeout 120000 --interval 1000 --verbose && PORT=3001 pnpm --filter save-state dev\"",
+    "dev:atp": "pnpm --filter atp-engine dev",
+    "dev:save-state": "PORT=3001 pnpm --filter save-state dev",
+    "dev:save-state:3001": "PORT=3001 pnpm --filter save-state dev",
+    "build": "pnpm --filter atp-engine build && pnpm --filter save-state build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "wait-on": "^8.0.1"
+  }
+}

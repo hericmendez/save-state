@@ -2,6 +2,7 @@
 
 import type { Game, GameList } from "@/features/shared/types";
 import { GameContextMenu } from "./game-context-menu";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function GameListItem({
   game,
@@ -54,9 +55,7 @@ export function GameListItem({
             ) : null}
           </p>
         </div>
-        <button className="rpgui-button" type="button" onClick={onDetails}>
-          Detalhes
-        </button>
+        <RPGUIButton type="button" title="Detalhes" onClick={onDetails} />
       </article>
     </GameContextMenu>
   );

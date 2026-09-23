@@ -55,6 +55,17 @@ const listQueryBase = {
 
 export const listGamesQuerySchema = z.object({
   ...listQueryBase,
+  status: statusEnum.optional(),
+  withoutList: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  yearFrom: z.coerce.number().int().min(1000).max(9999).optional(),
+  yearTo: z.coerce.number().int().min(1000).max(9999).optional(),
+  orderBy: z.enum(["title", "platform", "releaseYear", "status"]).optional(),
+  // Optional so direct service callers keep working: absence means legacy
+  // newest-first order (Fase 2 URL defaults supply "asc" for explicit sorts).
+  order: z.enum(["asc", "desc"]).optional(),
   releaseDateFrom: z.coerce.date().optional(),
   releaseDateTo: z.coerce.date().optional(),
   favorite: z

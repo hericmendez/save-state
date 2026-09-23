@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import { useListModalStore } from "./list-modal-store";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function ListCreateModal() {
   const isOpen = useListModalStore((s) => s.isOpen);
@@ -47,12 +48,18 @@ export function ListCreateModal() {
           />
           {error && <p role="alert">{error}</p>}
           <div className="flex gap-2">
-            <button className="rpgui-button" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
-              {isSubmitting ? "Criando…" : "Criar"}
-            </button>
-            <button className="rpgui-button" type="button" onClick={close} disabled={isSubmitting}>
-              Cancelar
-            </button>
+            <RPGUIButton
+              type="submit"
+              title={isSubmitting ? "Criando…" : "Criar"}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            />
+            <RPGUIButton
+              type="button"
+              title="Cancelar"
+              onClick={close}
+              disabled={isSubmitting}
+            />
             {isSubmitting && <span className="font-display text-xs self-center" aria-live="polite">[ Carregando... ]</span>}
           </div>
         </form>

@@ -5,11 +5,17 @@ import { getGameList, listGamesInList } from "@/server/lists/service";
 import { BacklogView } from "@/features/games/backlog-view";
 import { listGameLists } from "@/server/lists/service";
 import { toPlainGame, toPlainGameList } from "@/features/games/mappers";
+import {
+  parseLibrarySearchParams,
+  toLibraryServiceFilters,
+} from "@/features/games/user-game-query";
 
 export default async function ListDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ listId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   let session;
   try {
@@ -29,8 +35,13 @@ export default async function ListDetailPage({
     throw error;
   }
 
+  const initialQuery = parseLibrarySearchParams(await searchParams);
   const [games, lists] = await Promise.all([
-    listGamesInList(session.id, listId, { page: 1, limit: 20 }),
+    listGamesInList(
+      session.id,
+      listId,
+      toLibraryServiceFilters(initialQuery),
+    ),
     listGameLists(session.id, { page: 1, limit: 100, withCount: false }),
   ]);
 
@@ -38,9 +49,11 @@ export default async function ListDetailPage({
     <BacklogView
       initialGames={games.data.map(toPlainGame)}
       initialPagination={games.pagination}
+      initialQuery={initialQuery}
       lists={lists.data.map(toPlainGameList)}
       listId={listId}
       listName={list.name}
+      emptyMessage="Esta lista ainda não possui jogos."
     />
   );
 }

@@ -66,9 +66,18 @@ export function GameFormContainer({
     setIsSubmitting(true);
     try {
       if (editingId) {
+        const payload = formToPayload(form);
+        // ATP snapshots are metadata-immutable (GAME_METADATA_IMMUTABLE):
+        // send personal fields only so edits to imported games succeed.
+        if (
+          initialGame?.game?.source !== undefined &&
+          initialGame.game.source !== "manual"
+        ) {
+          delete payload.game;
+        }
         await apiRequest(`/api/games/${editingId}`, {
           method: "PUT",
-          body: formToPayload(form),
+          body: payload,
         });
         router.push("/backlog");
       } else {
@@ -108,6 +117,11 @@ export function GameFormContainer({
         onChange={patch}
         onSubmit={handleSubmit}
         onCancel={() => router.back()}
+        metadataLocked={
+          Boolean(editingId) &&
+          initialGame?.game?.source !== undefined &&
+          initialGame.game.source !== "manual"
+        }
       />
     </div>
   );

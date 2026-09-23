@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function PasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -36,9 +37,11 @@ export function PasswordForm() {
       </label>
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
-      <button className="rpgui-button" type="submit" disabled={loading}>
-        {loading ? "Salvando..." : "Alterar senha"}
-      </button>
+      <RPGUIButton
+        type="submit"
+        title={loading ? "Salvando..." : "Alterar senha"}
+        disabled={loading}
+      />
     </form>
   );
 }

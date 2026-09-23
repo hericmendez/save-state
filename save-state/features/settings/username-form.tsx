@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function UsernameForm({ initialName }: { initialName: string }) {
   const [name, setName] = useState(initialName);
@@ -29,9 +30,11 @@ export function UsernameForm({ initialName }: { initialName: string }) {
       </label>
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
-      <button className="rpgui-button" type="submit" disabled={loading}>
-        {loading ? "Salvando..." : "Salvar"}
-      </button>
+      <RPGUIButton
+        type="submit"
+        title={loading ? "Salvando..." : "Salvar"}
+        disabled={loading}
+      />
     </form>
   );
 }

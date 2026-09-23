@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export function ExportButtons() {
   const [isJsonLoading, setIsJsonLoading] = useState(false);
@@ -37,24 +38,20 @@ export function ExportButtons() {
     <div className="rpgui-container framed-grey flex flex-col gap-3 p-4">
       <p className="text-sm">Baixe seus dados. O arquivo contém apenas seus jogos e listas.</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          className="rpgui-button"
+        <RPGUIButton
           type="button"
+          title={isJsonLoading ? "Baixando…" : "Baixar JSON"}
           disabled={isJsonLoading || isCsvLoading}
           aria-busy={isJsonLoading}
           onClick={() => handleExport("/api/auth/export", "save-state.json", setIsJsonLoading)}
-        >
-          {isJsonLoading ? "Baixando…" : "Baixar JSON"}
-        </button>
-        <button
-          className="rpgui-button"
+        />
+        <RPGUIButton
           type="button"
+          title={isCsvLoading ? "Baixando…" : "Baixar CSV"}
           disabled={isJsonLoading || isCsvLoading}
           aria-busy={isCsvLoading}
           onClick={() => handleExport("/api/auth/export/csv", "save-state.csv", setIsCsvLoading)}
-        >
-          {isCsvLoading ? "Baixando…" : "Baixar CSV"}
-        </button>
+        />
         {(isJsonLoading || isCsvLoading) && (
           <span className="font-display text-xs" aria-live="polite">
             [ Carregando... ]

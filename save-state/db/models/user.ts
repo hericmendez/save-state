@@ -1,5 +1,5 @@
 import "server-only";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import { defineModel } from "@/db/models";
 
 const UserSchema = new Schema(
@@ -25,6 +25,10 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
+    top10: {
+      type: [{ type: Schema.Types.ObjectId, ref: "UserGame" }],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -36,6 +40,7 @@ export interface UserDocument extends mongoose.Document {
   email: string;
   passwordHash: string;
   sessionVersion: number;
+  top10: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }

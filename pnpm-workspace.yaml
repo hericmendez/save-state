@@ -1,0 +1,10 @@
+packages:
+  - "atp-engine"
+  - "save-state"
+
+# Merge allowBuilds from child workspaces so `pnpm install` at root
+# correctly permits all trusted postinstall build scripts.
+allowBuilds:
+  esbuild: true
+  mongodb-memory-server: true
+  unrs-resolver: true
