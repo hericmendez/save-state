@@ -1,63 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { apiRequest } from "@/lib/api-client";
-import RPGUIButton from "@/components/RPGUI/Button";
 import type { Game } from "@/features/shared/types";
-import { GameNotesSection } from "./notes-section";
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <p>
-      <strong>{label}:</strong> {value}
-    </p>
-  );
-}
-
-/**
- * Front cover for the hero: fixed visual weight, framed, separated from
- * the background. Missing cover renders nothing; a failed load renders a
- * compact text-based placeholder instead of a broken image.
- */
-function GameCover({
-  name,
-  url,
-  failed,
-  onError,
-}: {
-  name?: string | null;
-  url?: string | null;
-  failed: boolean;
-  onError: () => void;
-}) {
-  if (!url) return null;
-  if (failed) {
-    return (
-      <div
-        className="rpgui-container framed-grey flex h-60 w-44 shrink-0 items-center justify-center sm:h-72 sm:w-56"
-        aria-hidden="true"
-      >
-        <span className="font-display text-2xl">
-          {(name ?? "?").charAt(0).toUpperCase()}
-        </span>
-      </div>
-    );
-  }
-  return (
-    <div className="w-44 shrink-0 sm:w-56">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt=""
-        aria-hidden="true"
-        className="rpgui-container framed-grey h-auto max-h-[26rem] w-full object-contain p-1 shadow-2xl"
-        onError={onError}
-      />
-    </div>
-  );
-}
+import { GameDrawerShell } from "./game-drawer-shell";
+import { UserGameDrawerContent } from "./user-game-drawer-content";
 
 export function GameModal({
   game,
@@ -74,8 +21,6 @@ export function GameModal({
   const [details, setDetails] = useState<Game | null>(game);
   const [error, setError] = useState<string | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
-  const [isFinishing, setIsFinishing] = useState(false);
-  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   useEffect(() => {
     setDetails(game);
@@ -95,242 +40,22 @@ export function GameModal({
     };
   }, [game]);
 
-  useEffect(() => {
-    if (!game) return;
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleEscape);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = previous;
-    };
-  }, [game, onClose]);
-
-  if (typeof document === "undefined") return null;
-
   const shown = details ?? game;
 
-  return createPortal(
-    <AnimatePresence>
-      {game && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-stretch justify-end bg-black/70"
-          onClick={onClose}
-        >
-          <motion.aside
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.25 }}
-            className="rpgui-container framed-golden h-full w-full overflow-y-auto p-6 md:w-[60vw]"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={shown?.game?.name ?? "Detalhes do jogo"}
-          >
-            {error && <p role="alert">{error}</p>}
-            {shown && (
-              <>
-                <header className="relative -m-6 mb-6 min-h-[340px] overflow-hidden sm:min-h-[420px]">
-                  {shown.game?.cover && !coverFailed && (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={shown.game.cover}
-                        alt=""
-                        aria-hidden="true"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <div
-                        className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30"
-                        aria-hidden="true"
-                      />
-                    </>
-                  )}
-                  <div className="relative flex items-start justify-between gap-2 p-6 pb-2">
-                    <h2 className="font-display text-xl">
-                      {shown.game?.name ?? "Jogo"}
-                    </h2>
-                    <RPGUIButton
-                      type="button"
-                      title="✖"
-                      aria-label="Fechar"
-                      onClick={onClose}
-                    />
-                  </div>
-                  <div className="relative flex flex-col gap-4 p-6 pt-2 sm:flex-row">
-                    <GameCover name={shown.game?.name} url={shown.game?.cover} failed={coverFailed} onError={() => setCoverFailed(true)} />
-                    <div className="min-w-0 flex-1">
-                      {(shown.game?.genres ?? []).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {(shown.game?.genres ?? []).map((genre) => (
-                            <span
-                              key={genre}
-                              className="rpgui-container framed-grey px-2 text-xs"
-                            >
-                              {genre}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="mt-2 flex flex-col gap-1 text-sm">
-                        {(shown.game?.platforms ?? []).length > 0 && (
-                          <DetailRow
-                            label="Plataformas"
-                            value={(shown.game?.platforms ?? []).join(", ")}
-                          />
-                        )}
-                        {(shown.game?.developers ?? []).length > 0 && (
-                          <DetailRow
-                            label="Desenvolvedoras"
-                            value={(shown.game?.developers ?? []).join(", ")}
-                          />
-                        )}
-                        {(shown.game?.publishers ?? []).length > 0 && (
-                          <DetailRow
-                            label="Publicadoras"
-                            value={(shown.game?.publishers ?? []).join(", ")}
-                          />
-                        )}
-                      </div>
-                      {shown.game?.summary && (
-                        <p className="rpgui-text mt-2 text-sm">
-                          {shown.game.summary}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </header>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <section aria-label="Sua jornada">
-                    <h3 className="font-display text-lg">Sua jornada</h3>
-                    <div className="mt-2 flex flex-col gap-1 text-sm">
-                      {shown.status && (
-                        <DetailRow label="Status" value={shown.status} />
-                      )}
-                      {typeof shown.hoursPlayed === "number" && (
-                        <DetailRow
-                          label="Horas jogadas"
-                          value={String(shown.hoursPlayed)}
-                        />
-                      )}
-                      <DetailRow
-                        label="Vezes zerado"
-                        value={String(shown.timesFinished ?? 0)}
-                      />
-                      {shown.finished && <DetailRow label="Zerado" value="Sim" />}
-                      {shown.fullyCompleted && (
-                        <DetailRow label="100% completo" value="Sim" />
-                      )}
-                      {shown.favorite && <DetailRow label="Favorito" value="★" />}
-                      {shown.achievements ? (
-                        <DetailRow
-                          label="Conquistas"
-                          value={
-                            shown.achievementProgress !== null && shown.achievementProgress !== undefined
-                              ? `${shown.achievementProgress}%${shown.achievementsCompleted ? " (100%)" : ""}`
-                              : "0%"
-                          }
-                        />
-                      ) : (
-                        <DetailRow label="Conquistas" value="N/A" />
-                      )}
-                      {typeof shown.rating === "number" && (
-                        <DetailRow label="Nota" value={String(shown.rating)} />
-                      )}
-                    </div>
-                  </section>
-                  <section aria-label="Sua avaliação">
-                    <h3 className="font-display text-lg">Sua avaliação</h3>
-                    {shown.review ? (
-                      <blockquote className="rpgui-container framed-grey mt-2 p-3">
-                        {shown.review}
-                      </blockquote>
-                    ) : (
-                      <p className="mt-2 text-sm opacity-70">
-                        Sem review por enquanto.
-                      </p>
-                    )}
-                  </section>
-                </div>
-                <GameNotesSection
-                  userGameId={shown._id}
-                  autoFocusNew={autoFocusNotes}
-                />
-              </>
-            )}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <RPGUIButton
-                type="button"
-                title={isFinishing ? "Zerei +1…" : "Zerei +1"}
-                disabled={isFinishing || isTogglingFavorite}
-                aria-busy={isFinishing}
-                onClick={async () => {
-                  if (!shown || isFinishing || isTogglingFavorite) return;
-                  setIsFinishing(true);
-                  setError(null);
-                  try {
-                    const updated = await apiRequest<Game>(
-                      `/api/games/${shown._id}/finish`,
-                      { method: "POST" },
-                    );
-                    setDetails(updated);
-                    onUpdated?.();
-                  } catch {
-                    setError("Falha ao incrementar");
-                  } finally {
-                    setIsFinishing(false);
-                  }
-                }}
-              />
-              <RPGUIButton
-                type="button"
-                title={
-                  isTogglingFavorite
-                    ? "Aguarde…"
-                    : shown?.favorite
-                      ? "Desfavoritar"
-                      : "Favoritar"
-                }
-                disabled={isFinishing || isTogglingFavorite}
-                aria-busy={isTogglingFavorite}
-                onClick={async () => {
-                  if (!shown || isFinishing || isTogglingFavorite) return;
-                  setIsTogglingFavorite(true);
-                  setError(null);
-                  try {
-                    const updated = await apiRequest<Game>(
-                      `/api/games/${shown._id}`,
-                      {
-                        method: "PATCH",
-                        body: { favorite: !shown.favorite },
-                      },
-                    );
-                    setDetails(updated);
-                    onUpdated?.();
-                  } catch {
-                    setError("Falha ao favoritar");
-                  } finally {
-                    setIsTogglingFavorite(false);
-                  }
-                }}
-              />
-              {(isFinishing || isTogglingFavorite) && (
-                <span className="font-display text-xs" aria-live="polite">
-                  [ Carregando... ]
-                </span>
-              )}
-            </div>
-          </motion.aside>
-        </motion.div>
+  return (
+    <GameDrawerShell open={!!game} title={shown?.game?.name ?? "Detalhes do jogo"} onClose={onClose}>
+      {error && <p role="alert">{error}</p>}
+      {shown && (
+        <UserGameDrawerContent
+          shown={shown}
+          coverFailed={coverFailed}
+          onCoverError={() => setCoverFailed(true)}
+          autoFocusNotes={autoFocusNotes}
+          onUpdated={onUpdated}
+          onError={setError}
+          setDetails={setDetails}
+        />
       )}
-    </AnimatePresence>,
-    document.body,
+    </GameDrawerShell>
   );
 }

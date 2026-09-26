@@ -13,8 +13,7 @@ export function Content({ children }: { children: React.ReactNode }) {
         rpgui-container
         framed
         w-full
-        !px-0
-        !py-5
+  
         overflow-y-auto
         overflow-x-hidden
         content-scroll

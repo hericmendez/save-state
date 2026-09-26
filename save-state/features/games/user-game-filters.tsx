@@ -1,11 +1,13 @@
 "use client";
 
 import { GAME_STATUSES } from "@/schemas/games";
+import { getStatusLabel } from "@/features/games/status-labels";
 import type {
   CollectionOrder,
   CollectionQuery,
 } from "@/features/collection/collection-query";
-
+import RPGUInput from "@/components/RPGUI/Input";
+import RPGUISelect from "@/components/RPGUI/Select";
 export const LIBRARY_ORDER_OPTIONS = [
   { value: "", label: "Padrão (recentes)" },
   { value: "title", label: "Título" },
@@ -50,8 +52,8 @@ export function UserGameFilters({
     <div className="rpgui-container framed-grey flex flex-wrap items-end gap-2 p-3">
       <label className="flex flex-col gap-1 text-xs">
         Plataforma
-        <input
-          className="rpgui-input"
+        <RPGUInput
+          className=" w-full"
           type="text"
           value={draft.platform}
           placeholder="Ex.: N64"
@@ -60,8 +62,8 @@ export function UserGameFilters({
       </label>
       <label className="flex flex-col gap-1 text-xs">
         Ano de
-        <input
-          className="rpgui-input w-24"
+        <RPGUInput
+          className="w-24"
           type="number"
           inputMode="numeric"
           min={1000}
@@ -73,8 +75,8 @@ export function UserGameFilters({
       </label>
       <label className="flex flex-col gap-1 text-xs">
         Ano até
-        <input
-          className="rpgui-input w-24"
+        <RPGUInput
+          className="w-24"
           type="number"
           inputMode="numeric"
           min={1000}
@@ -86,23 +88,23 @@ export function UserGameFilters({
       </label>
       <label className="flex flex-col gap-1 text-xs">
         Status
-        <select
-          className="rpgui-dropdown"
+        <RPGUISelect
+          
           value={draft.status}
           onChange={(event) => onChange({ status: event.target.value })}
         >
           <option value="">Todos</option>
           {GAME_STATUSES.map((status) => (
-            <option key={status} value={status} className="capitalize">
-              {status}
+            <option key={status} value={status}>
+              {getStatusLabel(status)}
             </option>
           ))}
-        </select>
+        </RPGUISelect>
       </label>
       <label className="flex flex-col gap-1 text-xs">
         Ordenar por
-        <select
-          className="rpgui-dropdown"
+        <RPGUISelect
+          
           value={draft.orderBy}
           onChange={(event) => onChange({ orderBy: event.target.value })}
         >
@@ -111,12 +113,12 @@ export function UserGameFilters({
               {option.label}
             </option>
           ))}
-        </select>
+        </RPGUISelect>
       </label>
       <label className="flex flex-col gap-1 text-xs">
         Ordem
-        <select
-          className="rpgui-dropdown"
+        <RPGUISelect
+          
           value={draft.order}
           onChange={(event) =>
             onChange({ order: event.target.value as CollectionOrder })
@@ -124,7 +126,7 @@ export function UserGameFilters({
         >
           <option value="asc">ASC</option>
           <option value="desc">DESC</option>
-        </select>
+        </RPGUISelect>
       </label>
     </div>
   );

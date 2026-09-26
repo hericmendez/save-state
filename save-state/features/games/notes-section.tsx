@@ -369,6 +369,7 @@ export function GameNotesSection({
               <RPGUIButton
                 type="button"
                 title={loadingMore ? "Carregando…" : "Carregar mais"}
+                className="self-start"
                 onClick={() => void handleLoadMore()}
                 disabled={loadingMore}
                 aria-busy={loadingMore}

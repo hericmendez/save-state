@@ -42,7 +42,7 @@ import {
   type FeedPageDTO,
 } from "./feed-client";
 import type { FeedItem } from "./grouping";
-
+import RPGUIButton from "@/components/RPGUI/Button";
 export type { FeedPageDTO };
 
 type InitialStatus = "loading" | "ready" | "error";
@@ -159,7 +159,7 @@ export function HomeFeed({ limit = FEED_PAGE_LIMIT }: { limit?: number }) {
 
   return (
     <>
-      <h2 className="font-display mb-2 text-xl">Atividade recente</h2>
+      <h2 className="font-display mb-2 ms-2 text-xl">Atividade recente</h2>
       {openGameError && (
         <p role="alert" className="rpgui-container framed-grey p-3 text-sm">
           {openGameError}
@@ -180,25 +180,24 @@ export function HomeFeed({ limit = FEED_PAGE_LIMIT }: { limit?: number }) {
                   <p role="alert" className="text-sm">
                     Não foi possível carregar mais atividades.
                   </p>
-                  <button
-                    type="button"
-                    className="rpgui-button mt-2"
+                  <RPGUIButton
+                    title='Tentar novamente'
+                    className=" mt-2"
                     disabled={loadingMore}
                     onClick={() => void loadMore()}
-                  >
-                    Tentar novamente
-                  </button>
+                  />
+                    
+                
                 </div>
               )}
               {hasMore && !loadMoreError && (
-                <button
-                  type="button"
-                  className="rpgui-button mt-2 self-start"
+                <RPGUIButton
+                  title={loadingMore ? "Carregando…" : "Carregar mais"}
+                  className="mt-2 self-start"
                   disabled={loadingMore}
                   onClick={() => void loadMore()}
-                >
-                  {loadingMore ? "Carregando…" : "Carregar mais"}
-                </button>
+               />
+                  
               )}
             </>
           }

@@ -13,7 +13,7 @@ export default function RPGUITextArea({ className = "", ...props }: RpgTextAreaP
         framed-grey
         w-full
         text-white!
-        placeholder:text-gray-500
+        placeholder:text-gray-400
         focus:outline-none
         ${className}
       `}

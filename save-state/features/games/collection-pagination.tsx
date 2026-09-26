@@ -7,7 +7,7 @@ import {
   pageNumbers,
 } from "@/features/collection/collection-query";
 import RPGUIButton from "@/components/RPGUI/Button";
-
+import RPGUISelect from "@/components/RPGUI/Select";
 export function CollectionPagination({
   pagination,
   currentPage,
@@ -29,7 +29,7 @@ export function CollectionPagination({
   if (pagination.totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 font-display">
       <RPGUIButton
         type="button"
         title="‹"
@@ -40,13 +40,15 @@ export function CollectionPagination({
         page === "…" ? (
           <span key={`ellipsis-${index}`}>…</span>
         ) : (
-          <RPGUIButton
+          <button
             key={page}
             type="button"
             title={String(page)}
-            className={page === currentPage ? "down" : ""}
+            className={`rpgui-container ${page === currentPage ? "framed-grey" : ""}  px-2 py-1 text-sm`}
             onClick={() => onPageChange(page)}
-          />
+          >
+            {String(page)}
+          </button>
         ),
       )}
       <RPGUIButton
@@ -55,8 +57,8 @@ export function CollectionPagination({
         disabled={!pagination.hasNextPage}
         onClick={() => onPageChange(currentPage + 1)}
       />
-      <select
-        className="rpgui-dropdown"
+      <RPGUISelect
+
         value={itemsPerPage}
         onChange={(event) => onItemsPerPageChange(Number(event.target.value))}
         aria-label="Itens por página"
@@ -66,7 +68,7 @@ export function CollectionPagination({
             {size}
           </option>
         ))}
-      </select>
+      </RPGUISelect>
     </div>
   );
 }

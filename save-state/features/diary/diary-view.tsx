@@ -12,14 +12,14 @@ import {
   FeedError,
   FeedLoading,
 } from "@/features/activity/activity-feed";
-import { appendFeedPage, type FeedPageDTO } from "@/features/activity/feed-client";
+import {
+  appendFeedPage,
+  type FeedPageDTO,
+} from "@/features/activity/feed-client";
 import type { FeedItem } from "@/features/activity/grouping";
 import { formatDayHeading } from "@/features/activity/presentation";
 import { GameModal } from "@/features/games/game-modal";
-import type {
-  Game,
-  PaginatedResponse,
-} from "@/features/shared/types";
+import type { Game, PaginatedResponse } from "@/features/shared/types";
 import {
   DIARY_DEFAULTS,
   DIARY_LIMITS,
@@ -30,7 +30,8 @@ import {
   withoutCursor,
   type DiaryQuery,
 } from "./diary-query";
-
+import RPGUISelect from "@/components/RPGUI/Select";
+import RPGUInput from "@/components/RPGUI/Input";
 interface DiaryPage extends FeedPageDTO {}
 
 interface GameOption {
@@ -58,7 +59,8 @@ function presetRange(preset: string): { from: string; to: string } {
   const day = (d: Date) => d.toISOString().slice(0, 10);
   const today = day(now);
   if (preset === "today") return { from: today, to: today };
-  if (preset === "year") return { from: `${today.slice(0, 4)}-01-01`, to: today };
+  if (preset === "year")
+    return { from: `${today.slice(0, 4)}-01-01`, to: today };
   const days = preset === "7d" ? 7 : 30;
   const from = new Date(now.getTime() - (days - 1) * 86_400_000);
   return { from: day(from), to: today };
@@ -276,10 +278,7 @@ export function DiaryView() {
     }
   }
 
-  async function openGameFromActivity(
-    userGameId: string,
-    focusNotes = false,
-  ) {
+  async function openGameFromActivity(userGameId: string, focusNotes = false) {
     setOpenAutoFocusNotes(focusNotes);
     try {
       const game = await apiRequest<Game>(
@@ -310,6 +309,16 @@ export function DiaryView() {
 
   const activeFilters = hasActiveDiaryFilters(queryRef.current);
 
+  const currentPreset = (() => {
+    const { from, to } = query;
+    if (!from && !to) return "";
+    for (const preset of PRESETS) {
+      const range = presetRange(preset.value);
+      if (range.from === from && range.to === to) return preset.value;
+    }
+    return "";
+  })();
+
   return (
     <div className="flex flex-col gap-4">
       <header className="rpgui-container framed-grey p-4">
@@ -317,8 +326,8 @@ export function DiaryView() {
       </header>
 
       <div className="rpgui-container framed-golden flex flex-col gap-2 p-4">
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className=" w-full"
           type="search"
           value={qInput}
           onChange={(event) => setQInput(event.target.value)}
@@ -328,20 +337,8 @@ export function DiaryView() {
         />
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-xs">
-            Jogo
-            <input
-              className="rpgui-input w-full"
-              type="search"
-              value={gameSearch}
-              onChange={(event) => setGameSearch(event.target.value)}
-              placeholder="Filtrar por jogo…"
-              aria-label="Filtrar por jogo"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
             Tipo
-            <select
-              className="rpgui-dropdown"
+            <RPGUISelect
               value={query.type}
               onChange={(event) => updateFilters({ type: event.target.value })}
             >
@@ -351,41 +348,57 @@ export function DiaryView() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </RPGUISelect>
           </label>
-          <label className="flex flex-col gap-1 text-xs">
-            De
-            <input
-              className="rpgui-input w-full"
-              type="date"
-              value={query.from}
-              max={query.to || undefined}
-              onChange={(event) => updateFilters({ from: event.target.value })}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            Até
-            <input
-              className="rpgui-input w-full"
-              type="date"
-              value={query.to}
-              min={query.from || undefined}
-              onChange={(event) => updateFilters({ to: event.target.value })}
-            />
-          </label>
+          <div className="flex w-full">
+            <label className="flex flex-col gap-1 text-xs w-100">
+              De
+              <RPGUInput
+                className=" w-full"
+                type="date"
+                value={query.from}
+                max={query.to || undefined}
+                onChange={(event) =>
+                  updateFilters({ from: event.target.value })
+                }
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs w-100">
+              Até
+              <RPGUInput
+                className="w-full"
+                type="date"
+                value={query.to}
+                min={query.from || undefined}
+                onChange={(event) => updateFilters({ to: event.target.value })}
+              />
+            </label>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((preset) => (
-            <RPGUIButton
-              key={preset.value}
-              type="button"
-              title={preset.label}
-              onClick={() => updateFilters(presetRange(preset.value))}
-            />
-          ))}
+          <label className="flex flex-col gap-1 text-xs">
+            Período
+            <RPGUISelect
+              value={currentPreset}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "") return;
+                updateFilters(presetRange(value));
+              }}
+              aria-label="Filtrar por período"
+            >
+              <option value="">Período</option>
+              {PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
+            </RPGUISelect>
+          </label>
           <RPGUIButton
             type="button"
             title="Limpar filtros"
+            className="self-start"
             onClick={clearFilters}
             disabled={!activeFilters}
           />
@@ -442,8 +455,7 @@ export function DiaryView() {
           />
           <label className="ml-auto flex items-center gap-1 text-xs">
             Por página
-            <select
-              className="rpgui-dropdown"
+            <RPGUISelect
               value={query.limit}
               onChange={(event) =>
                 updateFilters({ limit: Number(event.target.value) })
@@ -455,7 +467,7 @@ export function DiaryView() {
                   {size}
                 </option>
               ))}
-            </select>
+            </RPGUISelect>
           </label>
         </div>
       </div>
@@ -492,6 +504,7 @@ export function DiaryView() {
               <p>Nenhuma atividade encontrada para esses filtros.</p>
               <RPGUIButton
                 type="button"
+                className="self-start"
                 title="Limpar filtros"
                 onClick={clearFilters}
               />
@@ -519,6 +532,7 @@ export function DiaryView() {
               <RPGUIButton
                 type="button"
                 title={loadingMore ? "Carregando…" : "Carregar mais"}
+                className="self-start"
                 onClick={() => void loadMore()}
                 disabled={loadingMore}
               />
@@ -549,10 +563,7 @@ export function DiaryView() {
                     type="button"
                     title="Abrir jogo"
                     onClick={() =>
-                      void openGameFromActivity(
-                        gameId,
-                        shouldFocusNotes(item),
-                      )
+                      void openGameFromActivity(gameId, shouldFocusNotes(item))
                     }
                   />
                 )}
@@ -563,6 +574,7 @@ export function DiaryView() {
             <RPGUIButton
               type="button"
               title={loadingMore ? "Carregando…" : "Carregar mais"}
+                           className="self-start"
               onClick={() => void loadMore()}
               disabled={loadingMore}
             />

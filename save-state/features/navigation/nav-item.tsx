@@ -114,7 +114,8 @@ function NavItemGroup({
         title={entry.title}
         golden
         onClick={() => setIsOpen((previous) => !previous)}
-        className={`w-full ${hasActiveChild ? "down" : ""}`}
+        className={`w-full whitespace-nowrap !text-xs ${hasActiveChild ? "down" : ""}`}
+        style={{ minWidth: 0, paddingLeft: "12px", paddingRight: "12px" }}
       >
         {isOpen ? "⌃" : "⌄"}
       </RPGUIButton>

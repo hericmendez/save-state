@@ -2,6 +2,7 @@
 
 import type { Game, GameList } from "@/features/shared/types";
 import { GameContextMenu } from "./game-context-menu";
+import { getStatusLabel } from "./status-labels";
 import RPGUIButton from "@/components/RPGUI/Button";
 
 export function GameListItem({
@@ -46,7 +47,7 @@ export function GameListItem({
             ))}
           </div>
           <p className="mt-1 text-xs">
-            {game.status ? <span className="capitalize">{game.status}</span> : null}
+            {game.status ? <span>{getStatusLabel(game.status)}</span> : null}
             {typeof game.hoursPlayed === "number" ? (
               <span> · {game.hoursPlayed}h</span>
             ) : null}

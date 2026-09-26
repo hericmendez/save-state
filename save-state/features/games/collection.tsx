@@ -6,6 +6,7 @@ import { CollectionPagination } from "./collection-pagination";
 import RPGUIButton from "@/components/RPGUI/Button";
 import { ViewModeToggle } from "@/features/collection/view-mode-toggle";
 import type { CollectionViewMode } from "@/features/collection/collection-query";
+import RPGUInput from "@/components/RPGUI/Input";
 
 export function Collection<T>({
   items,
@@ -51,8 +52,8 @@ export function Collection<T>({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          className="rpgui-input"
+        <RPGUInput
+
           type="search"
           value={search}
           placeholder={searchPlaceholder}

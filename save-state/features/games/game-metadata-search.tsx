@@ -8,7 +8,7 @@ import {
   type AtpDetailForForm,
 } from "@/features/games/metadata-search";
 import type { GameFormState } from "@/features/games/game-form";
-
+import RPGUInput from "@/components/RPGUI/Input";
 interface SearchCard {
   atpId: string;
   name: string;
@@ -106,8 +106,8 @@ export function GameMetadataSearch({
                 renders inside GameForm's <form> and nested forms would
                 submit the outer form instead. */}
             <div className="mt-3 flex gap-2">
-              <input
-                className="rpgui-input flex-1"
+              <RPGUInput
+                className=" flex-1"
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 onKeyDown={(event) => {
@@ -138,15 +138,15 @@ export function GameMetadataSearch({
                   <p>Nenhum jogo encontrado.</p>
                 ) : (
                   step.cards.map((card) => (
-                    <RPGUIButton
+                    <a
                       key={card.atpId}
                       type="button"
                       title={card.name}
-                      className="w-full text-left"
+                      className="w-full text-left rpgui-container framed-grey  hover:text-yellow-300 hover:underline "
                       onClick={() => void runPreview(card.atpId)}
                     >
-                      {card.year !== null ? ` (${card.year})` : ""}
-                    </RPGUIButton>
+                    {card.name}  {card.year !== null ? ` (${card.year})` : ""}
+                    </a>
                   ))
                 )}
               </div>

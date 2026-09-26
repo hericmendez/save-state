@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import { useListModalStore } from "./list-modal-store";
 import RPGUIButton from "@/components/RPGUI/Button";
-
+import RPGUInput from "@/components/RPGUI/Input";
 export function ListCreateModal() {
   const isOpen = useListModalStore((s) => s.isOpen);
   const close = useListModalStore((s) => s.close);
@@ -38,8 +38,8 @@ export function ListCreateModal() {
       <div className="rpgui-container framed-golden w-full max-w-md p-6">
         <h2 className="font-display text-xl">Nova Lista</h2>
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          <input
-            className="rpgui-input w-full"
+          <RPGUInput
+            className="w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nome da lista"

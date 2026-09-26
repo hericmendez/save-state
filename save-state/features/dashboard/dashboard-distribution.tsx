@@ -5,6 +5,7 @@ import {
   type DashboardDistributionDef,
 } from "./dashboard-metrics";
 import type { GameStats } from "@/server/stats/service";
+import { getStatusLabel } from "@/features/games/status-labels";
 
 type ProgressBarColor = "blue" | "red" | "green" | "purple";
 
@@ -18,7 +19,11 @@ export function DashboardDistribution({
   def: DashboardDistributionDef;
   stats: GameStats;
 }) {
-  const entries = topEntries(def.select(stats), def.limit);
+  const rawEntries = topEntries(def.select(stats), def.limit);
+  const entries: [string, number][] =
+    def.id === "status"
+      ? rawEntries.map(([label, value]) => [getStatusLabel(label), value] as [string, number])
+      : rawEntries;
   const max = maxEntryValue(entries);
   return (
     <section className="rpgui-container framed-golden p-4">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
+import RPGUInput from "@/components/RPGUI/Input";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -44,8 +45,8 @@ export function RegisterForm() {
       {error && <p role="alert">{error}</p>}
       <label>
         Nome
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
@@ -55,8 +56,8 @@ export function RegisterForm() {
       </label>
       <label>
         Email
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -66,8 +67,8 @@ export function RegisterForm() {
       </label>
       <label>
         Senha
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -79,8 +80,8 @@ export function RegisterForm() {
       </label>
       <label>
         Confirmar senha
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           type="password"
           value={passwordConfirm}
           onChange={(event) => setPasswordConfirm(event.target.value)}

@@ -7,6 +7,8 @@ import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type { GameList } from "@/features/shared/types";
 import { ConfirmDialog } from "@/features/games/confirm-dialog";
 import RPGUIButton from "@/components/RPGUI/Button";
+import RPGUInput from "@/components/RPGUI/Input";
+import { FaEye, FaPen } from "react-icons/fa6";
 
 export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
   const router = useRouter();
@@ -100,10 +102,10 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
       )}
       <form
         onSubmit={handleCreate}
-        className="rpgui-container framed-golden flex gap-2 p-4"
+        className="flex gap-2 p-4"
       >
-        <input
-          className="rpgui-input flex-1"
+        <RPGUInput
+          className="flex-1"
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
           placeholder="Nova lista"
@@ -122,8 +124,8 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
             >
               {renamingId === list._id ? (
                 <>
-                  <input
-                    className="rpgui-input flex-1"
+                  <RPGUInput
+                    className="flex-1"
                     value={renamingName}
                     onChange={(event) => setRenamingName(event.target.value)}
                     maxLength={100}
@@ -156,22 +158,35 @@ export function ListsManager({ initialLists }: { initialLists: GameList[] }) {
                       <p className="text-xs">{list.gameCount} jogos</p>
                     )}
                   </div>
-                  <Link href={`/backlog/lists/${list._id}`}>
-                    <RPGUIButton title="Ver jogos" />
+                  <Link
+                    href={`/backlog/lists/${list._id}`}
+                    className="rpgui-container framed-grey flex h-9 w-9 items-center justify-center text-lg transition-all hover:[--webkit-text-stroke:1px]"
+                    aria-label="Ver jogos"
+                    title="Ver jogos"
+                  >
+                    <FaEye />
                   </Link>
-                  <RPGUIButton
+                  <button
                     type="button"
+                    aria-label="Renomear"
                     title="Renomear"
+                    className="rpgui-container framed-grey flex h-9 w-9 items-center justify-center text-lg transition-all hover:[--webkit-text-stroke:1px]"
                     onClick={() => {
                       setRenamingId(list._id);
                       setRenamingName(list.name);
                     }}
-                  />
-                  <RPGUIButton
+                  >
+                    <FaPen className="text-sm" />
+                  </button>
+                  <button
                     type="button"
+                    aria-label="Excluir"
                     title="Excluir"
+                    className="rpgui-container framed-grey flex h-9 w-9 items-center justify-center text-lg font-display text-red-500! transition-all hover:[--webkit-text-stroke:1px]"
                     onClick={() => setDeleteTarget(list)}
-                  />
+                  >
+                    X
+                  </button>
                 </>
               )}
             </li>

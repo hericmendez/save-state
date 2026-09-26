@@ -14,6 +14,7 @@ export default function RPGUISelect({
       {...props}
       className={`
         rpgui-container
+        rpgui-dropdown  
         framed-grey
         cursor-pointer
         bg-[#1e2022]!

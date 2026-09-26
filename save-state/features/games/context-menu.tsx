@@ -86,10 +86,10 @@ function MenuItemRow({
         if (item.children) onCloseSub();
       }}
     >
-      <RPGUIButton
+      <button
         type="button"
         title={item.label}
-        className="w-full text-left"
+        className="w-full text-left hover:bg-white hover:text-gray-600"
         disabled={item.disabled}
         aria-disabled={item.disabled}
         onClick={() => {
@@ -102,8 +102,8 @@ function MenuItemRow({
           onClose();
         }}
       >
-        {item.children ? " ▶" : ""}
-      </RPGUIButton>
+       {item.label} {item.children ? " ▶" : ""}
+      </button>
       {item.children && open && (
         <SubmenuFloat parent={liElement} items={item.children} onClose={onClose} />
       )}

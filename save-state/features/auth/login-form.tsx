@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
-
+import RPGUInput from "@/components/RPGUI/Input";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,8 +37,8 @@ export function LoginForm() {
       {error && <p role="alert">{error}</p>}
       <label>
         Email
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -48,8 +48,8 @@ export function LoginForm() {
       </label>
       <label>
         Senha
-        <input
-          className="rpgui-input w-full"
+        <RPGUInput
+          className="w-full"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}

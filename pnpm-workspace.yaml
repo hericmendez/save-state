@@ -1,6 +1,7 @@
 packages:
   - "atp-engine"
   - "save-state"
+  - "rpgui-next-template"
 
 # Merge allowBuilds from child workspaces so `pnpm install` at root
 # correctly permits all trusted postinstall build scripts.

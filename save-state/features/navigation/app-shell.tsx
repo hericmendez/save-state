@@ -55,7 +55,7 @@ export function AppShell({
           flex-row
           w-full
           overflow-hidden
-
+          
           ${isFullscreen ? "min-h-screen" : ""}
         `}
       >

@@ -17,6 +17,7 @@ import {
   type ExpandedLine,
   type FeedItem,
 } from "./grouping";
+import RPGUIButton from "@/components/RPGUI/Button";
 
 export type { DaySection };
 
@@ -28,23 +29,30 @@ function DetailLines({ lines }: { lines: ExpandedLine[] }) {
   return (
     <div className="mt-2 flex flex-col gap-1">
       {shown.map((line, index) => (
-        <div key={`${line.time}-${index}`} className="flex items-center gap-2 text-sm">
-          <span className="shrink-0 text-xs opacity-70">{line.time}</span>
+        <div
+          key={`${line.time}-${index}`}
+          className="flex items-center gap-2 text-sm"
+        >
+          <span className="shrink-0 text-sm opacity-70">{line.time}</span>
           {line.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={line.cover} alt="" aria-hidden="true" className="h-8 w-8 shrink-0 object-cover" />
+            <img
+              src={line.cover}
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 shrink-0 object-cover"
+            />
           ) : null}
           <span className="min-w-0">{line.text}</span>
         </div>
       ))}
       {lines.length > visible && (
-        <button
-          type="button"
-          className="rpgui-button mt-1 self-start"
+        <RPGUIButton
+          className="mt-1 self-start"
           onClick={() => setVisible((count) => count + EXPANDED_PAGE_SIZE)}
-        >
-          Mostrar mais ({lines.length - visible} restantes)
-        </button>
+          title={`Ver mais (${lines.length - visible} restantes)`}
+        />
+  
       )}
     </div>
   );
@@ -58,9 +66,13 @@ function ExpandToggle({
   onToggle: () => void;
 }) {
   return (
-    <button type="button" className="rpgui-button" onClick={onToggle}>
+    <a
+      type="button"
+      className="mt-1 ms-4 text-amber-400 hover:underline font-bold cursor-pointer"
+      onClick={onToggle}
+    >
       {expanded ? "Recolher" : "Ver detalhes"}
-    </button>
+    </a>
   );
 }
 
@@ -74,7 +86,7 @@ function GroupSpan({
   const from = formatFeedTime(item.span.from, timeZone);
   const to = formatFeedTime(item.span.to, timeZone);
   return (
-    <span className="text-xs opacity-70">
+    <span className="text-sm opacity-70">
       {from === to ? from : `${from} — ${to}`}
     </span>
   );
@@ -82,7 +94,7 @@ function GroupSpan({
 
 function ItemTime({ iso, timeZone }: { iso: string | Date; timeZone: string }) {
   return (
-    <span className="text-xs opacity-70">{formatFeedTime(iso, timeZone)}</span>
+    <span className="text-sm opacity-70 font-display">{formatFeedTime(iso, timeZone)}</span>
   );
 }
 
@@ -118,16 +130,18 @@ function GroupCard({
       <h3 className="font-display text-sm">{item.title}</h3>
       <div className="mt-2 flex items-center justify-between gap-2">
         <GroupSpan item={item} timeZone={timeZone} />
-        <ExpandToggle expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
+        <ExpandToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((value) => !value)}
+        />
       </div>
       {onOpenGame && gameId && (
-        <button
-          type="button"
-          className="rpgui-button mt-2"
+        <a
+          className="mt-1 ms-4 text-amber-400 hover:underline font-bold cursor-pointer"
           onClick={() => onOpenGame(gameId)}
         >
-          Abrir jogo
-        </button>
+          Mostrar jogo
+        </a>
       )}
       {expanded && <DetailLines lines={item.expanded} />}
     </article>
@@ -143,12 +157,12 @@ function Top1Card({
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <article className="rpgui-container framed-golden p-3">
-      <h3 className="font-display text-sm">★ {item.title}</h3>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <ItemTime iso={item.span.from} timeZone={timeZone} />
-        <ExpandToggle expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
-      </div>
+    <article className="p-1">
+      <h3 className="font-display text-sm"> <ItemTime iso={item.span.from} timeZone={timeZone} /> ★ {item.title}<ExpandToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((value) => !value)}
+        /></h3>
+
       {expanded && <DetailLines lines={item.expanded} />}
     </article>
   );
@@ -168,19 +182,18 @@ function SingleRow({
     return <Top1Card item={item} timeZone={timeZone} />;
   }
   return (
-    <article className="px-1 py-1">
-      <p className="text-sm">• {item.title}</p>
-      {onOpenGame && first.userGameId && (
-        <button
-          type="button"
-          className="rpgui-button mt-1"
-          onClick={() => onOpenGame(first.userGameId as string)}
-        >
-          Abrir jogo
-        </button>
-      )}
-      <p className="mt-0.5">
-        <ItemTime iso={item.span.from} timeZone={timeZone} />
+    <article className="px-1 py-1 ">
+      <p className="text-md">
+        {" "}
+        <ItemTime iso={item.span.from} timeZone={timeZone} /> • {item.title}{" "}
+        {onOpenGame && first.userGameId && (
+          <a
+            className=" text-amber-400 hover:underline font-bold cursor-pointer"
+            onClick={() => onOpenGame(first.userGameId as string)}
+          >
+            Mostrar jogo
+          </a>
+        )}
       </p>
     </article>
   );
@@ -196,7 +209,9 @@ function FeedEntry({
   onOpenGame?: (userGameId: string) => void;
 }) {
   if (item.kind === "group")
-    return <GroupCard item={item} timeZone={timeZone} onOpenGame={onOpenGame} />;
+    return (
+      <GroupCard item={item} timeZone={timeZone} onOpenGame={onOpenGame} />
+    );
   return <SingleRow item={item} timeZone={timeZone} onOpenGame={onOpenGame} />;
 }
 
@@ -217,8 +232,9 @@ export function ActivityFeed({
   return (
     <div className="flex flex-col gap-4">
       {sections.map((section) => (
-        <section key={section.key} aria-label={section.heading}>
-          <h2 className="font-display mb-2 text-lg">{section.heading}</h2>
+        <section key={section.key} aria-label={section.heading} className="rpgui-container framed-grey p-3">
+          <h2 className="font-display text-md ps-2 mt-2 ">{section.heading}</h2>
+                    <hr className="my-4 golden" />
           <div className="flex flex-col gap-2">
             {section.items.map((item) => (
               <FeedEntry
@@ -229,6 +245,7 @@ export function ActivityFeed({
               />
             ))}
           </div>
+
         </section>
       ))}
       {footer}
@@ -250,7 +267,11 @@ export function FeedEmpty() {
 
 export function FeedLoading() {
   return (
-    <div className="rpgui-container framed-grey p-4" aria-busy="true" aria-label="Carregando diário">
+    <div
+      className="rpgui-container framed-grey p-4"
+      aria-busy="true"
+      aria-label="Carregando diário"
+    >
       <h2 className="font-display text-lg">Seu Diário</h2>
       <div className="mt-2 flex flex-col gap-2">
         {[0, 1, 2].map((index) => (
@@ -270,9 +291,9 @@ export function FeedError({ onRetry }: { onRetry: () => void }) {
       <p role="alert" className="mt-2 text-sm">
         Não foi possível carregar seu diário.
       </p>
-      <button type="button" className="rpgui-button mt-2" onClick={onRetry}>
-        Tentar novamente
-      </button>
+      <RPGUIButton title="Tentar novamente" className="mt-2" onClick={onRetry} />
+        
+
     </div>
   );
 }

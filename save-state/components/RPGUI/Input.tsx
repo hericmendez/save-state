@@ -14,9 +14,10 @@ export default function RPGUInput({
       className={`
         rpgui-container
         framed-grey
+        rpgui-input
         w-full
         text-white!
-        placeholder:text-gray-500
+        placeholder:text-gray-300!
         focus:outline-none
         ${className}
       `}

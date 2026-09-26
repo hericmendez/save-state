@@ -32,7 +32,7 @@ export const NAV_STRUCTURE: NavEntry[] = [
   },
   {
     id: "biblioteca",
-    title: "Minha Biblioteca",
+    title: "Meu Backlog",
     children: [
       { id: "new-game", title: "Novo Jogo", path: "/backlog/new" },
       // Compat: a rota interna /backlog permanece como "Jogos" (label desacoplado da URL).
@@ -40,7 +40,7 @@ export const NAV_STRUCTURE: NavEntry[] = [
       { id: "favoritos", title: "Favoritos", path: "/backlog/favoritos" },
       // Fase 3: real derived view (listIds.length === 0 via withoutList=true).
       // No persisted GameList; same UserGame infrastructure as Jogos/Favoritos.
-      { id: "sem-lista", title: "Sem lista", path: "/backlog/without-list" },
+      { id: "sem-lista", title: "Jogos sem lista", path: "/backlog/without-list" },
     ],
   },
   {

@@ -8,6 +8,9 @@ import type {
 } from "@/features/shared/types";
 import { toPlainGame } from "@/features/games/mappers";
 import { GameModal } from "@/features/games/game-modal";
+import RPGUIButton from "@/components/RPGUI/Button";
+import RPGUISelect from "@/components/RPGUI/Select";
+import { FaEye } from "react-icons/fa6";
 
 function gameName(game: Game): string {
   return game.game?.name ?? "Jogo";
@@ -165,9 +168,8 @@ export function Top10View({
           </p>
         ) : (
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <select
+            <RPGUISelect
               aria-label="Jogo favorito para adicionar"
-              className="rpgui-dropdown"
               value={selectedId}
               disabled={isSaving || full}
               onChange={(event) => setSelectedId(event.target.value)}
@@ -178,15 +180,14 @@ export function Top10View({
                   {gameName(game)}
                 </option>
               ))}
-            </select>
-            <button
-              type="button"
-              className="rpgui-button"
+            </RPGUISelect>
+            <RPGUIButton
+     
+             title="Adicionar"
               disabled={!selectedId || isSaving || full}
               onClick={() => void handleAdd()}
-            >
-              Adicionar
-            </button>
+            />
+
           </div>
         )}
       </section>
@@ -194,14 +195,11 @@ export function Top10View({
       <section className="rpgui-container framed-grey p-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg">Ranking</h2>
-          <button
-            type="button"
-            className="rpgui-button"
+          <RPGUIButton
+          title="Recarregar"
             disabled={isSaving}
             onClick={() => void refresh()}
-          >
-            Recarregar
-          </button>
+          />
         </div>
 
         {ordered.length === 0 ? (
@@ -250,17 +248,19 @@ export function Top10View({
                 <span className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    className="rpgui-button"
+                                        className="rpgui-container framed-grey text-3xl font-display  [-webkit-text-stroke:0px_black] transition-all  hover:[-webkit-text-stroke:1px]"
+
                     disabled={isSaving}
                     onClick={() => setSelectedGame(game)}
                   >
-                    Detalhes
+                    <FaEye />
+
                   </button>
                   <button
                     type="button"
                     aria-label={`Mover ${gameName(game)} para cima`}
                     title="Mover para cima"
-                    className="rpgui-button"
+                    className="rpgui-container framed-grey text-3xl font-display  [-webkit-text-stroke:0px_black] transition-all  hover:[-webkit-text-stroke:1px]"
                     disabled={isSaving || index === 0}
                     onClick={() => move(index, index - 1)}
                   >
@@ -270,7 +270,7 @@ export function Top10View({
                     type="button"
                     aria-label={`Mover ${gameName(game)} para baixo`}
                     title="Mover para baixo"
-                    className="rpgui-button"
+                    className="rpgui-container framed-grey text-3xl font-display  [-webkit-text-stroke:0px_black] transition-all  hover:[-webkit-text-stroke:1px]"
                     disabled={isSaving || index === ordered.length - 1}
                     onClick={() => move(index, index + 1)}
                   >
@@ -278,11 +278,12 @@ export function Top10View({
                   </button>
                   <button
                     type="button"
-                    className="rpgui-button"
+                    className="rpgui-container framed-grey text-3xl font-display text-red-500! [-webkit-text-stroke:0px_black] transition-all  hover:[-webkit-text-stroke:1px]"
+
                     disabled={isSaving}
                     onClick={() => void handleRemove(game)}
                   >
-                    Remover
+                    X
                   </button>
                 </span>
               </li>

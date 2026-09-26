@@ -44,7 +44,8 @@ export default async function HomePage() {
           Bem-vindo ao Save State. Escolha por onde continuar.
         </p>
       </header>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {SHORTCUTS.map((shortcut) => (
           <Link
             key={shortcut.href}
@@ -61,7 +62,7 @@ export default async function HomePage() {
         the client and renders the shared ActivityFeed. No fixtures here;
         the isolated preview keeps using them independently.
       */}
-      <section aria-label="Atividade recente">
+      <section className="m-5" aria-label="Atividade recente">
         <HomeFeed />
       </section>
     </main>

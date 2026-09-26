@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api-error";
 import { getCurrentSession } from "@/server/auth/session";
 import { listAtpFamilies } from "@/server/atp/families";
+import { PlatformCard } from "@/features/catalog/platform-card";
 
 /**
  * Fase 7 — family explorer. Families are derived server-side from ATP
@@ -41,27 +41,31 @@ export default async function FamiliesPage() {
       ) : families.length === 0 ? (
         <p>Nenhuma família disponível.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {families.map((family) => (
-            <Link
+            <details
               key={family.name}
-              href={`/catalog/families/${encodeURIComponent(family.name)}`}
-              className="rpgui-container framed-golden block p-4"
+              open
+              className="rpgui-container framed-golden p-4"
             >
-              <h2 className="font-display text-lg">{family.name}</h2>
-              <p className="mt-1 text-xs">
-                {family.platformCount}{" "}
-                {family.platformCount === 1 ? "plataforma" : "plataformas"} ·{" "}
-                {family.gameCount} {family.gameCount === 1 ? "jogo" : "jogos"}
-              </p>
-              <p className="mt-1 truncate text-xs">
-                {family.platforms
-                  .slice(0, 4)
-                  .map((platform) => platform.name)
-                  .join(", ")}
-                {family.platforms.length > 4 && "…"}
-              </p>
-            </Link>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-lg">{family.name}</h2>
+                  <p className="text-xs opacity-80">
+                    {family.platformCount}{" "}
+                    {family.platformCount === 1 ? "plataforma" : "plataformas"} ·{" "}
+                    {family.gameCount} {family.gameCount === 1 ? "jogo" : "jogos"}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs underline opacity-70">esconder</span>
+              </summary>
+              <hr className="my-3" />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {family.platforms.map((platform) => (
+                  <PlatformCard key={platform.id} platform={platform} />
+                ))}
+              </div>
+            </details>
           ))}
         </div>
       )}

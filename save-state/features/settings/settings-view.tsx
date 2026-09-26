@@ -4,6 +4,7 @@ import { useUiStore, type LayoutMode } from "@/features/shared/ui-store";
 import { ExportButtons } from "./export-buttons";
 import { UsernameForm } from "./username-form";
 import { PasswordForm } from "./password-form";
+import RPGUISelect from "@/components/RPGUI/Select";
 
 export function SettingsView({ initialUsername }: { initialUsername: string }) {
   const layoutMode = useUiStore((state) => state.layoutMode);
@@ -11,15 +12,15 @@ export function SettingsView({ initialUsername }: { initialUsername: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="rpgui-container framed-grey p-4">
+      <header className="rpgui-container  p-4">
         <h1 className="font-display text-2xl">Configurações</h1>
       </header>
-      <section className="rpgui-container framed-golden flex flex-col gap-3 p-4">
+      <section className="rpgui-container framed-grey flex flex-col gap-3 p-4 mx-4">
         <h2 className="font-display">Aparência</h2>
         <label className="flex flex-col gap-1">
           Modo de layout
-          <select
-            className="rpgui-dropdown"
+          <RPGUISelect
+            
             value={layoutMode}
             onChange={(event) =>
               setLayoutMode(event.target.value as LayoutMode)
@@ -27,10 +28,10 @@ export function SettingsView({ initialUsername }: { initialUsername: string }) {
           >
             <option value="pixel-perfect">Pixel perfect</option>
             <option value="fullscreen">Tela cheia</option>
-          </select>
+          </RPGUISelect>
         </label>
       </section>
-      <section className="rpgui-container framed-grey flex flex-col gap-3 p-4">
+      <section className="rpgui-container  flex flex-col gap-3 p-4">
         <h2 className="font-display">Usuário</h2>
         <UsernameForm initialName={initialUsername} />
         <div className="mt-4">
@@ -38,7 +39,7 @@ export function SettingsView({ initialUsername }: { initialUsername: string }) {
           <PasswordForm />
         </div>
       </section>
-      <section className="rpgui-container framed-golden flex flex-col gap-3 p-4">
+      <section className="rpgui-container  flex flex-col gap-3 p-4">
         <h2 className="font-display">Exportar Dados</h2>
         <ExportButtons />
       </section>

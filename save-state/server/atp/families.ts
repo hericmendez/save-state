@@ -25,8 +25,9 @@ export interface AtpFamilySummary {
 export function groupPlatformsByFamily(
   platforms: AtpPlatform[],
 ): AtpFamilySummary[] {
+  const filtered = platforms.filter((platform) => platform.gameCount > 0);
   const groups = new Map<string, AtpPlatform[]>();
-  for (const platform of platforms) {
+  for (const platform of filtered) {
     const family = platform.family?.trim() || UNGROUPED_FAMILY_NAME;
     const members = groups.get(family);
     if (members) members.push(platform);
@@ -39,16 +40,15 @@ export function groupPlatformsByFamily(
       platformCount: members.length,
       gameCount: members.reduce((sum, p) => sum + p.gameCount, 0),
     }))
+    .filter((family) => family.platformCount > 0)
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function listAtpFamilies(): Promise<AtpFamilySummary[]> {
-  // Families describe the taxonomy, not the catalog volume: include empty
-  // platforms so a family never vanishes for lack of games.
   const first = await listAtpPlatforms({
     page: 1,
     limit: 100,
-    showEmptyPlatforms: true,
+    showEmptyPlatforms: false,
   });
   const platforms = [...first.data];
   const totalPages = first.pagination.totalPages;
@@ -58,7 +58,7 @@ export async function listAtpFamilies(): Promise<AtpFamilySummary[]> {
         listAtpPlatforms({
           page: index + 2,
           limit: 100,
-          showEmptyPlatforms: true,
+          showEmptyPlatforms: false,
         }),
       ),
     );

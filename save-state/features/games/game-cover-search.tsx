@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
+import RPGUInput from "@/components/RPGUI/Input";
 
 interface CoverCandidate {
   url: string;
@@ -77,8 +78,8 @@ export function GameCoverSearch({
                 renders inside GameForm's <form> and nested forms would
                 submit the outer form instead. */}
             <div className="mt-3 flex gap-2">
-              <input
-                className="rpgui-input flex-1"
+              <RPGUInput
+                className="flex-1"
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 onKeyDown={(event) => {

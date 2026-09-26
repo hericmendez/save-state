@@ -18,8 +18,15 @@ import {
   type AtpSearchQuery,
 } from "./atp-search-query";
 import type { AtpPreview, AtpSearchPage } from "./atp-result";
-import { AtpResultCard, AtpResultListItem } from "./atp-result-card";
-
+import type { AtpSearchCard } from "./atp-result";
+import type { Game } from "@/features/shared/types";
+import { GameModal } from "@/features/games/game-modal";
+import { GameCardFrame } from "@/features/games/game-card-frame";
+import { toCardModelFromAtp } from "@/features/games/game-card-model";
+import { GameDrawerShell } from "@/features/games/game-drawer-shell";
+import { CatalogDrawerContent } from "./catalog-drawer-content";
+import { CatalogMenu } from "./catalog-context-menu";
+import RPGUInput from "@/components/RPGUI/Input";
 interface AtpError {
   message: string;
   status: number | null;
@@ -30,6 +37,52 @@ function toAtpError(err: unknown): AtpError {
     return { message: err.message, status: err.status };
   }
   return { message: "Falha na busca", status: null };
+}
+
+function useAtpCover(atpId: string): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<{ coverUrl: string | null }>(`/api/atp/games/${encodeURIComponent(atpId)}/cover`)
+      .then((result) => {
+        if (!cancelled) setUrl(result.coverUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [atpId]);
+  return url;
+}
+
+function CatalogGridCard({
+  card,
+  onDetails,
+  onImport,
+  onToggle,
+  busy,
+  importing,
+}: {
+  card: AtpSearchCard;
+  onDetails: () => void;
+  onImport: () => void;
+  onToggle: () => void;
+  busy: boolean;
+  importing: boolean;
+}) {
+  const coverUrl = useAtpCover(card.atpId);
+  const presentation = toCardModelFromAtp(card, coverUrl);
+  return (
+    <CatalogMenu owned={card.owned} onDetails={onDetails} onToggleBacklog={onToggle} busy={busy}>
+      <GameCardFrame
+        presentation={presentation}
+        onDetails={onDetails}
+       
+      />
+    </CatalogMenu>
+  );
 }
 
 interface TextDraft {
@@ -52,83 +105,6 @@ function draftFromQuery(query: AtpSearchQuery): TextDraft {
     publisher: query.publisher,
     family: query.family,
   };
-}
-
-function PreviewDialog({
-  preview,
-  onClose,
-  onImport,
-  importing,
-}: {
-  preview: AtpPreview;
-  onClose: () => void;
-  onImport: () => void;
-  importing: boolean;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={preview.name}
-    >
-      <div className="rpgui-container framed-golden max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6">
-        <h2 className="font-display text-xl">{preview.name}</h2>
-        <div className="mt-3 flex flex-col gap-1 text-sm">
-          {preview.year !== null && (
-            <p>
-              <strong>Ano:</strong> {preview.year}
-            </p>
-          )}
-          {preview.platforms.length > 0 && (
-            <p>
-              <strong>Plataformas:</strong> {preview.platforms.join(", ")}
-            </p>
-          )}
-          {preview.genres.length > 0 && (
-            <p>
-              <strong>Gêneros:</strong> {preview.genres.join(", ")}
-            </p>
-          )}
-          {preview.developers.length > 0 && (
-            <p>
-              <strong>Desenvolvedoras:</strong> {preview.developers.join(", ")}
-            </p>
-          )}
-          {preview.publishers.length > 0 && (
-            <p>
-              <strong>Publicadoras:</strong> {preview.publishers.join(", ")}
-            </p>
-          )}
-          {preview.manualDuplicate ? (
-            <p>
-              <strong>Atenção:</strong> você já tem o jogo manual{" "}
-              &ldquo;{preview.manualDuplicate.name}&rdquo;. Importar criará um
-              registro separado.
-            </p>
-          ) : null}
-          {preview.owned && <p>✓ Este jogo já está no seu backlog.</p>}
-        </div>
-        <div className="mt-4 flex gap-2">
-          {preview.owned ? (
-            <RPGUIButton
-              type="button"
-              title="No backlog ✓"
-              onClick={onClose}
-            />
-          ) : (
-            <RPGUIButton
-              type="button"
-              title={importing ? "Importando…" : "Adicionar ao Backlog"}
-              onClick={onImport}
-              disabled={importing}
-            />
-          )}
-          <RPGUIButton type="button" title="Fechar" onClick={onClose} />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function CatalogSearch({
@@ -198,6 +174,7 @@ export function CatalogSearch({
   const [preview, setPreview] = useState<AtpPreview | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const queryRef = useRef(query);
   queryRef.current = query;
@@ -205,7 +182,17 @@ export function CatalogSearch({
   const previewRequestRef = useRef(0);
   const firstLoad = useRef(true);
 
-  const debouncedDraft = useDebouncedValue(JSON.stringify(draft), 400);
+  const debouncedFilterDraft = useDebouncedValue(
+    JSON.stringify({
+      platform: draft.platform,
+      genre: draft.genre,
+      year: draft.year,
+      developer: draft.developer,
+      publisher: draft.publisher,
+      family: draft.family,
+    }),
+    400,
+  );
 
   const commitToUrl = useCallback(
     (next: AtpSearchQuery) => {
@@ -267,11 +254,12 @@ export function CatalogSearch({
     [commitToUrl, runSearch, fixed.platform, fixed.family],
   );
 
-  // Text inputs stay local while typing; the settled draft commits once.
-  // Fixed route context is re-applied so URL params can never escape it.
+  // Refinement filters (platform/genre/year/developer/publisher/family)
+  // stay debounced; the textual search is button/Enter-only and keeps the
+  // last committed query.search until handleSearch commits draft.search.
   useEffect(() => {
     if (firstLoad.current) return;
-    const parsed = JSON.parse(debouncedDraft) as TextDraft;
+    const parsed = JSON.parse(debouncedFilterDraft) as Omit<TextDraft, "search">;
     const current = queryRef.current;
     const year = /^\d{4}$/.test(parsed.year.trim())
       ? Number(parsed.year.trim())
@@ -279,7 +267,6 @@ export function CatalogSearch({
     const next = applyFixedContext(
       {
         ...current,
-        search: parsed.search.trim().slice(0, 200),
         platform: parsed.platform.trim().slice(0, 100),
         genre: parsed.genre.trim().slice(0, 100),
         year,
@@ -297,7 +284,7 @@ export function CatalogSearch({
       void runSearch(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedDraft]);
+  }, [debouncedFilterDraft]);
 
   // Initial SSR payload; auto-run for deep links and directory modes.
   useEffect(() => {
@@ -349,6 +336,19 @@ export function CatalogSearch({
         `/api/atp/games/${encodeURIComponent(atpId)}`,
       );
       if (requestId !== previewRequestRef.current) return;
+      if (detail.owned) {
+        try {
+          const game = await apiRequest<Game>(
+            `/api/games/by-atp/${encodeURIComponent(atpId)}`,
+          );
+          if (requestId !== previewRequestRef.current) return;
+          setSelectedGame(game);
+          setPreview(null);
+          return;
+        } catch {
+          // Fallback to preview dialog if Game lookup fails (stale owned flag)
+        }
+      }
       setPreview(detail);
     } catch (err) {
       if (requestId !== previewRequestRef.current) return;
@@ -356,6 +356,27 @@ export function CatalogSearch({
     } finally {
       if (requestId === previewRequestRef.current) setIsPreviewLoading(false);
     }
+  }
+
+  async function handleDetails(card: AtpSearchCard) {
+    if (card.owned) {
+      const requestId = ++previewRequestRef.current;
+      setIsPreviewLoading(true);
+      setError(null);
+      try {
+        const game = await apiRequest<Game>(
+          `/api/games/by-atp/${encodeURIComponent(card.atpId)}`,
+        );
+        if (requestId !== previewRequestRef.current) return;
+        setSelectedGame(game);
+        return;
+      } catch {
+        // Fallback to normal preview flow
+      } finally {
+        if (requestId === previewRequestRef.current) setIsPreviewLoading(false);
+      }
+    }
+    await handlePreview(card.atpId);
   }
 
   async function handleImport(atpId: string) {
@@ -399,9 +420,93 @@ export function CatalogSearch({
     }
   }
 
+  async function handleToggleBacklog(card: AtpSearchCard) {
+    if (importingId) return;
+    setImportingId(card.atpId);
+    setError(null);
+    try {
+      if (card.owned) {
+        const game = await apiRequest<Game>(`/api/games/by-atp/${encodeURIComponent(card.atpId)}`);
+        await apiRequest(`/api/games/${game._id}`, { method: "DELETE" });
+        setResult((current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((item) =>
+                  item.atpId === card.atpId ? { ...item, owned: false } : item,
+                ),
+              }
+            : current,
+        );
+        setPreview((current) =>
+          current && current.atpId === card.atpId ? { ...current, owned: false } : current,
+        );
+        if (selectedGame) {
+          // If the removed game was open in GameModal, close it
+          try {
+            const byAtp = await apiRequest<Game>(`/api/games/by-atp/${encodeURIComponent(card.atpId)}`).catch(() => null);
+            if (!byAtp) setSelectedGame(null);
+          } catch {
+            setSelectedGame(null);
+          }
+        }
+      } else {
+        await apiRequest("/api/atp/import", { method: "POST", body: { atpId: card.atpId } });
+        setResult((current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((item) =>
+                  item.atpId === card.atpId ? { ...item, owned: true } : item,
+                ),
+              }
+            : current,
+        );
+        setPreview((current) =>
+          current && current.atpId === card.atpId ? { ...current, owned: true } : current,
+        );
+      }
+    } catch (err) {
+      setError(toAtpError(err));
+      try {
+        const detail = await apiRequest<AtpPreview>(`/api/atp/games/${encodeURIComponent(card.atpId)}`);
+        setPreview(detail);
+        setResult((current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((item) =>
+                  item.atpId === card.atpId ? { ...item, owned: detail.owned } : item,
+                ),
+              }
+            : current,
+        );
+      } catch {
+        // ignore refresh noise
+      }
+    } finally {
+      setImportingId(null);
+    }
+  }
+
   function updateDraft(patch: Partial<TextDraft>) {
     setDraft((current) => ({ ...current, ...patch }));
   }
+
+  const handleSearch = useCallback(() => {
+    const trimmed = draft.search.trim().slice(0, 200);
+    const current = queryRef.current;
+    const next = applyFixedContext({ ...current, search: trimmed, page: 1 }, fixed);
+    if (serializeAtpSearchQuery(next) !== serializeAtpSearchQuery(current)) {
+      queryRef.current = next;
+      setQuery(next);
+      setDraft((prev) => ({ ...prev, search: trimmed }));
+      commitToUrl(next);
+      void runSearch(next);
+    } else if (hasAtpSearch(next)) {
+      void runSearch(next);
+    }
+  }, [draft.search, commitToUrl, runSearch, fixed]);
 
   // Locked route context is not clearable; only free refinements count.
   const hasRefinement =
@@ -420,19 +525,28 @@ export function CatalogSearch({
         </h1>
       </header>
       <div className="rpgui-container framed-golden flex flex-col gap-2 p-4">
-        <input
-          className="rpgui-input w-full"
-          value={draft.search}
-          onChange={(event) => updateDraft({ search: event.target.value })}
-          placeholder="Buscar no catálogo…"
-          maxLength={200}
-          aria-label="Buscar no catálogo"
-          type="search"
-        />
+        <div className="flex gap-2">
+          <RPGUInput
+            className="flex-1"
+            value={draft.search}
+            onChange={(event) => updateDraft({ search: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSearch();
+              }
+            }}
+            placeholder="Buscar no catálogo…"
+            maxLength={200}
+            aria-label="Buscar no catálogo"
+            type="search"
+          />
+          <RPGUIButton type="button" title="Buscar" onClick={handleSearch} className="self-start" />
+        </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {fixed.platform === undefined ? (
-            <input
-              className="rpgui-input w-full"
+            <RPGUInput
+              className="w-full"
               value={draft.platform}
               onChange={(event) => updateDraft({ platform: event.target.value })}
               placeholder="Plataforma"
@@ -446,16 +560,16 @@ export function CatalogSearch({
                 : `Plataforma: ${fixed.platform}`}
             </p>
           )}
-          <input
-            className="rpgui-input w-full"
+          <RPGUInput
+            className="w-full"
             value={draft.genre}
             onChange={(event) => updateDraft({ genre: event.target.value })}
             placeholder="Gênero"
             maxLength={100}
             aria-label="Filtrar por gênero"
           />
-          <input
-            className="rpgui-input w-full"
+          <RPGUInput
+            className="w-full"
             value={draft.year}
             onChange={(event) => updateDraft({ year: event.target.value })}
             placeholder="Ano"
@@ -463,16 +577,16 @@ export function CatalogSearch({
             maxLength={4}
             aria-label="Filtrar por ano de lançamento"
           />
-          <input
-            className="rpgui-input w-full"
+          <RPGUInput
+            className="w-full"
             value={draft.developer}
             onChange={(event) => updateDraft({ developer: event.target.value })}
             placeholder="Desenvolvedora"
             maxLength={100}
             aria-label="Filtrar por desenvolvedora"
           />
-          <input
-            className="rpgui-input w-full"
+          <RPGUInput
+            className="w-full"
             value={draft.publisher}
             onChange={(event) => updateDraft({ publisher: event.target.value })}
             placeholder="Publicadora"
@@ -480,8 +594,8 @@ export function CatalogSearch({
             aria-label="Filtrar por publicadora"
           />
           {fixed.family === undefined ? (
-            <input
-              className="rpgui-input w-full"
+            <RPGUInput
+              className="w-full"
               value={draft.family}
               onChange={(event) => updateDraft({ family: event.target.value })}
               placeholder="Família"
@@ -498,6 +612,7 @@ export function CatalogSearch({
             title="Limpar filtros"
             onClick={handleClearFilters}
             disabled={!hasRefinement}
+            className="w-50 self-start"
           />
         </div>
       </div>
@@ -524,20 +639,44 @@ export function CatalogSearch({
           items={result.data}
           getItemKey={(item) => item.atpId}
           renderGridItem={(item) => (
-            <AtpResultCard
-              item={item}
-              onPreview={() => handlePreview(item.atpId)}
-              onImport={() => handleImport(item.atpId)}
+            <CatalogGridCard
+              card={item}
+              onDetails={() => void handleDetails(item)}
+              onImport={() => void handleImport(item.atpId)}
+              onToggle={() => void handleToggleBacklog(item)}
+              busy={importingId === item.atpId}
               importing={importingId === item.atpId}
             />
           )}
           renderListItem={(item) => (
-            <AtpResultListItem
-              item={item}
-              onPreview={() => handlePreview(item.atpId)}
-              onImport={() => handleImport(item.atpId)}
-              importing={importingId === item.atpId}
-            />
+            <CatalogMenu
+              owned={item.owned}
+              onDetails={() => void handleDetails(item)}
+              onToggleBacklog={() => void handleToggleBacklog(item)}
+              busy={importingId === item.atpId}
+            >
+              <article className="rpgui-container framed-golden grid grid-cols-[1fr_auto] items-center gap-3 p-3">
+                <div className="min-w-0">
+                  <h3 className="font-display truncate text-sm">{item.name}</h3>
+                  <p className="mt-1 text-xs">
+                    {[item.year, ...item.platforms.slice(0, 3)].filter(Boolean).join(" · ")}
+                  </p>
+                  {item.genres.length > 0 && <p className="truncate text-xs">{item.genres.slice(0, 3).join(", ")}</p>}
+                  {item.owned && <p className="mt-1 text-xs">✓ No backlog</p>}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <RPGUIButton type="button" title="Detalhes" onClick={() => void handleDetails(item)} />
+                  {!item.owned && (
+                    <RPGUIButton
+                      type="button"
+                      title={importingId === item.atpId ? "Importando…" : "Adicionar"}
+                      onClick={() => void handleImport(item.atpId)}
+                      disabled={importingId === item.atpId}
+                    />
+                  )}
+                </div>
+              </article>
+            </CatalogMenu>
           )}
           search={draft.search}
           onSearchChange={(value) => updateDraft({ search: value })}
@@ -564,14 +703,27 @@ export function CatalogSearch({
         </p>
       )}
       {preview && (
-        <PreviewDialog
+        <GameDrawerShell
           key={preview.atpId}
-          preview={preview}
+          open={!!preview}
+          title={preview.name}
           onClose={() => setPreview(null)}
-          onImport={() => handleImport(preview.atpId)}
-          importing={importingId === preview.atpId}
-        />
+        >
+          <CatalogDrawerContent
+            preview={preview}
+            onImport={() => void handleImport(preview.atpId)}
+            importing={importingId === preview.atpId}
+            onClose={() => setPreview(null)}
+          />
+        </GameDrawerShell>
       )}
+      <GameModal
+        game={selectedGame}
+        onClose={() => setSelectedGame(null)}
+        onUpdated={() => {
+          if (result) void runSearch(queryRef.current);
+        }}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/server/auth/session";
 import { listGenerations } from "@/features/catalog/generations/generation-map";
+import { ConsoleCard } from "@/features/catalog/platform-card";
 
 /**
  * Fase 8 — editorial console generations (most recent first). Pure
@@ -24,25 +24,35 @@ export default async function ConsolesPage() {
           1. Escolha uma geração para ver seus consoles e jogos.
         </p>
       </header>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="flex flex-col gap-4">
         {generations.map((generation) => (
-          <Link
+          <details
             key={generation.id}
-            href={`/catalog/consoles/${generation.id}`}
-            className="rpgui-container framed-golden flex flex-col gap-2 p-4"
+            open
+            className="rpgui-container framed-golden p-4"
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-display text-lg">{generation.name}</h2>
-              <span className="font-display text-xs opacity-70">
-                {generation.shortName}
-              </span>
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <h2 className="font-display text-lg">{generation.name}</h2>
+                  <span className="font-display text-xs opacity-70">
+                    {generation.shortName}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm">{generation.description}</p>
+                <p className="mt-1 text-xs opacity-70">
+                  {generation.consoles.length} {generation.consoles.length === 1 ? "plataforma" : "plataformas"}
+                </p>
+              </div>
+              <span className="shrink-0 text-xs underline opacity-70">esconder</span>
+            </summary>
+            <hr className="my-3" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {generation.consoles.map((consoleItem) => (
+                <ConsoleCard key={consoleItem.id} name={consoleItem.name} />
+              ))}
             </div>
-            <p className="text-sm">{generation.description}</p>
-            <p className="text-xs">
-              {generation.consoles.map((console) => console.name).join(" · ")}
-            </p>
-            <span className="mt-auto pt-2 text-right text-sm">→</span>
-          </Link>
+          </details>
         ))}
       </div>
     </div>

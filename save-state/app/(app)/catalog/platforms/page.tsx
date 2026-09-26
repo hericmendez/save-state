@@ -4,7 +4,8 @@ import { ApiError } from "@/lib/api-error";
 import RPGUIButton from "@/components/RPGUI/Button";
 import { getCurrentSession } from "@/server/auth/session";
 import { listAtpPlatforms } from "@/server/atp/client";
-
+import  RPGUISelect from "@/components/RPGUI/Select";
+import RPGUInput from "@/components/RPGUI/Input";
 const PAGE_SIZE = 24;
 
 type PlatformSort = "name" | "releaseYear" | "gameCount";
@@ -72,7 +73,7 @@ export default async function PlatformsPage({
       order,
       page,
       limit: PAGE_SIZE,
-      showEmptyPlatforms: true,
+      showEmptyPlatforms: false,
     });
   } catch (err) {
     unavailable = err instanceof ApiError && err.code === "ATP_UNAVAILABLE";
@@ -94,8 +95,7 @@ export default async function PlatformsPage({
       >
         <label className="flex flex-col gap-1 text-xs">
           Empresa
-          <input
-            className="rpgui-input"
+          <RPGUInput
             type="search"
             name="company"
             defaultValue={company}
@@ -105,20 +105,20 @@ export default async function PlatformsPage({
         </label>
         <label className="flex flex-col gap-1 text-xs">
           Ordenar por
-          <select className="rpgui-dropdown" name="sort" defaultValue={sort}>
+          <RPGUISelect  name="sort" defaultValue={sort}>
             {(Object.keys(SORT_LABELS) as PlatformSort[]).map((value) => (
               <option key={value} value={value}>
                 {SORT_LABELS[value]}
               </option>
             ))}
-          </select>
+          </RPGUISelect>
         </label>
         <label className="flex flex-col gap-1 text-xs">
           Ordem
-          <select className="rpgui-dropdown" name="order" defaultValue={order}>
+          <RPGUISelect  name="order" defaultValue={order}>
             <option value="asc">ASC</option>
             <option value="desc">DESC</option>
-          </select>
+          </RPGUISelect>
         </label>
         <RPGUIButton type="submit" title="Buscar" />
       </form>

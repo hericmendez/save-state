@@ -106,9 +106,9 @@ export function NavDesktop({ user }: { user: SafeUser }) {
       </nav>
 
       {/* KEYBOARD HINT */}
-      <p className="absolute bottom-0 !text-slate-200 !text-sm !text-center">
+ {/*      <p className="absolute bottom-0 !text-slate-200 !text-sm !text-center">
         Pressione ⬆️ e ⬇️ no teclado para navegar!
-      </p>
+      </p> */}
     </aside>
   );
 }
