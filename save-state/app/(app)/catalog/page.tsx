@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api-error";
 import { getCurrentSession } from "@/server/auth/session";
-import { searchAtpGames } from "@/server/atp/client";
-import { toAtpSearchCard } from "@/server/atp/cards";
-import { isStableAtpIdentity } from "@/server/atp/identity";
-import { ownedAtpIds } from "@/server/atp/ownership";
+import { searchCatalogPage } from "@/server/search/catalog-reads";
 import { CatalogSearch } from "@/features/atp/catalog-search";
 import {
   hasAtpSearch,
@@ -25,47 +22,33 @@ export default async function CatalogPage({
     redirect("/login?from=/catalog");
   }
 
-  // URL-driven deep links render server-side through the same BFF path the
-  // client uses — never an internal HTTP call to our own API.
+  // URL-driven deep links render server-side through the same
+  // provider-backed reads the client uses — never an internal HTTP call
+  // to our own API.
   const initialQuery = parseAtpSearchQuery(await searchParams);
   let initialPage: AtpSearchPage | null = null;
   let initialError: { message: string; status: number | null } | null = null;
   if (hasAtpSearch(initialQuery)) {
     const bff = toAtpBffParams(initialQuery);
     try {
-      const result = await searchAtpGames({
-        q: bff.q ?? "",
-        page: bff.page,
-        limit: bff.limit,
-        platform: bff.platform,
-        genre: bff.genre,
-        year: bff.year,
-        developer: bff.developer,
-        publisher: bff.publisher,
-        family: bff.family,
-      });
-      const cards = result.data
-        .filter((game) => isStableAtpIdentity(game.id))
-        .map(toAtpSearchCard);
-      const owned = await ownedAtpIds(
-        session.id,
-        cards.map((card) => card.atpId),
-      );
-      const { page, limit, total, totalPages } = result.pagination;
-      initialPage = {
-        data: cards.map((card) => ({
-          ...card,
-          owned: owned.has(card.atpId),
-        })),
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1,
+      const result = await searchCatalogPage(
+        {
+          q: bff.q ?? "",
+          page: bff.page,
+          limit: bff.limit,
+          platform: bff.platform,
+          genre: bff.genre,
+          yearMin: bff.yearMin,
+          yearMax: bff.yearMax,
+          developer: bff.developer,
+          publisher: bff.publisher,
+          family: bff.family,
+          sortBy: bff.sortBy,
+          order: bff.order,
         },
-      };
+        session.id,
+      );
+      initialPage = result;
     } catch (err) {
       initialError =
         err instanceof ApiError

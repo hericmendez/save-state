@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import RPGUIButton from "@/components/RPGUI/Button";
 
 export function ConfirmDialog({
@@ -17,7 +19,17 @@ export function ConfirmDialog({
   onCancel: () => void;
   isLoading?: boolean;
 }) {
-  return (
+  // Portal to the viewport: callers mount this dialog deep inside
+  // zoomed/scrollable containers (sidebar, drawers), where a plain
+  // `fixed` element would be trapped by the ancestor instead of
+  // centering on the screen. SSR-safe: portals need `document`.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4"
       role="alertdialog"
@@ -48,6 +60,7 @@ export function ConfirmDialog({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

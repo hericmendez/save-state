@@ -1,22 +1,23 @@
+- Crud na ATP Engine (game, platform): Form de cada um, podendo incluir links de image/logo em platform e cover em game. Incluir nova plataforma, editar plataforma existente, add jogo a uma plataforma, excluir plataforma (sensível).
+- Platform details page: fazer na ATP Dashboard e no Save State
+- Nintendo Switch, Switch Lite, Switch 2: trocar type para "hybrid"
+- MS-DOS, Linux, Windows, MacOS, iOS, Android: trocar type para "operating system"
+- iPad, iPhone: Remover e juntar tudo em "iOS"
+- Incluir campo "generation" em plataforma (1,2,3... se console/handheld, null nos outros casos)
+
+- Incluir plataformas no catálogo:
 
 
-Mudanças manuais
-> Mudar/diminuir fonte dos botões (está muito grande)
-> Botões "filhos" devem ser visualmente diferentes dos botões pais. Definir manualmente.
-
-Pedir pro agente
-> Formulário não está formatado (visuallmente) nem possui as features do projeto antigo (busca de metadados via scraper+autofill, busca de capa via scraper), 
-> Buscar jogos (ATP Engine):
- - Busca Geral: criar página de busca por texto e filtros
- - Por plataforma: Lista/Grid com imagens dos consoles (filtro ativo/descontinuado)
- - Por empresa: Sony, Nintendo, Capcom, Rockstar, etc.
- - Por gênero: Action, RPG, Strategy, Survival Horror, etc.
-     Obs: "Por empresa" e "por gênero" poderiam ter uma arte ou capa de jogo icônico relacionado.
-     Ex: Nintendo com a capa de Zelda Ocarina of Time, Survival Horror de Resident Evil.
-     Obs2: Essas imagens serão definidas manualmente e ficarão no front end.
-> Home será separada da dashboard, atualmente os dois botões levam para a dashboard
-> Menu de contexto fica fora da tela quando o jogo está muito à direita ou quando não há espaço para exibir (principalmente no mobile); fazer o menu ter posição dinâmica.
-> Add "Favoritar/Desfavoritar"(dinâmico) ao menu de contexto.
-> Add capa (quando existir) ao card modal de detalhes do jogo.
-> New Feature: Feed de atividades/timeline (Home page)
-> New Feature: "Meu top 10" (indexed/draggable list, parecido com a wishlist da steam)
+- Existem no catálogo, porém com 0 jogos
+    - Capcom CPS1, CPS2, CPS3
+    - Sega NAOMI, NAOMI 2, NAOMI GD-ROM
+    - Commodore 64
+    - Nintendo Gamecube (não lista os jogos)
+    - HTML5 Web Browser
+    - Sega Mega Drive/Genesis
+    - Xbox One S/X
+    - Xbox Series S/X
+    - Sega Master System
+    - TurboGrafx-16
+    - PC: MS-DOS, Linux, Windows, MacOS
+    - Zeebo

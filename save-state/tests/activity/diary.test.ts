@@ -51,10 +51,10 @@ async function seedGame(
   });
   const userGameId = String(created._id);
   if (listName) {
-    const { GameList } = await import("@/db/models/game-list");
-    const { addListToGame } = await import("@/server/lists/service");
-    const list = await GameList.create({ userId, name: listName });
-    await addListToGame(userId, userGameId, String(list._id));
+    const { GameCollection } = await import("@/db/models/game-collection");
+    const { addCollectionToGame } = await import("@/server/collections/service");
+    const list = await GameCollection.create({ userId, name: listName });
+    await addCollectionToGame(userId, userGameId, String(list._id));
   }
   return { userGameId };
 }
@@ -83,7 +83,7 @@ describe("diary text search", () => {
     expect(names).not.toContain("Chrono Trigger");
   });
 
-  it("matches list snapshot names", async () => {
+  it("matches collection snapshot names", async () => {
     const { token } = await registerUser("A", "a@test.com");
     const { User } = await import("@/db/models/user");
     const user = await User.findOne({ email: "a@test.com" }).lean();
@@ -91,6 +91,26 @@ describe("diary text search", () => {
     await seedGame(userId, "Some Game", "Wishlist Final");
 
     const res = await getFeed(getRequest(token, "?q=wishlist"));
+    expect(res.status).toBe(200);
+    expect(memberTypes(await res.json())).toContain("game.added_to_collection");
+  });
+
+  it("still finds legacy list.* events by snapshot name", async () => {
+    const { token } = await registerUser("A", "a@test.com");
+    const { User } = await import("@/db/models/user");
+    const user = await User.findOne({ email: "a@test.com" }).lean();
+    const userId = String(user?._id);
+    const { Activity } = await import("@/db/models/activity");
+    await Activity.create({
+      userId,
+      type: "game.added_to_list",
+      userGameId: "000000000000000000000001",
+      game: { name: "Old Game" },
+      list: { listId: "000000000000000000000002", name: "Legacy Wishlist" },
+      metadata: {},
+    });
+
+    const res = await getFeed(getRequest(token, "?q=legacy"));
     expect(res.status).toBe(200);
     expect(memberTypes(await res.json())).toContain("game.added_to_list");
   });

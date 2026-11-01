@@ -111,7 +111,7 @@ function MenuItemRow({
   );
 }
 
-function MenuList({ items, onClose }: { items: ContextMenuItem[]; onClose: () => void }) {
+export function MenuList({ items, onClose }: { items: ContextMenuItem[]; onClose: () => void }) {
   // Submenu visibility is driven by React state (hover + tap-to-toggle),
   // not by CSS :hover. This works on touch devices and in environments
   // without hover-capable pointers, where Tailwind v4 gates hover variants

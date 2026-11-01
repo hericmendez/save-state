@@ -5,14 +5,18 @@ import {
   parseQuery,
   searchParamsToObject,
 } from "@/server/shared/validation";
-import {
-  listGamesInListQuerySchema,
-  listIdParamSchema,
-} from "@/schemas/lists";
+import { objectIdSchema } from "@/schemas/games";
+import { collectionGamesInCollectionQuerySchema } from "@/schemas/collections";
 import { getSessionUser } from "@/server/auth/session";
-import { listGamesInList } from "@/server/lists/service";
+import { listGamesInCollection } from "@/server/collections/service";
+import { z } from "zod";
 
+/**
+ * Legacy Lists API — temporary compatibility adapter (Etapa 6).
+ */
 export const runtime = "nodejs";
+
+const legacyListIdParamSchema = z.object({ listId: objectIdSchema });
 
 export async function GET(
   request: NextRequest,
@@ -20,12 +24,12 @@ export async function GET(
 ) {
   return handleRoute(async () => {
     const session = await getSessionUser(request);
-    const { listId } = parseParams(listIdParamSchema, await params);
+    const { listId } = parseParams(legacyListIdParamSchema, await params);
     const query = parseQuery(
-      listGamesInListQuerySchema,
+      collectionGamesInCollectionQuerySchema,
       searchParamsToObject(request.nextUrl.searchParams),
     );
-    const result = await listGamesInList(session.id, listId, query);
+    const result = await listGamesInCollection(session.id, listId, query);
     return NextResponse.json(result, { status: 200 });
   });
 }

@@ -23,8 +23,8 @@ import {
 
 export interface CollectionScope {
   favorite?: boolean;
-  withoutList?: boolean;
-  listId?: string;
+  withoutCollection?: boolean;
+  collectionId?: string;
 }
 
 /**
@@ -152,8 +152,8 @@ export function useUserGameCollection({
         params.set("order", filters.order ?? "asc");
       }
       if (scope.favorite) params.set("favorite", "true");
-      if (scope.withoutList) params.set("withoutList", "true");
-      if (scope.listId) params.set("listId", scope.listId);
+      if (scope.withoutCollection) params.set("withoutCollection", "true");
+      if (scope.collectionId) params.set("collectionId", scope.collectionId);
       const result = await apiRequest<PaginatedResponse<Game>>(
         `/api/games?${params.toString()}`,
         { signal: controller.signal },
@@ -171,7 +171,7 @@ export function useUserGameCollection({
         setIsLoading(false);
       }
     }
-  }, [scope.favorite, scope.withoutList, scope.listId]);
+  }, [scope.favorite, scope.withoutCollection, scope.collectionId]);
 
   useEffect(() => {
     // Initial payload comes from the server; refetch on interaction or retry.

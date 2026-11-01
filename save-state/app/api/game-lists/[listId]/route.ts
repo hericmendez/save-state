@@ -1,18 +1,24 @@
 import type { NextRequest } from "next/server";
 import { handleRoute, noContent, ok } from "@/server/shared/route-handler";
 import { parseBody, parseParams } from "@/server/shared/validation";
-import {
-  listIdParamSchema,
-  updateGameListSchema,
-} from "@/schemas/lists";
+import { objectIdSchema } from "@/schemas/games";
+import { updateGameCollectionSchema } from "@/schemas/collections";
 import { getSessionUser } from "@/server/auth/session";
 import {
-  deleteGameList,
-  getGameList,
-  updateGameList,
-} from "@/server/lists/service";
+  deleteGameCollection,
+  getGameCollection,
+  updateGameCollection,
+} from "@/server/collections/service";
+import { z } from "zod";
 
+/**
+ * Legacy Lists API — temporary compatibility adapter (Etapa 6).
+ * Translates listId → collectionId and delegates; prefer
+ * /api/game-collections/[collectionId].
+ */
 export const runtime = "nodejs";
+
+const legacyListIdParamSchema = z.object({ listId: objectIdSchema });
 
 interface RouteContext {
   params: Promise<{ listId: string }>;
@@ -21,9 +27,9 @@ interface RouteContext {
 export async function GET(request: NextRequest, { params }: RouteContext) {
   return handleRoute(async () => {
     const session = await getSessionUser(request);
-    const { listId } = parseParams(listIdParamSchema, await params);
-    const list = await getGameList(session.id, listId);
-    return ok(list.toObject());
+    const { listId } = parseParams(legacyListIdParamSchema, await params);
+    const collection = await getGameCollection(session.id, listId);
+    return ok(collection.toObject());
   });
 }
 
@@ -33,17 +39,17 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     // Legacy behavior: only the body is pre-validated here, so a malformed
     // id surfaces as INVALID_LIST_ID from the service layer.
     const { listId } = await params;
-    const body = parseBody(updateGameListSchema, await request.json());
-    const list = await updateGameList(session.id, listId, body);
-    return ok(list.toObject());
+    const body = parseBody(updateGameCollectionSchema, await request.json());
+    const collection = await updateGameCollection(session.id, listId, body);
+    return ok(collection.toObject());
   });
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
   return handleRoute(async () => {
     const session = await getSessionUser(request);
-    const { listId } = parseParams(listIdParamSchema, await params);
-    await deleteGameList(session.id, listId);
+    const { listId } = parseParams(legacyListIdParamSchema, await params);
+    await deleteGameCollection(session.id, listId);
     return noContent();
   });
 }

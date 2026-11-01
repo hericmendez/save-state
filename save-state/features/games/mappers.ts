@@ -1,6 +1,6 @@
 import type {
   Game,
-  GameList,
+  GameCollection,
   PaginatedResponse,
 } from "@/features/shared/types";
 
@@ -16,8 +16,8 @@ export function toPlainGame(value: unknown): Game {
     timesFinished: (raw.timesFinished as number | undefined) ?? undefined,
     rating: (raw.rating as number | null | undefined) ?? undefined,
     review: (raw.review as string | null | undefined) ?? undefined,
-    listIds: Array.isArray(raw.listIds)
-      ? (raw.listIds as unknown[]).map(String)
+    collectionIds: Array.isArray(raw.collectionIds)
+      ? (raw.collectionIds as unknown[]).map(String)
       : undefined,
     favorite: raw.favorite as boolean | undefined,
     finished: raw.finished as boolean | undefined,
@@ -32,7 +32,9 @@ export function toPlainGame(value: unknown): Game {
             _id: game._id === undefined ? undefined : String(game._id),
             name: String(game.name),
             source:
-              game.source === "manual" || game.source === "atp"
+              game.source === "manual" ||
+              game.source === "atp" ||
+              game.source === "igdb"
                 ? game.source
                 : undefined,
             cover: (game.cover as string | null | undefined) ?? undefined,
@@ -49,7 +51,7 @@ export function toPlainGame(value: unknown): Game {
   };
 }
 
-export function toPlainGameList(value: unknown): GameList {
+export function toPlainGameCollection(value: unknown): GameCollection {
   const raw = value as Record<string, unknown>;
   return {
     _id: String(raw._id),

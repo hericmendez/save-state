@@ -28,6 +28,7 @@ export interface ActivityEventDTO {
   userGameId?: string | null;
   game?: { name: string; cover?: string | null } | null;
   list?: { listId?: string; name: string } | null;
+  collection?: { collectionId?: string; name: string } | null;
   metadata: Record<string, unknown>;
   createdAt: string | Date;
 }
@@ -100,6 +101,16 @@ export function formatFeedTime(value: string | Date, timeZone: string): string {
 
 export function listName(event: ActivityEventDTO): string {
   return event.list?.name ?? "uma lista";
+}
+
+/**
+ * New-domain display name. Prefers the collection snapshot, falls back
+ * to a legacy list snapshot (mixed feeds after migration), then to a
+ * neutral placeholder. Old list.* rules keep using listName above, so
+ * historic messages are never rewritten.
+ */
+export function collectionDisplayName(event: ActivityEventDTO): string {
+  return event.collection?.name ?? event.list?.name ?? "uma coleção";
 }
 
 export interface PresentationRule {
@@ -351,6 +362,44 @@ export const PRESENTATION_REGISTRY: Record<ActivityType, PresentationRule> = {
       const suffix =
         count === null ? "" : ` (${count} ${count === 1 ? "jogo" : "jogos"})`;
       return `Você excluiu a lista "${listName(event)}"${suffix}.`;
+    },
+  },
+  "game.added_to_collection": {
+    groupable: true,
+    semanticKey: (event) =>
+      `game.added_to_collection\n${event.collection?.collectionId ?? collectionDisplayName(event)}`,
+    singular: (event) =>
+      `Você adicionou ${gameName(event)} à coleção "${collectionDisplayName(event)}".`,
+    plural: (count, first) =>
+      `${count} jogos foram adicionados à coleção "${collectionDisplayName(first)}".`,
+  },
+  "game.removed_from_collection": {
+    groupable: true,
+    semanticKey: (event) =>
+      `game.removed_from_collection\n${event.collection?.collectionId ?? collectionDisplayName(event)}`,
+    singular: (event) =>
+      `Você removeu ${gameName(event)} da coleção "${collectionDisplayName(event)}".`,
+    plural: (count, first) =>
+      `${count} jogos foram removidos da coleção "${collectionDisplayName(first)}".`,
+  },
+  "collection.created": {
+    groupable: false,
+    singular: (event) => `Você criou a coleção "${collectionDisplayName(event)}".`,
+  },
+  "collection.renamed": {
+    groupable: false,
+    singular: (event) => {
+      const data = meta(event);
+      return `Você renomeou a coleção "${str(data.from) ?? "?"}" para "${str(data.to) ?? "?"}".`;
+    },
+  },
+  "collection.deleted": {
+    groupable: false,
+    singular: (event) => {
+      const count = num(meta(event).memberCount);
+      const suffix =
+        count === null ? "" : ` (${count} ${count === 1 ? "jogo" : "jogos"})`;
+      return `Você excluiu a coleção "${collectionDisplayName(event)}"${suffix}.`;
     },
   },
   "top10.added": {

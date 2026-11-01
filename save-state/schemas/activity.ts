@@ -39,6 +39,13 @@ export const ACTIVITY_TYPES = [
   "list.created",
   "list.renamed",
   "list.deleted",
+  // Etapa 6: new collection.* events. The list.* entries above are
+  // retained so historic events keep validating.
+  "game.added_to_collection",
+  "game.removed_from_collection",
+  "collection.created",
+  "collection.renamed",
+  "collection.deleted",
   "top10.added",
   "top10.removed",
   "top10.reordered",
@@ -62,6 +69,11 @@ const listSnapshotSchema = z.object({
   name: z.string().trim().min(1).max(100),
 });
 
+const collectionSnapshotSchema = z.object({
+  collectionId: objectIdSchema.optional(),
+  name: z.string().trim().min(1).max(100),
+});
+
 const ratingValue = z.number().min(0).max(10).nullable();
 
 const achievementsState = z.object({
@@ -75,6 +87,7 @@ function gameEvent<TType extends string, TMeta extends z.ZodTypeAny>(options: {
   type: TType;
   metadata: TMeta;
   list?: boolean;
+  collection?: boolean;
 }) {
   const base = {
     type: z.literal(options.type),
@@ -82,9 +95,11 @@ function gameEvent<TType extends string, TMeta extends z.ZodTypeAny>(options: {
     game: gameSnapshotSchema,
     metadata: options.metadata,
   };
-  return z.object(
-    options.list ? { ...base, list: listSnapshotSchema } : base,
-  );
+  return z.object({
+    ...base,
+    ...(options.list ? { list: listSnapshotSchema } : {}),
+    ...(options.collection ? { collection: collectionSnapshotSchema } : {}),
+  });
 }
 
 function listEvent<TType extends string, TMeta extends z.ZodTypeAny>(options: {
@@ -98,10 +113,21 @@ function listEvent<TType extends string, TMeta extends z.ZodTypeAny>(options: {
   });
 }
 
+function collectionEvent<TType extends string, TMeta extends z.ZodTypeAny>(options: {
+  type: TType;
+  metadata: TMeta;
+}) {
+  return z.object({
+    type: z.literal(options.type),
+    collection: collectionSnapshotSchema,
+    metadata: options.metadata,
+  });
+}
+
 export const activityEventSchema = z.discriminatedUnion("type", [
   gameEvent({
     type: "game.added",
-    metadata: z.object({ source: z.enum(["manual", "atp"]) }).strict(),
+    metadata: z.object({ source: z.enum(["manual", "atp", "igdb"]) }).strict(),
   }),
   gameEvent({ type: "game.removed", metadata: emptyMetadata }),
   gameEvent({
@@ -188,6 +214,33 @@ export const activityEventSchema = z.discriminatedUnion("type", [
   }),
   listEvent({
     type: "list.deleted",
+    metadata: z.object({ memberCount: z.number().int().min(0) }).strict(),
+  }),
+  gameEvent({
+    type: "game.added_to_collection",
+    metadata: emptyMetadata,
+    collection: true,
+  }),
+  gameEvent({
+    type: "game.removed_from_collection",
+    metadata: emptyMetadata,
+    collection: true,
+  }),
+  collectionEvent({ type: "collection.created", metadata: emptyMetadata }),
+  collectionEvent({
+    type: "collection.renamed",
+    metadata: z
+      .object({
+        from: z.string().trim().min(1).max(100),
+        to: z.string().trim().min(1).max(100),
+      })
+      .strict()
+      .refine((data) => data.from !== data.to, {
+        message: "from and to must differ",
+      }),
+  }),
+  collectionEvent({
+    type: "collection.deleted",
     metadata: z.object({ memberCount: z.number().int().min(0) }).strict(),
   }),
   z.object({

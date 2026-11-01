@@ -7,6 +7,10 @@ import {
   atpDetailToFormPatch,
   type AtpDetailForForm,
 } from "@/features/games/metadata-search";
+import {
+  igdbDetailEndpoint,
+  igdbSearchEndpoint,
+} from "@/features/search/search-endpoints";
 import type { GameFormState } from "@/features/games/game-form";
 import RPGUInput from "@/components/RPGUI/Input";
 interface SearchCard {
@@ -26,9 +30,11 @@ type Step =
   | { kind: "preview"; detail: AtpDetailForForm };
 
 /**
- * Metadata lookup for the game form. Searches the Save State BFF (which
- * queries ATP), shows results, previews one entry, and applies it as a
- * form patch only on explicit confirmation. Never writes silently.
+ * Metadata lookup for the game form. Always queries IGDB directly
+ * (Etapa 5 — independent of SEARCH_METHOD), shows results, previews
+ * one entry, and applies it as a form patch only on explicit
+ * confirmation. Never writes silently. Manual entry stays possible
+ * without any external lookup.
  */
 export function GameMetadataSearch({
   query,
@@ -58,10 +64,10 @@ export function GameMetadataSearch({
     setIsLoading(true);
     setError(null);
     try {
-      // Metadata lookup opts into ATP live discovery on catalog miss;
-      // catalog browsing stays database-only (no discover flag there).
-      const params = new URLSearchParams({ q: trimmed, limit: "5", discover: "true" });
-      const page = await apiRequest<SearchPage>(`/api/atp/search?${params.toString()}`);
+      // Novo Jogo metadata lookup always uses IGDB directly,
+      // independent of the catalog SEARCH_METHOD.
+      const params = new URLSearchParams({ q: trimmed, limit: "5" });
+      const page = await apiRequest<SearchPage>(igdbSearchEndpoint(params.toString()));
       if (requestId !== requestIdRef.current) return;
       setStep({ kind: "results", cards: page.data });
     } catch (err) {
@@ -78,7 +84,7 @@ export function GameMetadataSearch({
     setError(null);
     try {
       const detail = await apiRequest<AtpDetailForForm>(
-        `/api/atp/games/${encodeURIComponent(atpId)}`,
+        igdbDetailEndpoint(atpId),
       );
       if (requestId !== requestIdRef.current) return;
       setStep({ kind: "preview", detail });

@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { ApiError } from "@/lib/api-error";
 import { getCurrentSession } from "@/server/auth/session";
-import { getGameList, listGamesInList } from "@/server/lists/service";
+import { getGameCollection, listGamesInCollection } from "@/server/collections/service";
 import { BacklogView } from "@/features/games/backlog-view";
-import { listGameLists } from "@/server/lists/service";
-import { toPlainGame, toPlainGameList } from "@/features/games/mappers";
+import { listGameCollections } from "@/server/collections/service";
+import { toPlainGame, toPlainGameCollection } from "@/features/games/mappers";
 import {
   parseLibrarySearchParams,
   toLibraryServiceFilters,
@@ -23,11 +23,11 @@ export default async function ListDetailPage({
   } catch {
     redirect("/login");
   }
-  const { listId } = await params;
+  const { listId: collectionId } = await params;
 
-  let list;
+  let collection;
   try {
-    list = await getGameList(session.id, listId);
+    collection = await getGameCollection(session.id, collectionId);
   } catch (error) {
     if (error instanceof ApiError && error.code === "LIST_NOT_FOUND") {
       notFound();
@@ -36,13 +36,13 @@ export default async function ListDetailPage({
   }
 
   const initialQuery = parseLibrarySearchParams(await searchParams);
-  const [games, lists] = await Promise.all([
-    listGamesInList(
+  const [games, collections] = await Promise.all([
+    listGamesInCollection(
       session.id,
-      listId,
+      collectionId,
       toLibraryServiceFilters(initialQuery),
     ),
-    listGameLists(session.id, { page: 1, limit: 100, withCount: false }),
+    listGameCollections(session.id, { page: 1, limit: 100, withCount: false }),
   ]);
 
   return (
@@ -50,10 +50,10 @@ export default async function ListDetailPage({
       initialGames={games.data.map(toPlainGame)}
       initialPagination={games.pagination}
       initialQuery={initialQuery}
-      lists={lists.data.map(toPlainGameList)}
-      listId={listId}
-      listName={list.name}
-      emptyMessage="Esta lista ainda não possui jogos."
+      collections={collections.data.map(toPlainGameCollection)}
+      collectionId={collectionId}
+      listName={collection.name}
+      emptyMessage="Esta coleção ainda não possui jogos."
     />
   );
 }

@@ -1,18 +1,18 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/server/auth/session";
 import { listGames } from "@/server/games/service";
-import { listGameLists } from "@/server/lists/service";
+import { listGameCollections } from "@/server/collections/service";
 import { BacklogView } from "@/features/games/backlog-view";
-import { toPlainGame, toPlainGameList } from "@/features/games/mappers";
+import { toPlainGame, toPlainGameCollection } from "@/features/games/mappers";
 import {
   parseLibrarySearchParams,
   toLibraryServiceFilters,
 } from "@/features/games/user-game-query";
 
 /**
- * Fase 3 — "Sem lista" as a real derived view (listIds.length === 0 via
- * withoutList=true). No persisted GameList; same UserGame infrastructure
- * as Jogos and Favoritos.
+ * Derived "Sem coleção" view (collectionIds.length === 0 via
+ * withoutCollection=true). No persisted GameCollection; same UserGame
+ * infrastructure as Jogos and Favoritos.
  */
 export default async function SemListaPage({
   searchParams,
@@ -26,22 +26,22 @@ export default async function SemListaPage({
     redirect("/login?from=/backlog/without-list");
   }
   const initialQuery = parseLibrarySearchParams(await searchParams);
-  const [games, lists] = await Promise.all([
+  const [games, collections] = await Promise.all([
     listGames(session.id, {
       ...toLibraryServiceFilters(initialQuery),
-      withoutList: true,
+      withoutCollection: true,
     }),
-    listGameLists(session.id, { page: 1, limit: 100, withCount: false }),
+    listGameCollections(session.id, { page: 1, limit: 100, withCount: false }),
   ]);
   return (
     <BacklogView
       initialGames={games.data.map(toPlainGame)}
       initialPagination={games.pagination}
       initialQuery={initialQuery}
-      lists={lists.data.map(toPlainGameList)}
-      withoutList
-      listName="Sem lista"
-      emptyMessage="Nenhum jogo sem lista. Todos os seus jogos estão em alguma lista."
+      collections={collections.data.map(toPlainGameCollection)}
+      withoutCollection
+      listName="Sem coleção"
+      emptyMessage="Nenhum jogo sem coleção. Todos os seus jogos estão em alguma coleção."
     />
   );
 }

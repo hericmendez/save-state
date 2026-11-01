@@ -1,36 +1,36 @@
 "use client";
 
-import type { Game, GameList } from "@/features/shared/types";
+import type { Game, GameCollection } from "@/features/shared/types";
 import { GameContextMenu } from "./game-context-menu";
 import { GameCardFrame } from "./game-card-frame";
 import { toCardModelFromGame } from "./game-card-model";
 
 export function GameCard({
   game,
-  lists,
+  collections,
   onDetails,
   onEdit,
   onDelete,
-  onListChanged,
+  onCollectionChanged,
   onError,
 }: {
   game: Game;
-  lists: GameList[];
+  collections: GameCollection[];
   onDetails: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  onListChanged?: () => void;
+  onCollectionChanged?: () => void;
   onError?: (message: string) => void;
 }) {
   const presentation = toCardModelFromGame(game);
   return (
     <GameContextMenu
       game={game}
-      lists={lists}
+      collections={collections}
       onDetails={onDetails}
       onEdit={onEdit}
       onDelete={onDelete}
-      onListChanged={onListChanged}
+      onCollectionChanged={onCollectionChanged}
       onError={onError}
     >
       <GameCardFrame presentation={presentation} onDetails={onDetails} />

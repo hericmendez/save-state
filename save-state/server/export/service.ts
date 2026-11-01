@@ -3,7 +3,7 @@ import { connectDatabase } from "@/db/connection";
 import { User } from "@/db/models/user";
 import { GlobalGame } from "@/db/models/global-game";
 import { UserGame } from "@/db/models/user-game";
-import { GameList } from "@/db/models/game-list";
+import { GameCollection } from "@/db/models/game-collection";
 
 export interface ExportPayload {
   exportedAt: string;
@@ -22,18 +22,18 @@ export interface ExportPayload {
     achievementsCompleted: boolean;
     rating?: number | null;
     review?: string | null;
-    listIds: string[];
+    collectionIds: string[];
   }>;
-  lists: Array<{ id: string; name: string }>;
+  collections: Array<{ id: string; name: string }>;
 }
 
 export async function buildExportPayload(userId: string): Promise<ExportPayload> {
   await connectDatabase();
   const user = await User.findById(userId).lean();
   if (!user) throw new Error("User not found");
-  const [userGames, lists] = await Promise.all([
+  const [userGames, collections] = await Promise.all([
     UserGame.find({ userId }).populate("gameId").lean(),
-    GameList.find({ userId }).lean(),
+    GameCollection.find({ userId }).lean(),
   ]);
   const games = userGames.map((ug: unknown) => {
     const raw = ug as Record<string, unknown>;
@@ -52,14 +52,14 @@ export async function buildExportPayload(userId: string): Promise<ExportPayload>
       achievementsCompleted: (raw.achievementsCompleted as boolean) ?? false,
       rating: raw.rating as number | null | undefined,
       review: raw.review as string | null | undefined,
-      listIds: ((raw.listIds as unknown[]) ?? []).map(String),
+      collectionIds: ((raw.collectionIds as unknown[]) ?? []).map(String),
     };
   });
   return {
     exportedAt: new Date().toISOString(),
     user: { id: String(user._id), name: user.name, email: user.email },
     games,
-    lists: lists.map((l) => ({ id: String(l._id), name: l.name })),
+    collections: collections.map((l) => ({ id: String(l._id), name: l.name })),
   };
 }
 
@@ -81,7 +81,7 @@ export function exportToCsv(payload: ExportPayload): string {
     "achievementsCompleted",
     "rating",
     "review",
-    "listIds",
+    "collectionIds",
   ];
   const escape = (v: unknown) => {
     if (v === null || v === undefined) return "";
@@ -109,7 +109,7 @@ export function exportToCsv(payload: ExportPayload): string {
       g.achievementsCompleted,
       g.rating ?? "",
       g.review ?? "",
-      g.listIds.join(";"),
+      g.collectionIds.join(";"),
     ]
       .map(escape)
       .join(","),

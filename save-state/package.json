@@ -2,7 +2,7 @@
   "name": "save-state",
   "version": "0.1.0",
   "private": true,
-  "description": "Save State — Next.js modular monolith (Phase 1 skeleton)",
+  "description": "Save State \u2014 Next.js modular monolith (Phase 1 skeleton)",
   "packageManager": "pnpm@11.3.0",
   "engines": {
     "node": ">=20"
@@ -13,7 +13,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate:collections": "tsx scripts/migrate-lists-to-collections.ts --dry-run",
+    "db:seed": "NODE_OPTIONS='--import ./scripts/register-server-only-stub.mjs' tsx scripts/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -41,6 +43,7 @@
     "mongodb-memory-server": "^11.2.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.1",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.0",
     "vitest": "^4.1.11"
   }

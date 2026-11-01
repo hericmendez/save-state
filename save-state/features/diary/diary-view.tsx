@@ -253,6 +253,10 @@ export function DiaryView() {
   useEffect(
     () => () => {
       abortRef.current?.abort();
+      // Rearm the initial fetch: if this unmount aborted it (StrictMode
+      // remount, fast navigation), the next mount must retry instead of
+      // staying in "loading" forever with the gate consumed.
+      firstLoad.current = true;
     },
     [],
   );
@@ -322,7 +326,7 @@ export function DiaryView() {
   return (
     <div className="flex flex-col gap-4">
       <header className="rpgui-container framed-grey p-4">
-        <h1 className="font-display text-2xl">Diário</h1>
+        <h1 className="font-display text-2xl">Atividade</h1>
       </header>
 
       <div className="rpgui-container framed-golden flex flex-col gap-2 p-4">

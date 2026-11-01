@@ -9,7 +9,7 @@ import { LoadingOverlay } from "./loading-overlay";
 import { NavDesktop } from "./nav-desktop";
 import { NavMobile } from "./nav-mobile";
 import { useResponsiveLayout } from "./use-responsive-layout";
-import { ListCreateModal } from "@/features/lists/list-create-modal";
+import { CollectionCreateModal } from "@/features/collections/collection-create-modal";
 
 export function AppShell({
   user,
@@ -47,7 +47,7 @@ export function AppShell({
       `}
     >
       <LoadingOverlay />
-      <ListCreateModal />
+      <CollectionCreateModal />
 
       <div
         className={`

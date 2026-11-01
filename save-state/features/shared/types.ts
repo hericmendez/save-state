@@ -6,9 +6,10 @@
 export interface GlobalGameSummary {
   _id?: string;
   name: string;
-  // Catalog origin. ATP snapshots are metadata-immutable; the edit form
-  // uses this to lock metadata fields (personal fields stay editable).
-  source?: "manual" | "atp";
+  // Catalog origin. Non-manual snapshots are metadata-immutable; the
+  // edit form uses this to lock metadata fields (personal fields stay
+  // editable).
+  source?: "manual" | "atp" | "igdb";
   cover?: string | null;
   genres?: string[];
   platforms?: string[];
@@ -26,7 +27,7 @@ export interface Game {
   timesFinished?: number | null;
   rating?: number | null;
   review?: string | null;
-  listIds?: string[];
+  collectionIds?: string[];
   favorite?: boolean;
   finished?: boolean;
   fullyCompleted?: boolean;
@@ -36,7 +37,7 @@ export interface Game {
   game: GlobalGameSummary | null;
 }
 
-export interface GameList {
+export interface GameCollection {
   _id: string;
   name: string;
   gameCount?: number;

@@ -2,7 +2,7 @@
  * Fase 3 — Minha Biblioteca: Jogos / Favoritos / Sem lista.
  *
  * Covers the new UserGame query semantics (service + route): favorite,
- * withoutList (listIds.length === 0, applied in the database), status,
+ * withoutCollection (collectionIds.length === 0, applied in the database), status,
  * platform, yearFrom/yearTo, and server-side ordering with pagination
  * applied over the already-ordered result.
  */
@@ -11,7 +11,7 @@ import { NextRequest } from "next/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { GET as listGamesRoute } from "@/app/api/games/route";
 import { GlobalGame } from "@/db/models/global-game";
-import { GameList } from "@/db/models/game-list";
+import { GameCollection } from "@/db/models/game-collection";
 import { User } from "@/db/models/user";
 import { UserGame } from "@/db/models/user-game";
 import { listGames } from "@/server/games/service";
@@ -61,35 +61,35 @@ async function seedLibrary(): Promise<void> {
     }),
   ]);
 
-  const list = await GameList.create({ userId: user._id, name: "Played" });
+  const list = await GameCollection.create({ userId: user._id, name: "Played" });
 
   await UserGame.create({
     userId: user._id,
     gameId: zelda._id,
     status: "finished",
     favorite: true,
-    listIds: [list._id],
+    collectionIds: [list._id],
   });
   await UserGame.create({
     userId: user._id,
     gameId: mario._id,
     status: "playing",
     favorite: false,
-    listIds: [],
+    collectionIds: [],
   });
   await UserGame.create({
     userId: user._id,
     gameId: tetris._id,
     status: "backlog",
     favorite: true,
-    listIds: [],
+    collectionIds: [],
   });
   await UserGame.create({
     userId: user._id,
     gameId: chrono._id,
     status: "playing",
     favorite: false,
-    listIds: [],
+    collectionIds: [],
   });
 }
 
@@ -105,7 +105,7 @@ beforeEach(async () => {
 });
 
 describe("library views", () => {
-  it("Jogos: returns everything without implicit favorite/withoutList", async () => {
+  it("Jogos: returns everything without implicit favorite/withoutCollection", async () => {
     const result = await listGames(userId, { page: 1, limit: 20 });
     expect(result.pagination.total).toBe(4);
   });
@@ -120,21 +120,21 @@ describe("library views", () => {
     expect(names(result).sort()).toEqual(["Tetris", "Zelda: Ocarina of Time"]);
   });
 
-  it("Sem lista: matches listIds.length === 0 in the database", async () => {
+  it("Sem lista: matches collectionIds.length === 0 in the database", async () => {
     const result = await listGames(userId, {
       page: 1,
       limit: 20,
-      withoutList: true,
+      withoutCollection: true,
     });
     expect(result.pagination.total).toBe(3);
     expect(names(result)).not.toContain("Zelda: Ocarina of Time");
   });
 
-  it("withoutList=false behaves like no filter", async () => {
+  it("withoutCollection=false behaves like no filter", async () => {
     const result = await listGames(userId, {
       page: 1,
       limit: 20,
-      withoutList: false,
+      withoutCollection: false,
     });
     expect(result.pagination.total).toBe(4);
   });
@@ -292,9 +292,9 @@ describe("GET /api/games library params", () => {
     });
   }
 
-  it("serves withoutList + ordering through the route", async () => {
+  it("serves withoutCollection + ordering through the route", async () => {
     const response = await listGamesRoute(
-      await authedRequest("?withoutList=true&orderBy=title&order=asc&limit=50"),
+      await authedRequest("?withoutCollection=true&orderBy=title&order=asc&limit=50"),
     );
     expect(response.status).toBe(200);
     const body = await response.json();

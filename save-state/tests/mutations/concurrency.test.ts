@@ -2,9 +2,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as register } from "@/app/api/auth/register/route";
 import { POST as login } from "@/app/api/auth/login/route";
 import { POST as createGame } from "@/app/api/games/route";
-import { POST as createList } from "@/app/api/game-lists/route";
+import { POST as createList } from "@/app/api/game-collections/route";
 import { GlobalGame } from "@/db/models/global-game";
-import { GameList } from "@/db/models/game-list";
+import { GameCollection } from "@/db/models/game-collection";
 import { UserGame } from "@/db/models/user-game";
 import {
   TEST_USER,
@@ -64,14 +64,14 @@ describe("concurrent creation races", () => {
     const payload = { name: "Race List" };
 
     const [first, second] = await Promise.all([
-      createList(authedPost("/api/game-lists", token, payload)),
-      createList(authedPost("/api/game-lists", token, payload)),
+      createList(authedPost("/api/game-collections", token, payload)),
+      createList(authedPost("/api/game-collections", token, payload)),
     ]);
     const statuses = [first.status, second.status].sort();
     expect(statuses).toEqual([201, 400]);
 
     const failed = first.status === 400 ? first : second;
     expect((await failed.json()).error.code).toBe("LIST_ALREADY_EXISTS");
-    expect(await GameList.countDocuments({ name: "Race List" })).toBe(1);
+    expect(await GameCollection.countDocuments({ name: "Race List" })).toBe(1);
   });
 });

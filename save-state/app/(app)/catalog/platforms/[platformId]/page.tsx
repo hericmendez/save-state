@@ -3,7 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { ApiError } from "@/lib/api-error";
 import RPGUIButton from "@/components/RPGUI/Button";
 import { getCurrentSession } from "@/server/auth/session";
-import { getAtpPlatform } from "@/server/atp/client";
+import {
+  getCatalogPlatform,
+  isCatalogUnavailable,
+} from "@/server/search/catalog-reads";
 import { CatalogSearch } from "@/features/atp/catalog-search";
 
 /**
@@ -24,12 +27,16 @@ export default async function PlatformDetailPage({
 
   let platform;
   try {
-    platform = await getAtpPlatform(decodeURIComponent(platformId));
+    platform = await getCatalogPlatform(decodeURIComponent(platformId));
   } catch (err) {
-    if (err instanceof ApiError && err.code === "ATP_GAME_NOT_FOUND") {
+    if (
+      err instanceof ApiError &&
+      (err.code === "ATP_GAME_NOT_FOUND" ||
+        err.code === "IGDB_GAME_NOT_FOUND")
+    ) {
       notFound();
     }
-    if (err instanceof ApiError && err.code === "ATP_UNAVAILABLE") {
+    if (isCatalogUnavailable(err)) {
       return (
         <div className="flex flex-col gap-4">
           <p role="alert" className="rpgui-container framed-grey p-3">

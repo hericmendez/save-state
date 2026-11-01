@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useListModalStore } from "@/features/lists/list-modal-store";
+import { useCollectionModalStore } from "@/features/collections/collection-modal-store";
 import RPGUIButton from "@/components/RPGUI/Button";
 import { NAV_STRUCTURE, flattenNavPaths, type NavEntry } from "./nav-structure";
+import { CollectionNavItems } from "./collection-nav-items";
 
 export type { NavEntry };
 export { NAV_STRUCTURE, flattenNavPaths };
@@ -26,7 +27,7 @@ function NavLink({
     <Link href={entry.path ?? "#"} onClick={onNavigate} className="w-full">
       <RPGUIButton
         title={entry.title}
-        golden={!isChild}
+
         className={`w-full         
           ${isActive ? "down" : ""}
         `}
@@ -46,9 +47,9 @@ export function NavItem({
   onNavigate?: () => void;
   isChild?: boolean;
 }) {
-  const openListModal = useListModalStore((state) => state.open);
+  const openCollectionModal = useCollectionModalStore((state) => state.open);
 
-  if (entry.action === "create-list") {
+  if (entry.action === "create-collection") {
     return (
       <RPGUIButton
         type="button"
@@ -57,7 +58,7 @@ export function NavItem({
         className="w-full"
         onClick={() => {
           onNavigate?.();
-          openListModal();
+          openCollectionModal();
         }}
         
       />
@@ -94,6 +95,7 @@ export function NavItem({
 
 function NavItemGroup({
   entry,
+
   pathname,
   onNavigate,
   hasActiveChild,
@@ -106,13 +108,14 @@ function NavItemGroup({
   isChild: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(hasActiveChild);
-
+  const openCollectionModal = useCollectionModalStore((state) => state.open);
+  console.log("entry ==> ", entry);
   return (
     <div className="w-full">
       <RPGUIButton
         type="button"
         title={entry.title}
-        golden
+        
         onClick={() => setIsOpen((previous) => !previous)}
         className={`w-full whitespace-nowrap !text-xs ${hasActiveChild ? "down" : ""}`}
         style={{ minWidth: 0, paddingLeft: "12px", paddingRight: "12px" }}
@@ -122,15 +125,49 @@ function NavItemGroup({
 
       {isOpen && (
         <div className="mt-2 mx-4 space-y-2">
-          {(entry.children ?? []).map((child) => (
-            <NavItem
-              key={child.id}
-              entry={child}
-              pathname={pathname}
-              onNavigate={onNavigate}
-              isChild
-            />
-          ))}
+          <ul >
+            {(entry.children ?? []).map((child) =>
+              // Action children (e.g. Nova Coleção) keep the original
+              // framed-grey look but dispatch the modal instead of
+              // navigating. Both variants render through RpguiButton.
+              child.action === "create-collection" ? (
+                <li key={child.id}>
+                  <RPGUIButton
+                    type="button"
+                    framed="grey"
+                    className="block w-full text-lg text-white text-bold"
+                    onClick={() => {
+                      onNavigate?.();
+                      openCollectionModal();
+                    }}
+                    title={
+                      <p className="text-sm text-white text-bold font-display hover:text-amber-300 hover:text-underline">
+                        {child.title}
+                      </p>
+                    }
+                  />
+                </li>
+              ) : (
+                <li key={child.id}>
+                  <RPGUIButton
+                    as="link"
+                    framed="grey"
+                    className="block w-full text-lg text-white text-bold"
+                    href={child.path ?? "#"}
+                    onClick={onNavigate}
+                    title={
+                      <p className="text-sm text-white text-bold font-display hover:text-amber-300 hover:text-underline">
+                        {child.title}
+                      </p>
+                    }
+                  />
+                </li>
+              ),
+            )}
+          </ul>
+          {entry.id === "colecoes" ? (
+            <CollectionNavItems onNavigate={onNavigate} />
+          ) : null}
         </div>
       )}
     </div>

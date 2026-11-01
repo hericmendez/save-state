@@ -21,6 +21,16 @@ const ListSnapshotSchema = new Schema(
   { _id: false },
 );
 
+const CollectionSnapshotSchema = new Schema(
+  {
+    // Same frozen-snapshot semantics as lists; kept as a separate key so
+    // historic list.* events stay byte-identical.
+    collectionId: { type: String, trim: true },
+    name: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
 const ActivitySchema = new Schema(
   {
     userId: {
@@ -33,15 +43,20 @@ const ActivitySchema = new Schema(
     userGameId: { type: Schema.Types.ObjectId, ref: "UserGame" },
     game: { type: GameSnapshotSchema, required: false },
     list: { type: ListSnapshotSchema, required: false },
+    collection: { type: CollectionSnapshotSchema, required: false },
     metadata: { type: Schema.Types.Mixed, required: true, default: {} },
   },
   {
     // Append-only diary: creation time is the event time. No `updatedAt`
     // by convention — activities are never edited.
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: { updatedAt: false, createdAt: true },
     // Empty `metadata: {}` is meaningful (event without parameters) and
     // must survive persistence instead of being stripped as "empty".
     minimize: false,
+    // `collection` is a reserved Mongoose pathname; verified empirically
+    // that the schema path wins on hydrated docs (snapshot reads fine).
+    // The warning is noise for this deliberate domain name.
+    suppressReservedKeysWarning: true,
   },
 );
 
@@ -55,12 +70,16 @@ ActivitySchema.index({ userId: 1, type: 1, createdAt: -1 });
 // Per-game history: owner + game + reverse-chronological order.
 ActivitySchema.index({ userId: 1, userGameId: 1, createdAt: -1 });
 
-export interface ActivityDocument extends mongoose.Document {
+export interface ActivityDocument
+  extends Omit<mongoose.Document, "collection"> {
   userId: Types.ObjectId;
   type: ActivityType;
   userGameId?: Types.ObjectId;
   game?: { name: string; cover?: string };
   list?: { listId?: string; name: string };
+  // `collection` collides with mongoose.Document's own collection handle;
+  // Omit above keeps the snapshot path typed as domain data.
+  collection?: { collectionId?: string; name: string };
   metadata: Record<string, unknown>;
   createdAt: Date;
 }

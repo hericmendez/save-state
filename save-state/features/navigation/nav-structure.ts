@@ -7,27 +7,25 @@ export interface NavEntry {
   id: string;
   title: string;
   path?: string;
-  action?: "create-list";
+  action?: "create-collection";
   children?: NavEntry[];
 }
 
 export const NAV_STRUCTURE: NavEntry[] = [
   { id: "home", title: "Home", path: "/home" },
   { id: "dashboard", title: "Dashboard", path: "/dashboard" },
-  { id: "diario", title: "Diário", path: "/diary" },
+  // Etapa 5: "Diário" renamed to "Atividade". Route /diary unchanged.
+  { id: "atividade", title: "Atividade", path: "/diary" },
   {
     id: "buscar-jogos",
     title: "Buscar Jogos",
     children: [
       { id: "busca-geral", title: "Busca Geral", path: "/catalog" },
       { id: "plataformas", title: "Plataformas", path: "/catalog/platforms" },
-      // Fase 7: rota canônica de famílias (taxonomia ATP derivada).
-      // /catalog/empresas permanece como diretório de empresas/developers/
-      // publishers — semântica distinta, candidata a decommission na Fase 9.
-      { id: "familias", title: "Famílias", path: "/catalog/families" },
-      // Fase 8: página editorial de gerações implementada (generation-map);
-      // o redirect temporário da Fase 1 foi substituído pela rota real.
-      { id: "consoles", title: "Consoles (gerações)", path: "/catalog/consoles" },
+      // Etapa 5: Famílias/Consoles are no longer standalone menu items.
+      // Family filtering lives inside Busca Geral (family filter input +
+      // fixedFamily route context); the /catalog/families and
+      // /catalog/consoles routes remain reachable directly.
     ],
   },
   {
@@ -38,17 +36,22 @@ export const NAV_STRUCTURE: NavEntry[] = [
       // Compat: a rota interna /backlog permanece como "Jogos" (label desacoplado da URL).
       { id: "jogos", title: "Jogos", path: "/backlog" },
       { id: "favoritos", title: "Favoritos", path: "/backlog/favoritos" },
-      // Fase 3: real derived view (listIds.length === 0 via withoutList=true).
-      // No persisted GameList; same UserGame infrastructure as Jogos/Favoritos.
-      { id: "sem-lista", title: "Jogos sem lista", path: "/backlog/without-list" },
+      // Etapa 5: "Jogos sem lista" moved to the Minhas coleções group.
     ],
   },
   {
-    id: "listas",
-    title: "Minhas Listas",
+    // Etapa 6: domain migrated to GameCollection/collectionIds; routes
+    // /backlog/lists* preserved (Ajuste 1 — URLs unchanged).
+    id: "colecoes",
+    title: "Minhas coleções",
     children: [
-      { id: "new-list", title: "Nova Lista", action: "create-list" },
-      { id: "custom-lists", title: "Listas Personalizadas", path: "/backlog/lists" },
+      { id: "new-collection", title: "Nova Coleção", action: "create-collection" },
+      // Index of all user collections (replaces "Listas Personalizadas"
+      // as the entry point; collections also appear directly below).
+      { id: "all-collections", title: "Todas as coleções", path: "/backlog/lists" },
+      // Derived view (collectionIds.length === 0 via withoutCollection).
+      // No persisted GameCollection; same UserGame infrastructure.
+      { id: "sem-colecao", title: "Jogos sem coleção", path: "/backlog/without-list" },
     ],
   },
   // Compat: a rota interna /backlog/top10 permanece; apenas o label/nível mudou (Fase 1 não toca Top 10).

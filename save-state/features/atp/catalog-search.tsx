@@ -4,22 +4,33 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
+import RPGUISelect from "@/components/RPGUI/Select";
 import { useDebouncedValue } from "@/features/collection/use-debounced-value";
 import { Collection } from "@/features/games/collection";
 import {
   ATP_SEARCH_DEFAULTS,
   applyFixedContext,
   buildAtpBffSearchString,
+  defaultOrderForSort,
   hasAtpSearch,
   parseAtpSearchQuery,
+  parseYearBound,
   serializeAtpSearchQuery,
   serializeWithFixedContext,
   type AtpFixedContext,
   type AtpSearchQuery,
+  type AtpSortBy,
 } from "./atp-search-query";
 import type { AtpPreview, AtpSearchPage } from "./atp-result";
 import type { AtpSearchCard } from "./atp-result";
 import type { Game } from "@/features/shared/types";
+import {
+  libraryByExternalEndpoint,
+  searchCoverEndpoint,
+  searchDetailEndpoint,
+  searchEndpoint,
+  searchImportEndpoint,
+} from "@/features/search/search-endpoints";
 import { GameModal } from "@/features/games/game-modal";
 import { GameCardFrame } from "@/features/games/game-card-frame";
 import { toCardModelFromAtp } from "@/features/games/game-card-model";
@@ -43,7 +54,7 @@ function useAtpCover(atpId: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    apiRequest<{ coverUrl: string | null }>(`/api/atp/games/${encodeURIComponent(atpId)}/cover`)
+    apiRequest<{ coverUrl: string | null }>(searchCoverEndpoint(atpId))
       .then((result) => {
         if (!cancelled) setUrl(result.coverUrl);
       })
@@ -89,10 +100,10 @@ interface TextDraft {
   search: string;
   platform: string;
   genre: string;
-  year: string;
+  yearMin: string;
+  yearMax: string;
   developer: string;
   publisher: string;
-  family: string;
 }
 
 function draftFromQuery(query: AtpSearchQuery): TextDraft {
@@ -100,10 +111,10 @@ function draftFromQuery(query: AtpSearchQuery): TextDraft {
     search: query.search,
     platform: query.platform,
     genre: query.genre,
-    year: query.year === undefined ? "" : String(query.year),
+    yearMin: query.yearMin === undefined ? "" : String(query.yearMin),
+    yearMax: query.yearMax === undefined ? "" : String(query.yearMax),
     developer: query.developer,
     publisher: query.publisher,
-    family: query.family,
   };
 }
 
@@ -112,7 +123,6 @@ export function CatalogSearch({
   initialDeveloper,
   initialPublisher,
   initialContextName,
-  initialFamily,
   fixedPlatforms,
   fixedFamily,
   initialQuery,
@@ -126,8 +136,6 @@ export function CatalogSearch({
   initialPublisher?: string;
   // Human context for the filter-only empty state (e.g. platform name).
   initialContextName?: string;
-  // Family prefill (same behavior as the other initial* filters).
-  initialFamily?: string;
   // Route-locked context (platform/family detail pages): the route defines
   // the value, so conflicting URL params can never escape the page context.
   // fixedPlatforms accepts several ATP platform names (e.g. a generation):
@@ -157,12 +165,12 @@ export function CatalogSearch({
       platform: initialPlatform ?? "",
       developer: initialDeveloper ?? "",
       publisher: initialPublisher ?? "",
-      family: initialFamily ?? "",
     },
     fixed,
   );
 
   const [query, setQuery] = useState<AtpSearchQuery>(seededQuery);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [draft, setDraft] = useState<TextDraft>(() =>
     draftFromQuery(seededQuery),
   );
@@ -186,10 +194,10 @@ export function CatalogSearch({
     JSON.stringify({
       platform: draft.platform,
       genre: draft.genre,
-      year: draft.year,
+      yearMin: draft.yearMin,
+      yearMax: draft.yearMax,
       developer: draft.developer,
       publisher: draft.publisher,
-      family: draft.family,
     }),
     400,
   );
@@ -219,7 +227,7 @@ export function CatalogSearch({
       setError(null);
       try {
         const page = await apiRequest<AtpSearchPage>(
-          `/api/atp/search?${buildAtpBffSearchString(next)}`,
+          searchEndpoint(buildAtpBffSearchString(next)),
         );
         if (requestId !== requestIdRef.current) return;
         setResult(page);
@@ -254,25 +262,22 @@ export function CatalogSearch({
     [commitToUrl, runSearch, fixed.platform, fixed.family],
   );
 
-  // Refinement filters (platform/genre/year/developer/publisher/family)
+  // Refinement filters (platform/genre/year range/developer/publisher)
   // stay debounced; the textual search is button/Enter-only and keeps the
   // last committed query.search until handleSearch commits draft.search.
   useEffect(() => {
     if (firstLoad.current) return;
     const parsed = JSON.parse(debouncedFilterDraft) as Omit<TextDraft, "search">;
     const current = queryRef.current;
-    const year = /^\d{4}$/.test(parsed.year.trim())
-      ? Number(parsed.year.trim())
-      : undefined;
     const next = applyFixedContext(
       {
         ...current,
         platform: parsed.platform.trim().slice(0, 100),
         genre: parsed.genre.trim().slice(0, 100),
-        year,
+        yearMin: parseYearBound(parsed.yearMin),
+        yearMax: parseYearBound(parsed.yearMax),
         developer: parsed.developer.trim().slice(0, 100),
         publisher: parsed.publisher.trim().slice(0, 100),
-        family: parsed.family.trim().slice(0, 100),
         page: 1,
       },
       fixed,
@@ -320,11 +325,41 @@ export function CatalogSearch({
       ...current,
       platform: fixed.platform ?? "",
       genre: "",
-      year: "",
+      yearMin: "",
+      yearMax: "",
+      developer: "",
+      publisher: "",
+    }));
+    // Reset filters and sort, but keep the search text, view mode and
+    // page size; fixed route context is re-applied, never cleared.
+    commitQuery({
+      platform: fixed.platform ?? "",
+      genre: "",
+      yearMin: undefined,
+      yearMax: undefined,
       developer: "",
       publisher: "",
       family: fixed.family ?? "",
-    }));
+      sortBy: undefined,
+      order: "asc",
+    });
+  }
+
+  function handleSortByChange(value: string) {
+    const sortBy: AtpSortBy | undefined =
+      value === "title" || value === "year" ? value : undefined;
+    // A fresh sort starts from its own default direction (title ASC,
+    // year DESC); relevance carries no direction. Page resets: the new
+    // ordering may not have the current page's items.
+    commitQuery({
+      sortBy,
+      order: sortBy === undefined ? "asc" : defaultOrderForSort(sortBy),
+    });
+  }
+
+  function handleOrderToggle() {
+    if (query.sortBy === undefined) return;
+    commitQuery({ order: query.order === "asc" ? "desc" : "asc" });
   }
 
   async function handlePreview(atpId: string) {
@@ -333,13 +368,13 @@ export function CatalogSearch({
     setError(null);
     try {
       const detail = await apiRequest<AtpPreview>(
-        `/api/atp/games/${encodeURIComponent(atpId)}`,
+        searchDetailEndpoint(atpId),
       );
       if (requestId !== previewRequestRef.current) return;
       if (detail.owned) {
         try {
           const game = await apiRequest<Game>(
-            `/api/games/by-atp/${encodeURIComponent(atpId)}`,
+            libraryByExternalEndpoint(atpId),
           );
           if (requestId !== previewRequestRef.current) return;
           setSelectedGame(game);
@@ -365,7 +400,7 @@ export function CatalogSearch({
       setError(null);
       try {
         const game = await apiRequest<Game>(
-          `/api/games/by-atp/${encodeURIComponent(card.atpId)}`,
+          libraryByExternalEndpoint(card.atpId),
         );
         if (requestId !== previewRequestRef.current) return;
         setSelectedGame(game);
@@ -383,9 +418,9 @@ export function CatalogSearch({
     setImportingId(atpId);
     setError(null);
     try {
-      await apiRequest("/api/atp/import", {
+      await apiRequest(searchImportEndpoint(), {
         method: "POST",
-        body: { atpId },
+        body: { externalId: atpId },
       });
       setPreview(null);
       // Navigation to /backlog renders fresh server data; no refresh() call
@@ -397,7 +432,7 @@ export function CatalogSearch({
       // shows "No backlog" instead of a doomed action.
       try {
         const detail = await apiRequest<AtpPreview>(
-          `/api/atp/games/${encodeURIComponent(atpId)}`,
+          searchDetailEndpoint(atpId),
         );
         setPreview(detail);
         setResult((current) =>
@@ -426,7 +461,7 @@ export function CatalogSearch({
     setError(null);
     try {
       if (card.owned) {
-        const game = await apiRequest<Game>(`/api/games/by-atp/${encodeURIComponent(card.atpId)}`);
+        const game = await apiRequest<Game>(libraryByExternalEndpoint(card.atpId));
         await apiRequest(`/api/games/${game._id}`, { method: "DELETE" });
         setResult((current) =>
           current
@@ -444,14 +479,14 @@ export function CatalogSearch({
         if (selectedGame) {
           // If the removed game was open in GameModal, close it
           try {
-            const byAtp = await apiRequest<Game>(`/api/games/by-atp/${encodeURIComponent(card.atpId)}`).catch(() => null);
+            const byAtp = await apiRequest<Game>(libraryByExternalEndpoint(card.atpId)).catch(() => null);
             if (!byAtp) setSelectedGame(null);
           } catch {
             setSelectedGame(null);
           }
         }
       } else {
-        await apiRequest("/api/atp/import", { method: "POST", body: { atpId: card.atpId } });
+        await apiRequest(searchImportEndpoint(), { method: "POST", body: { externalId: card.atpId } });
         setResult((current) =>
           current
             ? {
@@ -469,7 +504,7 @@ export function CatalogSearch({
     } catch (err) {
       setError(toAtpError(err));
       try {
-        const detail = await apiRequest<AtpPreview>(`/api/atp/games/${encodeURIComponent(card.atpId)}`);
+        const detail = await apiRequest<AtpPreview>(searchDetailEndpoint(card.atpId));
         setPreview(detail);
         setResult((current) =>
           current
@@ -509,13 +544,15 @@ export function CatalogSearch({
   }, [draft.search, commitToUrl, runSearch, fixed]);
 
   // Locked route context is not clearable; only free refinements count.
+  // An explicit sort counts as a refinement; direction alone does not.
   const hasRefinement =
     (fixed.platform === undefined && draft.platform.trim() !== "") ||
     draft.genre.trim() !== "" ||
-    draft.year.trim() !== "" ||
+    draft.yearMin.trim() !== "" ||
+    draft.yearMax.trim() !== "" ||
     draft.developer.trim() !== "" ||
     draft.publisher.trim() !== "" ||
-    (fixed.family === undefined && draft.family.trim() !== "");
+    query.sortBy !== undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -536,14 +573,52 @@ export function CatalogSearch({
                 handleSearch();
               }
             }}
-            placeholder="Buscar no catálogo…"
+            placeholder="Buscar pelo nome do jogo…"
             maxLength={200}
-            aria-label="Buscar no catálogo"
+            aria-label="Buscar pelo nome do jogo"
             type="search"
           />
           <RPGUIButton type="button" title="Buscar" onClick={handleSearch} className="self-start" />
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="catalog-sort" className="text-xs">
+            Ordenar por
+          </label>
+          <RPGUISelect
+            id="catalog-sort"
+            value={query.sortBy ?? "relevance"}
+            onChange={(event) => handleSortByChange(event.target.value)}
+            aria-label="Ordenação dos resultados"
+            className="w-auto"
+          >
+            <option value="relevance">Relevância</option>
+            <option value="title">Título</option>
+            <option value="year">Ano</option>
+          </RPGUISelect>
+          <RPGUIButton
+            type="button"
+            title={query.order === "asc" ? "ASC ▲" : "DESC ▼"}
+            onClick={handleOrderToggle}
+            disabled={query.sortBy === undefined}
+            aria-label="Alternar direção da ordenação"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <RPGUIButton
+            type="button"
+            title={showAdvanced ? "Filtros avançados ▾" : "Filtros avançados ▸"}
+            onClick={() => setShowAdvanced((current) => !current)}
+            aria-expanded={showAdvanced}
+          />
+          <RPGUIButton
+            type="button"
+            title="Limpar filtros"
+            onClick={handleClearFilters}
+            disabled={!hasRefinement}
+          />
+        </div>
+        {showAdvanced ? (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {fixed.platform === undefined ? (
             <RPGUInput
               className="w-full"
@@ -570,12 +645,21 @@ export function CatalogSearch({
           />
           <RPGUInput
             className="w-full"
-            value={draft.year}
-            onChange={(event) => updateDraft({ year: event.target.value })}
-            placeholder="Ano"
+            value={draft.yearMin}
+            onChange={(event) => updateDraft({ yearMin: event.target.value })}
+            placeholder="Ano mínimo"
             inputMode="numeric"
             maxLength={4}
-            aria-label="Filtrar por ano de lançamento"
+            aria-label="Filtrar por ano mínimo de lançamento"
+          />
+          <RPGUInput
+            className="w-full"
+            value={draft.yearMax}
+            onChange={(event) => updateDraft({ yearMax: event.target.value })}
+            placeholder="Ano máximo"
+            inputMode="numeric"
+            maxLength={4}
+            aria-label="Filtrar por ano máximo de lançamento"
           />
           <RPGUInput
             className="w-full"
@@ -593,29 +677,14 @@ export function CatalogSearch({
             maxLength={100}
             aria-label="Filtrar por publicadora"
           />
-          {fixed.family === undefined ? (
-            <RPGUInput
-              className="w-full"
-              value={draft.family}
-              onChange={(event) => updateDraft({ family: event.target.value })}
-              placeholder="Família"
-              maxLength={100}
-              aria-label="Filtrar por família"
-            />
-          ) : (
+          {fixed.family !== undefined && (
             <p className="rpgui-container framed-grey px-2 py-1 text-xs">
               Família: {fixed.family}
             </p>
           )}
-          <RPGUIButton
-            type="button"
-            title="Limpar filtros"
-            onClick={handleClearFilters}
-            disabled={!hasRefinement}
-            className="w-50 self-start"
-          />
+          </div>
+        ) : null}
         </div>
-      </div>
       {error && (
         <p role="alert" className="rpgui-container framed-grey p-3">
           {error.status === 503

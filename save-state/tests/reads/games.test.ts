@@ -104,7 +104,7 @@ describe("listGames service", () => {
     const result = await listGames(seed.userAId, {
       page: 1,
       limit: 20,
-      listId: seed.listFavoritesA,
+      collectionId: seed.collectionFavoritesA,
     });
     expect(result.pagination.total).toBe(1);
     expect(result.data[0].game.name).toContain("Zelda");

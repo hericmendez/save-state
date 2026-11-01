@@ -60,7 +60,52 @@ describe("GET /api/auth/export", () => {
     expect(body.user.email).toBe(TEST_USER.email);
     expect(typeof body.exportedAt).toBe("string");
     expect(Array.isArray(body.games)).toBe(true);
-    expect(Array.isArray(body.lists)).toBe(true);
+    expect(Array.isArray(body.collections)).toBe(true);
+  });
+
+  it("exports collections with collectionIds (new format)", async () => {
+    const token = await tokenFor();
+    const authedPost = (path: string, body: unknown) =>
+      new NextRequest(`http://localhost${path}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `token=${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+    const { POST: createGame } = await import("@/app/api/games/route");
+    const gameId = (
+      (await (
+        await createGame(authedPost("/api/games", { game: { name: "Export Me" } }))
+      ).json()) as { data: { _id: string } }
+    ).data._id;
+    const { POST: createCollection } = await import(
+      "@/app/api/game-collections/route"
+    );
+    const created = await createCollection(
+      authedPost("/api/game-collections", { name: "Exportados" }),
+    );
+    expect(created.status).toBe(201);
+    const collectionId = ((await created.json()) as { data: { _id: string } }).data._id;
+    const { POST: attach } = await import(
+      "@/app/api/games/[gameId]/collections/[collectionId]/route"
+    );
+    const attached = await attach(
+      authedPost(
+        `/api/games/${gameId}/collections/${collectionId}`,
+        {},
+      ),
+      { params: Promise.resolve({ gameId, collectionId }) },
+    );
+    expect(attached.status).toBe(204);
+
+    const response = await exportJson(authed("/api/auth/export", token));
+    const body = await response.json();
+    expect(body.collections).toEqual([{ id: collectionId, name: "Exportados" }]);
+    expect(body.games).toHaveLength(1);
+    expect(body.games[0].collectionIds).toEqual([collectionId]);
+    expect(body.games[0]).not.toHaveProperty("listIds");
   });
 });
 
@@ -79,5 +124,7 @@ describe("GET /api/auth/export/csv", () => {
     expect(response.headers.get("Content-Type")).toContain("text/csv");
     const text = await response.text();
     expect(text.split("\n")[0]).toContain("userId");
+    expect(text.split("\n")[0]).toContain("collectionIds");
+    expect(text.split("\n")[0]).not.toContain("listIds");
   });
 });

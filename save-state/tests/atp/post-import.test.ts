@@ -14,8 +14,8 @@ import { POST as finishGame } from "@/app/api/games/[gameId]/finish/route";
 import {
   DELETE as removeFromList,
   POST as addToList,
-} from "@/app/api/games/[gameId]/lists/[listId]/route";
-import { POST as createList } from "@/app/api/game-lists/route";
+} from "@/app/api/games/[gameId]/collections/[collectionId]/route";
+import { POST as createList } from "@/app/api/game-collections/route";
 import { GET as statsRoute } from "@/app/api/games/stats/route";
 import { GET as exportJson } from "@/app/api/auth/export/route";
 import { GlobalGame } from "@/db/models/global-game";
@@ -275,26 +275,26 @@ describe("import → UserGame parity with manual games", () => {
     const token = await tokenFor();
     const userGameId = await importChrono(token);
     const list = await (
-      await createList(authed("/api/game-lists", token, {
+      await createList(authed("/api/game-collections", token, {
         method: "POST",
         body: { name: "JRPGs" },
       }))
     ).json();
-    const listId = list.data._id as string;
+    const collectionId = list.data._id as string;
 
     const attached = await addToList(
-      authed(`/api/games/${userGameId}/lists/${listId}`, token, { method: "POST" }),
-      { params: Promise.resolve({ gameId: userGameId, listId }) },
+      authed(`/api/games/${userGameId}/collections/${collectionId}`, token, { method: "POST" }),
+      { params: Promise.resolve({ gameId: userGameId, collectionId }) },
     );
     expect(attached.status).toBe(204);
-    expect((await UserGame.findById(userGameId).lean())?.listIds.map(String)).toContain(listId);
+    expect((await UserGame.findById(userGameId).lean())?.collectionIds.map(String)).toContain(collectionId);
 
     const detached = await removeFromList(
-      authed(`/api/games/${userGameId}/lists/${listId}`, token, { method: "DELETE" }),
-      { params: Promise.resolve({ gameId: userGameId, listId }) },
+      authed(`/api/games/${userGameId}/collections/${collectionId}`, token, { method: "DELETE" }),
+      { params: Promise.resolve({ gameId: userGameId, collectionId }) },
     );
     expect(detached.status).toBe(204);
-    expect((await UserGame.findById(userGameId).lean())?.listIds ?? []).toHaveLength(0);
+    expect((await UserGame.findById(userGameId).lean())?.collectionIds ?? []).toHaveLength(0);
   });
 
   it("appears in stats, favorites reads, and exports without ATP", async () => {

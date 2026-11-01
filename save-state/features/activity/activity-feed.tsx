@@ -126,7 +126,7 @@ function GroupCard({
   const [expanded, setExpanded] = useState(false);
   const gameId = groupUserGameId(item);
   return (
-    <article className="rpgui-container framed p-3">
+    <article className="rpgui-container framed-grey p-3">
       <h3 className="font-display text-sm">{item.title}</h3>
       <div className="mt-2 flex items-center justify-between gap-2">
         <GroupSpan item={item} timeZone={timeZone} />

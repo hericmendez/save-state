@@ -6,7 +6,7 @@
 
 import bcrypt from "bcryptjs";
 import { GlobalGame } from "@/db/models/global-game";
-import { GameList } from "@/db/models/game-list";
+import { GameCollection } from "@/db/models/game-collection";
 import { User } from "@/db/models/user";
 import { UserGame } from "@/db/models/user-game";
 
@@ -19,7 +19,7 @@ export interface SeedResult {
   userGameZeldaA: string;
   userGameMarioA: string;
   userGameTetrisB: string;
-  listFavoritesA: string;
+  collectionFavoritesA: string;
 }
 
 export async function seedReadFixtures(): Promise<SeedResult> {
@@ -89,11 +89,11 @@ export async function seedReadFixtures(): Promise<SeedResult> {
     }),
   ]);
 
-  const favoritesA = await GameList.create({
+  const favoritesA = await GameCollection.create({
     userId: userA._id,
     name: "Favorites",
   });
-  ugZeldaA.listIds = [favoritesA._id];
+  ugZeldaA.collectionIds = [favoritesA._id];
   await ugZeldaA.save();
 
   return {
@@ -105,6 +105,6 @@ export async function seedReadFixtures(): Promise<SeedResult> {
     userGameZeldaA: String(ugZeldaA._id),
     userGameMarioA: String(ugMarioA._id),
     userGameTetrisB: String(ugTetrisB._id),
-    listFavoritesA: String(favoritesA._id),
+    collectionFavoritesA: String(favoritesA._id),
   };
 }

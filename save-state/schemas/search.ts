@@ -1,0 +1,115 @@
+/**
+ * Neutral search BFF schemas (browser → /api/search/* boundary).
+ *
+ * Provider-agnostic: the browser speaks Save State's catalog contract
+ * (q/search, platform, genre, year, developer, publisher, family) and
+ * never knows whether ATP or IGDB serves the request. Each provider
+ * translates these filters to its own API.
+ *
+ * Validation mirrors schemas/atp.ts 1:1 so behavior is preserved during
+ * the /api/atp/* → /api/search/* migration. schemas/atp.ts remains as a
+ * compatibility alias until all consumers migrate.
+ */
+
+import { z } from "zod";
+import { GAME_STATUSES } from "@/schemas/games";
+
+export const searchExternalIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{1,128}$/, "must be a valid external id");
+
+export const searchQuerySchema = z
+  .object({
+    q: z.string().trim().max(200).optional().default(""),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    discover: z
+      .enum(["true", "false"])
+      .optional()
+      .default("false")
+      .transform((value) => value === "true"),
+    platform: z.string().trim().min(1).max(100).optional(),
+    genre: z.string().trim().min(1).max(100).optional(),
+    // Inclusive year range; each bound optional. Replaces the former
+    // single `year` (kept below as a deprecated alias for old links).
+    yearMin: z.coerce.number().int().min(1950).max(2100).optional(),
+    yearMax: z.coerce.number().int().min(1950).max(2100).optional(),
+    // Deprecated single-year alias: maps to [year, year] when the range
+    // bounds are absent. Remove with the next breaking contract change.
+    year: z.coerce.number().int().min(1950).max(2100).optional(),
+    developer: z.string().trim().min(1).max(100).optional(),
+    publisher: z.string().trim().min(1).max(100).optional(),
+    family: z.string().trim().min(1).max(100).optional(),
+    // Sort key: absent (or explicit "relevance" with text) means the
+    // provider default. Only title/year are server-sortable; other
+    // dimensions have no IGDB-native ordering (see docs).
+    sortBy: z.enum(["relevance", "title", "year"]).optional(),
+    // Direction only applies to an explicit title/year sort; each field
+    // has its own default (title ASC, year DESC) when omitted.
+    order: z.enum(["asc", "desc"]).optional(),
+  })
+  .transform((data) => {
+    const { year, ...rest } = data;
+    return {
+      ...rest,
+      yearMin: rest.yearMin ?? year,
+      yearMax: rest.yearMax ?? year,
+    };
+  })
+  .refine(
+    (data) =>
+      data.q !== "" ||
+      data.platform !== undefined ||
+      data.genre !== undefined ||
+      data.yearMin !== undefined ||
+      data.yearMax !== undefined ||
+      data.developer !== undefined ||
+      data.publisher !== undefined ||
+      data.family !== undefined,
+    { message: "query or at least one filter is required" },
+  )
+  .refine(
+    (data) =>
+      data.yearMin === undefined ||
+      data.yearMax === undefined ||
+      data.yearMin <= data.yearMax,
+    { message: "yearMin must be less than or equal to yearMax" },
+  );
+
+export const searchIdParamSchema = z.object({ id: searchExternalIdSchema });
+
+export const searchPlatformsQuerySchema = z.object({
+  companyName: z.string().trim().min(1).max(100).optional(),
+  platformStatus: z.enum(["active", "inactive", "discontinued"]).optional(),
+  releaseYear: z.coerce.number().int().min(1950).max(2100).optional(),
+  showEmptyPlatforms: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false")
+    .transform((value) => value === "true"),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sort: z.enum(["name", "releaseYear", "gameCount"]).optional(),
+  order: z.enum(["asc", "desc"]).optional().default("asc"),
+});
+
+export const searchCoverSearchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200),
+  limit: z.coerce.number().int().min(1).max(9).default(6),
+});
+
+const searchImportPersonalSchema = z.object({
+  status: z.enum(GAME_STATUSES).optional(),
+  hoursPlayed: z.number().min(0).max(100000).optional(),
+  timesFinished: z.number().int().min(0).max(10000).optional(),
+  rating: z.number().min(0).max(10).optional(),
+  review: z.string().trim().max(20000).optional(),
+});
+
+export const searchImportSchema = z.object({
+  externalId: searchExternalIdSchema,
+  personal: searchImportPersonalSchema.optional(),
+});
+
+export type SearchImportInput = z.infer<typeof searchImportSchema>;
+export type SearchQueryInput = z.infer<typeof searchQuerySchema>;

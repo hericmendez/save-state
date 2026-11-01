@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ApiError } from "@/lib/api-error";
 import RPGUIButton from "@/components/RPGUI/Button";
 import { getCurrentSession } from "@/server/auth/session";
-import { listAtpFamilies } from "@/server/atp/families";
+import {
+  isCatalogUnavailable,
+  listCatalogFamilies,
+} from "@/server/search/catalog-reads";
 import { CatalogSearch } from "@/features/atp/catalog-search";
 
 /**
@@ -26,10 +28,10 @@ export default async function FamilyDetailPage({
 
   let family;
   try {
-    const families = await listAtpFamilies();
+    const families = await listCatalogFamilies();
     family = families.find((entry) => entry.name === familyName);
   } catch (err) {
-    if (err instanceof ApiError && err.code === "ATP_UNAVAILABLE") {
+    if (isCatalogUnavailable(err)) {
       return (
         <div className="flex flex-col gap-4">
           <p role="alert" className="rpgui-container framed-grey p-3">

@@ -28,7 +28,7 @@ describe("loading UX", () => {
     expect(hasLoadingPattern(p, ["isJsonLoading", "isCsvLoading", "disabled={isJsonLoading", "finally"])).toBe(true);
   });
   it("Lists manager handles rename/delete loading", () => {
-    const p = "features/lists/lists-manager.tsx";
+    const p = "features/collections/collections-manager.tsx";
     expect(hasLoadingPattern(p, ["isRenaming", "isDeleting", "disabled={isRenaming"])).toBe(true);
   });
 });

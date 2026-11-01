@@ -70,6 +70,7 @@ export interface ActivityDTO {
   userGameId?: string;
   game?: { name: string; cover?: string | null };
   list?: { listId?: string; name: string };
+  collection?: { collectionId?: string; name: string };
   metadata: Record<string, unknown>;
   createdAt: string;
   type: string;
@@ -109,6 +110,7 @@ interface StoredEvent {
   userGameId?: Types.ObjectId;
   game?: { name: string; cover?: string };
   list?: { listId?: string; name: string };
+  collection?: { collectionId?: string; name: string };
   metadata: Record<string, unknown>;
   createdAt: Date;
 }
@@ -124,6 +126,16 @@ function toEventDTO(doc: StoredEvent): ActivityEventDTO {
           list: {
             ...(doc.list.listId ? { listId: String(doc.list.listId) } : {}),
             name: doc.list.name,
+          },
+        }
+      : {}),
+    ...(doc.collection
+      ? {
+          collection: {
+            ...(doc.collection.collectionId
+              ? { collectionId: String(doc.collection.collectionId) }
+              : {}),
+            name: doc.collection.name,
           },
         }
       : {}),
@@ -147,6 +159,7 @@ function toFeedItemDTO(item: FeedItem): FeedItemDTO {
       ...(member.userGameId ? { userGameId: member.userGameId } : {}),
       ...(member.game ? { game: { ...member.game } } : {}),
       ...(member.list ? { list: { ...member.list } } : {}),
+      ...(member.collection ? { collection: { ...member.collection } } : {}),
       metadata: { ...member.metadata },
       createdAt:
         member.createdAt instanceof Date
@@ -197,6 +210,7 @@ export async function listFeed(userId: string, query: FeedQuery): Promise<FeedPa
     const clauses: Record<string, unknown>[] = [
       { "game.name": contentMatch },
       { "list.name": contentMatch },
+      { "collection.name": contentMatch },
       {
         type: "note.created",
         "metadata.noteId": {

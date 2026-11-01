@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { handleRoute, created } from "@/server/shared/route-handler";
 import { parseBody, parseQuery, searchParamsToObject } from "@/server/shared/validation";
-import { createGameSchema, listGamesQuerySchema } from "@/schemas/games";
+import { createGameSchema, collectionGamesQuerySchema } from "@/schemas/games";
 import { getSessionUser } from "@/server/auth/session";
 import { createGame, listGames } from "@/server/games/service";
 
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   return handleRoute(async () => {
     const session = await getSessionUser(request);
     const query = parseQuery(
-      listGamesQuerySchema,
+      collectionGamesQuerySchema,
       searchParamsToObject(request.nextUrl.searchParams),
     );
     const result = await listGames(session.id, query);

@@ -39,6 +39,11 @@ export const ERROR_CODES = [
   "INVALID_ID",
   "ATP_UNAVAILABLE",
   "ATP_GAME_NOT_FOUND",
+  // Etapa 2 — engine-agnostic search. IGDB mirrors the ATP codes so the
+  // neutral /api/search/* boundary keeps one paging/error contract
+  // regardless of the active provider.
+  "IGDB_UNAVAILABLE",
+  "IGDB_GAME_NOT_FOUND",
   // Domain-contract closure (ADR-024): import guard for non-durable ATP
   // identities. 422 (not 400) signals "syntactically valid, semantically
   // unacceptable as a durable reference — do not retry with the same id".
@@ -88,6 +93,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   // Phase 9 ATP BFF codes.
   ATP_UNAVAILABLE: 503,
   ATP_GAME_NOT_FOUND: 404,
+  // Etapa 2 neutral search codes (mirror ATP semantics).
+  IGDB_UNAVAILABLE: 503,
+  IGDB_GAME_NOT_FOUND: 404,
   // ADR-024 ATP identity quarantine.
   UNSTABLE_ATP_IDENTITY: 422,
 };

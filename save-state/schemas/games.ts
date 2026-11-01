@@ -36,11 +36,11 @@ const statusEnum = z.enum(GAME_STATUSES);
 const numberRange = (min: number, max: number) =>
   z.coerce.number().min(min).max(max);
 
-const listQueryBase = {
+const collectionQueryBase = {
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().trim().max(255).optional(),
-  listId: objectIdSchema.optional(),
+  collectionId: objectIdSchema.optional(),
   genre: z.string().trim().max(100).optional(),
   platform: z.string().trim().max(100).optional(),
   developer: z.string().trim().max(200).optional(),
@@ -53,9 +53,21 @@ const listQueryBase = {
   ratingMax: numberRange(0, 10).optional(),
 };
 
-export const listGamesQuerySchema = z.object({
-  ...listQueryBase,
+/**
+ * Raw (pre-transform) collection games query. Exported so callers that
+ * need `.omit()` (ZodEffects has none) can derive siblings and apply
+ * the same legacy-key normalization below.
+ */
+export const collectionGamesQueryInputSchema = z.object({
+  ...collectionQueryBase,
   status: statusEnum.optional(),
+  withoutCollection: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  // Temporary compat: legacy query keys map onto the new contract.
+  // Remove once /api/game-lists adapters are decommissioned.
+  listId: objectIdSchema.optional(),
   withoutList: z
     .enum(["true", "false"])
     .transform((v) => v === "true")
@@ -89,6 +101,28 @@ export const listGamesQuerySchema = z.object({
     .transform((v) => v === "true")
     .optional(),
 });
+
+export function normalizeCollectionKeys<
+  T extends {
+    collectionId?: string;
+    listId?: string;
+    withoutCollection?: boolean;
+    withoutList?: boolean;
+  },
+>(data: T): Omit<T, "listId" | "withoutList"> & {
+  collectionId?: string;
+  withoutCollection?: boolean;
+} {
+  const { listId, withoutList, ...rest } = data;
+  return {
+    ...rest,
+    collectionId: rest.collectionId ?? listId,
+    withoutCollection: rest.withoutCollection ?? withoutList,
+  };
+}
+
+export const collectionGamesQuerySchema =
+  collectionGamesQueryInputSchema.transform(normalizeCollectionKeys);
 
 export const gameIdParamSchema = z.object({ gameId: objectIdSchema });
 
@@ -169,4 +203,4 @@ export const updateGameSchema = z
 
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type UpdateGameInput = z.infer<typeof updateGameSchema>;
-export type ListGamesQuery = z.infer<typeof listGamesQuerySchema>;
+export type CollectionGamesQuery = z.infer<typeof collectionGamesQuerySchema>;

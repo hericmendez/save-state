@@ -4,10 +4,10 @@ import { POST as register } from "@/app/api/auth/register/route";
 import { POST as login } from "@/app/api/auth/login/route";
 import { POST as createGame } from "@/app/api/games/route";
 import {
-  DELETE as removeFromList,
-  POST as addToList,
-} from "@/app/api/games/[gameId]/lists/[listId]/route";
-import { POST as createList } from "@/app/api/game-lists/route";
+  DELETE as removeFromCollection,
+  POST as addToCollection,
+} from "@/app/api/games/[gameId]/collections/[collectionId]/route";
+import { POST as createCollection } from "@/app/api/game-collections/route";
 import { UserGame } from "@/db/models/user-game";
 import {
   TEST_USER,
@@ -53,7 +53,7 @@ function authed(
   });
 }
 
-async function gameAndList(token: string): Promise<{ gameId: string; listId: string }> {
+async function gameAndCollection(token: string): Promise<{ gameId: string; collectionId: string }> {
   const game = await (
     await createGame(authed("/api/games", token, {
       method: "POST",
@@ -61,63 +61,63 @@ async function gameAndList(token: string): Promise<{ gameId: string; listId: str
     }))
   ).json();
   const list = await (
-    await createList(authed("/api/game-lists", token, {
+    await createCollection(authed("/api/game-collections", token, {
       method: "POST",
       body: { name: "Membership List" },
     }))
   ).json();
-  return { gameId: game.data._id as string, listId: list.data._id as string };
+  return { gameId: game.data._id as string, collectionId: list.data._id as string };
 }
 
-describe("POST /api/games/:gameId/lists/:listId", () => {
+describe("POST /api/games/:gameId/collections/:collectionId", () => {
   it("attaches the list and returns 204", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
-    const response = await addToList(
-      authed(`/api/games/${gameId}/lists/${listId}`, token, { method: "POST" }),
-      { params: Promise.resolve({ gameId, listId }) },
+    const { gameId, collectionId } = await gameAndCollection(token);
+    const response = await addToCollection(
+      authed(`/api/games/${gameId}/collections/${collectionId}`, token, { method: "POST" }),
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     expect(response.status).toBe(204);
     const stored = await UserGame.findById(gameId).lean();
-    expect((stored?.listIds ?? []).map(String)).toContain(listId);
+    expect((stored?.collectionIds ?? []).map(String)).toContain(collectionId);
   });
 
   it("is idempotent for duplicate membership", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
-    const path = `/api/games/${gameId}/lists/${listId}`;
+    const { gameId, collectionId } = await gameAndCollection(token);
+    const path = `/api/games/${gameId}/collections/${collectionId}`;
     expect(
-      (await addToList(authed(path, token, { method: "POST" }), {
-        params: Promise.resolve({ gameId, listId }),
+      (await addToCollection(authed(path, token, { method: "POST" }), {
+        params: Promise.resolve({ gameId, collectionId }),
       })).status,
     ).toBe(204);
     expect(
-      (await addToList(authed(path, token, { method: "POST" }), {
-        params: Promise.resolve({ gameId, listId }),
+      (await addToCollection(authed(path, token, { method: "POST" }), {
+        params: Promise.resolve({ gameId, collectionId }),
       })).status,
     ).toBe(204);
     const stored = await UserGame.findById(gameId).lean();
-    expect(stored?.listIds ?? []).toHaveLength(1);
+    expect(stored?.collectionIds ?? []).toHaveLength(1);
   });
 
   it("rejects foreign games and lists with GAME/LIST_NOT_FOUND", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
+    const { gameId, collectionId } = await gameAndCollection(token);
     const otherToken = await tokenFor(OTHER_USER);
 
-    const foreignGame = await addToList(
-      authed(`/api/games/${gameId}/lists/${listId}`, otherToken, { method: "POST" }),
-      { params: Promise.resolve({ gameId, listId }) },
+    const foreignGame = await addToCollection(
+      authed(`/api/games/${gameId}/collections/${collectionId}`, otherToken, { method: "POST" }),
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     // The list is verified before the game, so a fully foreign pair
     // surfaces as LIST_NOT_FOUND.
     expect(foreignGame.status).toBe(404);
     expect((await foreignGame.json()).error.code).toBe("LIST_NOT_FOUND");
 
-    const { gameId: otherGame } = await gameAndList(otherToken);
-    const foreignList = await addToList(
-      authed(`/api/games/${otherGame}/lists/${listId}`, otherToken, { method: "POST" }),
-      { params: Promise.resolve({ gameId: otherGame, listId }) },
+    const { gameId: otherGame } = await gameAndCollection(otherToken);
+    const foreignList = await addToCollection(
+      authed(`/api/games/${otherGame}/collections/${collectionId}`, otherToken, { method: "POST" }),
+      { params: Promise.resolve({ gameId: otherGame, collectionId }) },
     );
     expect(foreignList.status).toBe(404);
     expect((await foreignList.json()).error.code).toBe("LIST_NOT_FOUND");
@@ -125,9 +125,9 @@ describe("POST /api/games/:gameId/lists/:listId", () => {
 
   it("validates params with VALIDATION_ERROR", async () => {
     const token = await tokenFor();
-    const response = await addToList(
-      authed("/api/games/nope/lists/nope", token, { method: "POST" }),
-      { params: Promise.resolve({ gameId: "nope", listId: "nope" }) },
+    const response = await addToCollection(
+      authed("/api/games/nope/collections/nope", token, { method: "POST" }),
+      { params: Promise.resolve({ gameId: "nope", collectionId: "nope" }) },
     );
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe("VALIDATION_ERROR");
@@ -135,51 +135,51 @@ describe("POST /api/games/:gameId/lists/:listId", () => {
 
   it("requires authentication", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
-    const response = await addToList(
-      new NextRequest(`http://localhost/api/games/${gameId}/lists/${listId}`, {
+    const { gameId, collectionId } = await gameAndCollection(token);
+    const response = await addToCollection(
+      new NextRequest(`http://localhost/api/games/${gameId}/collections/${collectionId}`, {
         method: "POST",
       }),
-      { params: Promise.resolve({ gameId, listId }) },
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     expect(response.status).toBe(401);
   });
 });
 
-describe("DELETE /api/games/:gameId/lists/:listId", () => {
+describe("DELETE /api/games/:gameId/collections/:collectionId", () => {
   it("detaches the list and returns 204", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
-    const path = `/api/games/${gameId}/lists/${listId}`;
-    await addToList(authed(path, token, { method: "POST" }), {
-      params: Promise.resolve({ gameId, listId }),
+    const { gameId, collectionId } = await gameAndCollection(token);
+    const path = `/api/games/${gameId}/collections/${collectionId}`;
+    await addToCollection(authed(path, token, { method: "POST" }), {
+      params: Promise.resolve({ gameId, collectionId }),
     });
-    const response = await removeFromList(
+    const response = await removeFromCollection(
       authed(path, token, { method: "DELETE" }),
-      { params: Promise.resolve({ gameId, listId }) },
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     expect(response.status).toBe(204);
     const stored = await UserGame.findById(gameId).lean();
-    expect(stored?.listIds ?? []).toHaveLength(0);
+    expect(stored?.collectionIds ?? []).toHaveLength(0);
   });
 
   it("is idempotent when the membership is absent", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
-    const response = await removeFromList(
-      authed(`/api/games/${gameId}/lists/${listId}`, token, { method: "DELETE" }),
-      { params: Promise.resolve({ gameId, listId }) },
+    const { gameId, collectionId } = await gameAndCollection(token);
+    const response = await removeFromCollection(
+      authed(`/api/games/${gameId}/collections/${collectionId}`, token, { method: "DELETE" }),
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     expect(response.status).toBe(204);
   });
 
   it("rejects foreign games with GAME_NOT_FOUND", async () => {
     const token = await tokenFor();
-    const { gameId, listId } = await gameAndList(token);
+    const { gameId, collectionId } = await gameAndCollection(token);
     const otherToken = await tokenFor(OTHER_USER);
-    const response = await removeFromList(
-      authed(`/api/games/${gameId}/lists/${listId}`, otherToken, { method: "DELETE" }),
-      { params: Promise.resolve({ gameId, listId }) },
+    const response = await removeFromCollection(
+      authed(`/api/games/${gameId}/collections/${collectionId}`, otherToken, { method: "DELETE" }),
+      { params: Promise.resolve({ gameId, collectionId }) },
     );
     expect(response.status).toBe(404);
   });

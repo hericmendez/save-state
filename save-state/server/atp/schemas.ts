@@ -91,6 +91,10 @@ export const atpPlatformSchema = z
     status: z.string(),
     family: z.string().nullable().optional(),
     type: z.string().nullable().optional(),
+    // Editorial hardware generation (Fase 1 ATP): positive integer for
+    // console/handheld/hybrid, null otherwise. Optional for tolerance —
+    // the BFF only forwards it to Platform Details consumers.
+    generation: z.number().int().nullable().optional(),
     // Canonical ATP contract (Fase 7.1): PlatformThumb object, not a
     // string. The Save State UI does not render platform thumbs; the
     // shape is validated structurally and otherwise ignored.

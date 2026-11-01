@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type {
   Game,
-  GameList,
+  GameCollection,
   Pagination,
 } from "@/features/shared/types";
 import type { CollectionQuery } from "@/features/collection/collection-query";
 import { Collection } from "./collection";
 import { GameCard } from "./game-card";
-import { GameListItem } from "./game-list-item";
+import { GameCollectionItem } from "./game-collection-item";
 import { GameModal } from "./game-modal";
 import { ConfirmDialog } from "./confirm-dialog";
 import { UserGameFilters } from "./user-game-filters";
@@ -22,21 +22,21 @@ export function BacklogView({
   initialGames,
   initialPagination,
   initialQuery,
-  lists,
-  listId,
+  collections,
+  collectionId,
   listName,
   favorite,
-  withoutList,
+  withoutCollection,
   emptyMessage = "Nenhum jogo encontrado.",
 }: {
   initialGames: Game[];
   initialPagination: Pagination;
   initialQuery: CollectionQuery;
-  lists: GameList[];
-  listId?: string;
+  collections: GameCollection[];
+  collectionId?: string;
   listName?: string;
   favorite?: boolean;
-  withoutList?: boolean;
+  withoutCollection?: boolean;
   emptyMessage?: string;
 }) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export function BacklogView({
     initialQuery,
     initialGames,
     initialPagination,
-    scope: { favorite, withoutList, listId },
+    scope: { favorite, withoutCollection, collectionId },
   });
 
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -102,22 +102,22 @@ export function BacklogView({
         renderGridItem={(game) => (
           <GameCard
             game={game}
-            lists={lists}
+            collections={collections}
             onDetails={() => setSelectedGame(game)}
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
-            onListChanged={() => refresh()}
+            onCollectionChanged={() => refresh()}
             onError={setBanner}
           />
         )}
         renderListItem={(game) => (
-          <GameListItem
+          <GameCollectionItem
             game={game}
-            lists={lists}
+            collections={collections}
             onDetails={() => setSelectedGame(game)}
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
-            onListChanged={() => refresh()}
+            onCollectionChanged={() => refresh()}
             onError={setBanner}
           />
         )}

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
+import { igdbCoversEndpoint } from "@/features/search/search-endpoints";
 
 interface CoverCandidate {
   url: string;
@@ -13,10 +14,11 @@ interface CoverCandidate {
 }
 
 /**
- * Cover lookup for the game form. Queries the Save State BFF (which
- * queries ATP cover search), shows candidate thumbnails, and fills
- * `form.cover` with the selected URL only. The boundary is always
- * `ATP cover result → string URL → GameFormState.cover`.
+ * Cover lookup for the game form. Always queries IGDB directly
+ * (Etapa 5 — independent of SEARCH_METHOD), shows candidate
+ * thumbnails, and fills `form.cover` with the selected URL only.
+ * The boundary is always `IGDB cover result → string URL →
+ * GameFormState.cover`.
  */
 export function GameCoverSearch({
   query,
@@ -50,7 +52,7 @@ export function GameCoverSearch({
     try {
       const params = new URLSearchParams({ q: trimmed });
       const candidates = await apiRequest<CoverCandidate[]>(
-        `/api/atp/covers/search?${params.toString()}`,
+        igdbCoversEndpoint(params.toString()),
       );
       if (requestId !== requestIdRef.current) return;
       setCandidates(candidates);

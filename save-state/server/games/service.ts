@@ -19,7 +19,7 @@ import { recordActivity } from "@/server/activity/service";
 import { removeFromTop10 } from "@/server/top10/service";
 import type {
   CreateGameInput,
-  ListGamesQuery,
+  CollectionGamesQuery,
   UpdateGameInput,
 } from "@/schemas/games";
 import {
@@ -28,7 +28,7 @@ import {
   type PaginatedResponse,
 } from "@/server/shared/pagination";
 
-export type GameQuery = Omit<ListGamesQuery, "page" | "limit">;
+export type GameQuery = Omit<CollectionGamesQuery, "page" | "limit">;
 
 export interface UserGameWithGame {
   _id: Types.ObjectId;
@@ -38,7 +38,7 @@ export interface UserGameWithGame {
   timesFinished: number;
   rating?: number | null;
   review?: string | null;
-  listIds: Types.ObjectId[];
+  collectionIds: Types.ObjectId[];
   favorite: boolean;
   finished: boolean;
   fullyCompleted: boolean;
@@ -114,25 +114,26 @@ function buildFilters(
     userId: new Types.ObjectId(userId),
   };
 
-  if (filters.listId) {
-    query.listIds = new Types.ObjectId(filters.listId);
+  if (filters.collectionId) {
+    query.collectionIds = new Types.ObjectId(filters.collectionId);
   }
-  if (filters.withoutList === true) {
-    // Derived "Sem lista" view: listIds.length === 0. This is not the
-    // absence of a listId filter. When combined with listId (a
-    // contradictory request: "in list X" AND "in no list"), all library
-    // filters stay conjunctive and the result is intentionally empty —
-    // the same way any other impossible combination behaves. No silent
-    // precedence, no validation error: list context simply narrows.
-    if (filters.listId) {
+  if (filters.withoutCollection === true) {
+    // Derived "Sem coleção" view: collectionIds.length === 0. This is not
+    // the absence of a collectionId filter. When combined with collectionId (a
+    // contradictory request: "in collection X" AND "in no collection"),
+    // all library filters stay conjunctive and the result is intentionally
+    // empty — the same way any other impossible combination behaves. No
+    // silent precedence, no validation error: collection context simply
+    // narrows.
+    if (filters.collectionId) {
       query.$and = [
         ...(query.$and ?? []),
-        { listIds: query.listIds },
-        { listIds: { $size: 0 } },
+        { collectionIds: query.collectionIds },
+        { collectionIds: { $size: 0 } },
       ];
-      delete query.listIds;
+      delete query.collectionIds;
     } else {
-      query.listIds = { $size: 0 };
+      query.collectionIds = { $size: 0 };
     }
   }
   if (filters.status !== undefined) {
@@ -286,7 +287,7 @@ export async function resolveGameQuery(
 
 export type LibraryOrderBy = "title" | "platform" | "releaseYear" | "status";
 
-function librarySortDirection(filters: ListGamesQuery): 1 | -1 {
+function librarySortDirection(filters: CollectionGamesQuery): 1 | -1 {
   return filters.order === "desc" ? -1 : 1;
 }
 
@@ -304,7 +305,7 @@ function librarySortDirection(filters: ListGamesQuery): 1 | -1 {
  */
 export async function listGames(
   userId: string,
-  filters: ListGamesQuery,
+  filters: CollectionGamesQuery,
 ): Promise<PaginatedUserGame> {
   const query = await resolveGameQuery(userId, filters);
   const orderBy = filters.orderBy as LibraryOrderBy | undefined;
@@ -339,7 +340,7 @@ export async function listGames(
 
 async function listGamesOrderedByGlobalField(
   query: FilterQuery<UserGameDocument>,
-  filters: ListGamesQuery,
+  filters: CollectionGamesQuery,
   orderBy: Exclude<LibraryOrderBy, "status">,
 ): Promise<PaginatedUserGame> {
   const direction = librarySortDirection(filters);

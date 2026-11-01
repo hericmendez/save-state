@@ -5,9 +5,9 @@
  *
  *   URL/searchParams → CollectionQuery → service filters → listGames
  *
- * View-fixed params (favorite / withoutList / listId) are NOT part of the
+ * View-fixed params (favorite / withoutCollection / collectionId) are NOT part of the
  * URL: the route itself defines the view (/backlog, /backlog/favoritos,
- * /backlog/without-list, /backlog/lists/:listId), so duplicating them in the
+ * /backlog/without-list, /backlog/lists/:listId (stable URLs), so duplicating them in
  * query string would add no value.
  */
 
@@ -16,13 +16,13 @@ import {
   type CollectionQuery,
   type CollectionQueryInput,
 } from "@/features/collection/collection-query";
-import type { ListGamesQuery } from "@/schemas/games";
+import type { CollectionGamesQuery } from "@/schemas/games";
 
 export type { CollectionQuery };
 
 /** Service-ready subset: type-only schema import, so no zod runtime cost. */
 export type LibraryServiceFilters = Pick<
-  ListGamesQuery,
+  CollectionGamesQuery,
   | "search"
   | "platform"
   | "status"
@@ -59,12 +59,12 @@ export function hasActiveLibraryFilters(query: CollectionQuery): boolean {
   if (query.search !== "") filters.search = query.search;
   if (query.platform !== "") filters.platform = query.platform;
   if (query.status !== "") {
-    filters.status = query.status as ListGamesQuery["status"];
+    filters.status = query.status as CollectionGamesQuery["status"];
   }
   if (query.yearFrom !== undefined) filters.yearFrom = query.yearFrom;
   if (query.yearTo !== undefined) filters.yearTo = query.yearTo;
   if (query.orderBy !== "") {
-    filters.orderBy = query.orderBy as ListGamesQuery["orderBy"];
+    filters.orderBy = query.orderBy as CollectionGamesQuery["orderBy"];
     filters.order = query.order;
   }
   return filters;

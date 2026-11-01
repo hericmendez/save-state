@@ -44,11 +44,11 @@ function gameToForm(game: Game): GameFormState {
 export function GameFormContainer({
   editingId,
   initialGame,
-  attachListId,
+  attachCollectionId,
 }: {
   editingId?: string;
   initialGame?: Game;
-  attachListId?: string;
+  attachCollectionId?: string;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<GameFormState>(() =>
@@ -86,9 +86,9 @@ export function GameFormContainer({
           body: formToPayload(form),
         });
         const plain = toPlainGame(created);
-        if (attachListId) {
+        if (attachCollectionId) {
           await apiRequest(
-            `/api/games/${plain._id}/lists/${attachListId}`,
+            `/api/games/${plain._id}/collections/${attachCollectionId}`,
             { method: "POST" },
           );
         }

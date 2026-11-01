@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/server/auth/session";
-import { listGameLists } from "@/server/lists/service";
-import { ListsManager } from "@/features/lists/lists-manager";
-import { toPlainGameList } from "@/features/games/mappers";
+import { listGameCollections } from "@/server/collections/service";
+import { CollectionsManager } from "@/features/collections/collections-manager";
+import { toPlainGameCollection } from "@/features/games/mappers";
 
-export default async function ListsPage() {
+export default async function CollectionsPage() {
   let session;
   try {
     session = await getCurrentSession();
@@ -12,11 +12,11 @@ export default async function ListsPage() {
     redirect("/login?from=/backlog/lists");
   }
 
-  const lists = await listGameLists(session.id, {
+  const collections = await listGameCollections(session.id, {
     page: 1,
     limit: 100,
     withCount: true,
   });
 
-  return <ListsManager initialLists={lists.data.map(toPlainGameList)} />;
+  return <CollectionsManager initialCollections={collections.data.map(toPlainGameCollection)} />;
 }

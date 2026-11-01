@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
-import { ApiError } from "@/lib/api-error";
 import { getCurrentSession } from "@/server/auth/session";
-import { listAtpFamilies } from "@/server/atp/families";
+import {
+  isCatalogUnavailable,
+  listCatalogFamilies,
+} from "@/server/search/catalog-reads";
 import { PlatformCard } from "@/features/catalog/platform-card";
 
 /**
@@ -16,12 +18,12 @@ export default async function FamiliesPage() {
     redirect("/login?from=/catalog/families");
   }
 
-  let families: Awaited<ReturnType<typeof listAtpFamilies>> | null = null;
+  let families: Awaited<ReturnType<typeof listCatalogFamilies>> | null = null;
   let unavailable = false;
   try {
-    families = await listAtpFamilies();
+    families = await listCatalogFamilies();
   } catch (err) {
-    unavailable = err instanceof ApiError && err.code === "ATP_UNAVAILABLE";
+    unavailable = isCatalogUnavailable(err);
     if (!unavailable) throw err;
   }
 
@@ -46,7 +48,7 @@ export default async function FamiliesPage() {
             <details
               key={family.name}
               open
-              className="rpgui-container framed-golden p-4"
+              className="rpgui-container framed-grey p-4"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
                 <div>

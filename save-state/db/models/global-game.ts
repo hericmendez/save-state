@@ -19,7 +19,7 @@ const GlobalGameSchema = new Schema(
     source: {
       type: String,
       required: true,
-      enum: ["manual", "atp"],
+      enum: ["manual", "atp", "igdb"],
       default: "manual",
     },
     sourceUrl: { type: String, trim: true },
@@ -29,6 +29,13 @@ const GlobalGameSchema = new Schema(
     atpDomainId: {
       type: String,
       trim: true,
+      index: { unique: true, sparse: true },
+    },
+    // Canonical IGDB identity. Same additive/sparse semantics as
+    // atpDomainId: only IGDB imports set it, never null (absent field),
+    // so legacy documents without it remain valid and conflict-free.
+    igdbId: {
+      type: Number,
       index: { unique: true, sparse: true },
     },
     cover: { type: String, trim: true },
@@ -50,9 +57,10 @@ GlobalGameSchema.index(
 export interface GlobalGameDocument extends mongoose.Document {
   slug: string;
   name: string;
-  source: "manual" | "atp";
+  source: "manual" | "atp" | "igdb";
   sourceUrl?: string;
   atpDomainId?: string;
+  igdbId?: number;
   cover?: string;
   genres: string[];
   platforms: string[];

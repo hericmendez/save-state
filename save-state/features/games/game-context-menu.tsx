@@ -2,41 +2,41 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
-import type { Game, GameList } from "@/features/shared/types";
+import type { Game, GameCollection } from "@/features/shared/types";
 import { CustomContextMenu, type ContextMenuItem } from "./context-menu";
 
-async function addGameToList(gameId: string, listId: string): Promise<void> {
-  await apiRequest<void>(`/api/games/${gameId}/lists/${listId}`, {
+async function addGameToCollection(gameId: string, collectionId: string): Promise<void> {
+  await apiRequest<void>(`/api/games/${gameId}/collections/${collectionId}`, {
     method: "POST",
   });
 }
 
-async function removeGameFromList(gameId: string, listId: string): Promise<void> {
-  await apiRequest<void>(`/api/games/${gameId}/lists/${listId}`, {
+async function removeGameFromCollection(gameId: string, collectionId: string): Promise<void> {
+  await apiRequest<void>(`/api/games/${gameId}/collections/${collectionId}`, {
     method: "DELETE",
   });
 }
 
 export function GameContextMenu({
   game,
-  lists,
+  collections,
   onDetails,
   onEdit,
   onDelete,
-  onListChanged,
+  onCollectionChanged,
   onError,
   children,
 }: {
   game: Game;
-  lists: GameList[];
+  collections: GameCollection[];
   onDetails: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  onListChanged?: () => void;
+  onCollectionChanged?: () => void;
   onError?: (message: string) => void;
   children: React.ReactNode;
 }) {
-  const [localListIds, setLocalListIds] = useState<string[]>(game.listIds ?? []);
+  const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(game.collectionIds ?? []);
   // Favorite label follows the real UserGame state: updated by our own
   // toggle below and re-synced when the parent row changes (e.g. the
   // details modal favorited the same game). No parallel favorite state.
@@ -51,25 +51,25 @@ export function GameContextMenu({
     onError?.(err instanceof ApiRequestError ? err.message : fallback);
   }
 
-  async function handleAdd(listId: string) {
-    setLocalListIds((ids) => [...ids, listId]);
+  async function handleAdd(collectionId: string) {
+    setLocalCollectionIds((ids) => [...ids, collectionId]);
     try {
-      await addGameToList(game._id, listId);
-      onListChanged?.();
+      await addGameToCollection(game._id, collectionId);
+      onCollectionChanged?.();
     } catch (err) {
-      setLocalListIds((ids) => ids.filter((id) => id !== listId));
+      setLocalCollectionIds((ids) => ids.filter((id) => id !== collectionId));
       reportError(err, "Falha ao adicionar");
     }
   }
 
-  async function handleRemove(listId: string) {
-    const previous = localListIds;
-    setLocalListIds((ids) => ids.filter((id) => id !== listId));
+  async function handleRemove(collectionId: string) {
+    const previous = localCollectionIds;
+    setLocalCollectionIds((ids) => ids.filter((id) => id !== collectionId));
     try {
-      await removeGameFromList(game._id, listId);
-      onListChanged?.();
+      await removeGameFromCollection(game._id, collectionId);
+      onCollectionChanged?.();
     } catch (err) {
-      setLocalListIds(previous);
+      setLocalCollectionIds(previous);
       reportError(err, "Falha ao remover");
     }
   }
@@ -86,7 +86,7 @@ export function GameContextMenu({
         body: { favorite: next },
       });
       setFavorite(next);
-      onListChanged?.();
+      onCollectionChanged?.();
     } catch (err) {
       reportError(err, "Falha ao favoritar");
     } finally {
@@ -94,13 +94,13 @@ export function GameContextMenu({
     }
   }
 
-  const currentLists = useMemo(
-    () => lists.filter((list) => localListIds.includes(list._id)),
-    [lists, localListIds],
+  const currentCollections = useMemo(
+    () => collections.filter((collection) => localCollectionIds.includes(collection._id)),
+    [collections, localCollectionIds],
   );
-  const availableLists = useMemo(
-    () => lists.filter((list) => !localListIds.includes(list._id)),
-    [lists, localListIds],
+  const availableCollections = useMemo(
+    () => collections.filter((collection) => !localCollectionIds.includes(collection._id)),
+    [collections, localCollectionIds],
   );
 
   const items: ContextMenuItem[] = [
@@ -118,24 +118,24 @@ export function GameContextMenu({
       key: "add",
       label: "Adicionar a…",
       children:
-        availableLists.length === 0
-          ? [{ key: "add-empty", label: "(nenhuma lista)" }]
-          : availableLists.map((list) => ({
-              key: `add-${list._id}`,
-              label: list.name,
-              onClick: () => handleAdd(list._id),
+        availableCollections.length === 0
+          ? [{ key: "add-empty", label: "(nenhuma coleção)" }]
+          : availableCollections.map((collection) => ({
+              key: `add-${collection._id}`,
+              label: collection.name,
+              onClick: () => handleAdd(collection._id),
             })),
     },
     {
       key: "remove",
       label: "Remover de…",
       children:
-        currentLists.length === 0
-          ? [{ key: "remove-empty", label: "(em nenhuma lista)" }]
-          : currentLists.map((list) => ({
-              key: `remove-${list._id}`,
-              label: list.name,
-              onClick: () => handleRemove(list._id),
+        currentCollections.length === 0
+          ? [{ key: "remove-empty", label: "(em nenhuma coleção)" }]
+          : currentCollections.map((collection) => ({
+              key: `remove-${collection._id}`,
+              label: collection.name,
+              onClick: () => handleRemove(collection._id),
             })),
     },
   ];
