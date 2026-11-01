@@ -11,6 +11,7 @@ import {
   type GameFormState,
 } from "@/features/games/game-form";
 import { toPlainGame } from "@/features/games/mappers";
+import { notifyCollectionsChanged } from "@/features/collections/collections-signal";
 import {
   atpDetailToFormPatch,
   type AtpDetailForForm,
@@ -181,6 +182,7 @@ export function GameFormContainer({
               `/api/games/${userGameId}/collections/${attachCollectionId}`,
               { method: "POST" },
             );
+            notifyCollectionsChanged();
           } catch {
             setError(
               "Jogo adicionado ao Backlog, mas a associação à coleção falhou. Tente novamente para concluir a associação.",
@@ -200,6 +202,7 @@ export function GameFormContainer({
             `/api/games/${plain._id}/collections/${attachCollectionId}`,
             { method: "POST" },
           );
+          notifyCollectionsChanged();
         }
         router.push("/backlog");
       }

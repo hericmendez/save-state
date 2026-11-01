@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type { Game, GameCollection } from "@/features/shared/types";
 import { CustomContextMenu, type ContextMenuItem } from "./context-menu";
+import { notifyCollectionsChanged } from "@/features/collections/collections-signal";
 
 async function addGameToCollection(gameId: string, collectionId: string): Promise<void> {
   await apiRequest<void>(`/api/games/${gameId}/collections/${collectionId}`, {
@@ -55,6 +56,7 @@ export function GameContextMenu({
     setLocalCollectionIds((ids) => [...ids, collectionId]);
     try {
       await addGameToCollection(game._id, collectionId);
+      notifyCollectionsChanged();
       onCollectionChanged?.();
     } catch (err) {
       setLocalCollectionIds((ids) => ids.filter((id) => id !== collectionId));
@@ -67,6 +69,7 @@ export function GameContextMenu({
     setLocalCollectionIds((ids) => ids.filter((id) => id !== collectionId));
     try {
       await removeGameFromCollection(game._id, collectionId);
+      notifyCollectionsChanged();
       onCollectionChanged?.();
     } catch (err) {
       setLocalCollectionIds(previous);

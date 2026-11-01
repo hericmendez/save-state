@@ -33,6 +33,7 @@ import {
   searchImportEndpoint,
 } from "@/features/search/search-endpoints";
 import { GameModal } from "@/features/games/game-modal";
+import { notifyCollectionsChanged } from "@/features/collections/collections-signal";
 import { GameCardFrame } from "@/features/games/game-card-frame";
 import { toCardModelFromAtp } from "@/features/games/game-card-model";
 import { GameDrawerShell } from "@/features/games/game-drawer-shell";
@@ -492,6 +493,9 @@ export function CatalogSearch({
       if (card.owned) {
         const game = await apiRequest<Game>(libraryByExternalEndpoint(card.atpId));
         await apiRequest(`/api/games/${game._id}`, { method: "DELETE" });
+        // Deleting a UserGame drops its collection memberships: refresh
+        // the sidebar counts. Importing adds no memberships (no notify).
+        notifyCollectionsChanged();
         setResult((current) =>
           current
             ? {

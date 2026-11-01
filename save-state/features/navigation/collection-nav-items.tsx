@@ -17,6 +17,7 @@ import { useCollectionModalStore } from "@/features/collections/collection-modal
 interface CollectionNavEntry {
   _id: string;
   name: string;
+  gameCount?: number;
 }
 
 /**
@@ -54,7 +55,7 @@ export function CollectionNavItems({
   const load = useCallback(async () => {
     try {
       const result = await apiRequest<{ data: CollectionNavEntry[] }>(
-        "/api/game-collections?limit=100",
+        "/api/game-collections?limit=100&withCount=true",
       );
       setCollections(result.data);
     } catch {
@@ -163,10 +164,23 @@ export function CollectionNavItems({
             title={collection.name}
           >
             <div className="flex items-center gap-1">
+              {typeof collection.gameCount === "number" ? (
+                <span
+                  className="shrink-0 pl-2 text-sm text-white/70 font-display tabular-nums"
+                  aria-hidden="true"
+                >
+                  [{collection.gameCount}]
+                </span>
+              ) : null}
               <Link
                 className="block min-w-0 flex-1 truncate px-2 py-1 text-sm text-white font-display hover:text-amber-300 hover:underline"
                 href={`/backlog/lists/${encodeURIComponent(collection._id)}`}
                 onClick={onNavigate}
+                aria-label={
+                  typeof collection.gameCount === "number"
+                    ? `[${collection.gameCount}] ${collection.name}`
+                    : collection.name
+                }
               >
                 {collection.name}
               </Link>

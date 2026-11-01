@@ -17,6 +17,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { UserGameFilters } from "./user-game-filters";
 import { hasActiveLibraryFilters } from "./user-game-query";
 import { useUserGameCollection } from "./use-user-game-collection";
+import { notifyCollectionsChanged } from "@/features/collections/collections-signal";
 
 export function BacklogView({
   initialGames,
@@ -25,6 +26,7 @@ export function BacklogView({
   collections,
   collectionId,
   listName,
+  totalGames,
   favorite,
   withoutCollection,
   emptyMessage = "Nenhum jogo encontrado.",
@@ -35,6 +37,8 @@ export function BacklogView({
   collections: GameCollection[];
   collectionId?: string;
   listName?: string;
+  /** Total games in the collection (unfiltered, pagination-independent). */
+  totalGames?: number;
   favorite?: boolean;
   withoutCollection?: boolean;
   emptyMessage?: string;
@@ -75,6 +79,7 @@ export function BacklogView({
       });
       setDeleteTarget(null);
       if (selectedGame?._id === target._id) setSelectedGame(null);
+      notifyCollectionsChanged();
       refresh();
     } catch (err) {
       setBanner(
@@ -89,6 +94,11 @@ export function BacklogView({
     <div className="flex flex-col gap-4">
       <header className="rpgui-container framed-grey p-4">
         <h1 className="font-display text-2xl">{listName ?? "Jogos"}</h1>
+        {collectionId !== undefined && typeof totalGames === "number" ? (
+          <p className="mt-1 text-xs">
+            {totalGames === 1 ? "1 jogo" : `${totalGames} jogos`}
+          </p>
+        ) : null}
       </header>
       {banner && (
         <p role="alert" className="rpgui-container framed-grey p-3">

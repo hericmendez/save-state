@@ -42,8 +42,12 @@ export default async function ListDetailPage({
       collectionId,
       toLibraryServiceFilters(initialQuery),
     ),
-    listGameCollections(session.id, { page: 1, limit: 100, withCount: false }),
+    listGameCollections(session.id, { page: 1, limit: 100, withCount: true }),
   ]);
+  const totalGames =
+    collections.data.find(
+      (entry) => String(entry._id) === String(collectionId),
+    )?.gameCount ?? 0;
 
   return (
     <BacklogView
@@ -53,6 +57,7 @@ export default async function ListDetailPage({
       collections={collections.data.map(toPlainGameCollection)}
       collectionId={collectionId}
       listName={collection.name}
+      totalGames={totalGames}
       emptyMessage="Esta coleção ainda não possui jogos."
     />
   );
