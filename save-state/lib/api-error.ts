@@ -44,6 +44,11 @@ export const ERROR_CODES = [
   // regardless of the active provider.
   "IGDB_UNAVAILABLE",
   "IGDB_GAME_NOT_FOUND",
+  // "Edit and add" conflict codes: a restrictive import distinguishes
+  // "already cataloged" from "already in library" and cross-origin
+  // identity collisions. 409 signals "do not retry the same request".
+  "GAME_ALREADY_CATALOGED",
+  "GAME_CATALOG_CONFLICT",
   // Domain-contract closure (ADR-024): import guard for non-durable ATP
   // identities. 422 (not 400) signals "syntactically valid, semantically
   // unacceptable as a durable reference — do not retry with the same id".
@@ -96,6 +101,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   // Etapa 2 neutral search codes (mirror ATP semantics).
   IGDB_UNAVAILABLE: 503,
   IGDB_GAME_NOT_FOUND: 404,
+  // Edit-and-add conflicts.
+  GAME_ALREADY_CATALOGED: 409,
+  GAME_CATALOG_CONFLICT: 409,
   // ADR-024 ATP identity quarantine.
   UNSTABLE_ATP_IDENTITY: 422,
 };

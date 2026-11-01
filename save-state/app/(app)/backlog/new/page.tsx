@@ -5,13 +5,18 @@ import { GameFormContainer } from "@/features/games/game-form-container";
 export default async function NewGamePage({
   searchParams,
 }: {
-  searchParams: Promise<{ collectionId?: string }>;
+  searchParams: Promise<{ collectionId?: string; externalId?: string }>;
 }) {
   try {
     await getCurrentSession();
   } catch {
     redirect("/login?from=/backlog/new");
   }
-  const { collectionId } = await searchParams;
-  return <GameFormContainer attachCollectionId={collectionId} />;
+  const { collectionId, externalId } = await searchParams;
+  return (
+    <GameFormContainer
+      attachCollectionId={collectionId}
+      initialExternalId={externalId}
+    />
+  );
 }

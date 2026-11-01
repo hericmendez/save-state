@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { searchQuerySchema } from "@/schemas/search";
+import { searchImportSchema, searchQuerySchema } from "@/schemas/search";
 
 describe("searchQuerySchema — Etapa 2", () => {
   it("accepts a title-only search", () => {
@@ -79,5 +79,68 @@ describe("searchQuerySchema — Etapa 2", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.family).toBe("Nintendo");
+  });
+});
+
+describe("searchImportSchema — edit-and-add personal + conflict policy", () => {
+  it("accepts a bare external id (legacy callers unchanged)", () => {
+    const parsed = searchImportSchema.safeParse({ externalId: "1234" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.personal).toBeUndefined();
+      expect(parsed.data.conflictPolicy).toBeUndefined();
+    }
+  });
+
+  it("accepts all nine personal fields with the createGame rules", () => {
+    const parsed = searchImportSchema.safeParse({
+      externalId: "1234",
+      personal: {
+        status: "playing",
+        hoursPlayed: 12,
+        timesFinished: 1,
+        rating: 9,
+        review: "Obra-prima.",
+        favorite: true,
+        fullyCompleted: false,
+        achievements: true,
+        achievementProgress: 80,
+      },
+      conflictPolicy: "reject-existing",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects achievementProgress without achievements", () => {
+    expect(
+      searchImportSchema.safeParse({
+        externalId: "1234",
+        personal: { achievements: false, achievementProgress: 50 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects out-of-range personal values", () => {
+    expect(
+      searchImportSchema.safeParse({
+        externalId: "1234",
+        personal: { rating: 11 },
+      }).success,
+    ).toBe(false);
+    expect(
+      searchImportSchema.safeParse({
+        externalId: "1234",
+        personal: { status: "unknown" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unknown conflict policies", () => {
+    expect(
+      searchImportSchema.safeParse({
+        externalId: "1234",
+        conflictPolicy: "merge",
+      }).success,
+    ).toBe(false);
   });
 });

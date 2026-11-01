@@ -155,7 +155,7 @@ export function GameForm({
       {error && <p role="alert">{error}</p>}
 
       {metadataLocked && (
-        <p>Dados do catálogo (importado via ATP) — somente leitura.</p>
+        <p>Dados do catálogo — somente leitura.</p>
       )}
       <h1 className="font-display text-xl">Dados do Jogo</h1>
       <hr  className="mb-2"/>

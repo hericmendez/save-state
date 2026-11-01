@@ -19,6 +19,7 @@ import {
   GlobalGame,
   type GlobalGameDocument,
 } from "@/db/models/global-game";
+import { UserGame } from "@/db/models/user-game";
 import {
   createGame,
   type UserGameWithGame,
@@ -50,12 +51,22 @@ function parseIgdbId(externalId: string): number {
 async function findOrCreateSnapshotIgdbGame(
   igdbId: number,
   source?: Record<string, string | undefined>,
+  opts?: { rejectExisting?: boolean },
 ): Promise<GlobalGameDocument> {
   await connectDatabase();
   const existing = await GlobalGame.findOne({ igdbId });
   // Reuse as-is: stored metadata is never refreshed from a possibly
   // incomplete provider response.
-  if (existing) return existing;
+  if (existing) {
+    if (opts?.rejectExisting) {
+      throw new ApiError(
+        "GAME_ALREADY_CATALOGED",
+        "This game is already in the catalog",
+        409,
+      );
+    }
+    return existing;
+  }
 
   const provider = getSearchProvider(source);
   if (provider.providerName !== "IGDB") {
@@ -86,6 +97,14 @@ async function findOrCreateSnapshotIgdbGame(
     // Concurrent import raced on the sparse unique igdbId index;
     // the database remains authoritative over the pre-check above.
     if (isDuplicateKeyError(error)) {
+      if (opts?.rejectExisting) {
+        // Restrictive mode: the loser must not silently reuse the winner.
+        throw new ApiError(
+          "GAME_ALREADY_CATALOGED",
+          "This game is already in the catalog",
+          409,
+        );
+      }
       const winner = await GlobalGame.findOne({ igdbId });
       if (winner) return winner;
     }
@@ -109,18 +128,57 @@ export async function importExternalGame(
     });
   }
   const igdbId = parseIgdbId(input.externalId);
-  const globalGame = await findOrCreateSnapshotIgdbGame(igdbId, source);
+  const restrictive = input.conflictPolicy === "reject-existing";
+  if (restrictive) {
+    // "Edit and add" policy: pre-existing records are conflicts, never
+    // silent reuses. Library membership wins over catalog presence.
+    await connectDatabase();
+    const existing = await GlobalGame.findOne({ igdbId });
+    if (existing) {
+      if (existing.source !== "igdb") {
+        throw new ApiError(
+          "GAME_CATALOG_CONFLICT",
+          "This external id belongs to a catalog record from another origin",
+          409,
+        );
+      }
+      const owned = await UserGame.findOne({
+        userId,
+        gameId: existing._id,
+      })
+        .select("_id")
+        .lean();
+      if (owned) {
+        throw new ApiError(
+          "GAME_ALREADY_IN_LIBRARY",
+          "This game is already in your library",
+          400,
+        );
+      }
+      throw new ApiError(
+        "GAME_ALREADY_CATALOGED",
+        "This game is already in the catalog",
+        409,
+      );
+    }
+  }
+  const globalGame = await findOrCreateSnapshotIgdbGame(
+    igdbId,
+    source,
+    restrictive ? { rejectExisting: true } : undefined,
+  );
   if (globalGame.source !== "igdb") {
-    // Defensive: an igdbId must never alias a non-IGDB record.
+    // Defensive: an igdbId must never alias a non-IGDB record (the approved
+    // model forbids manual records carrying igdbId).
     throw new ApiError(
-      "INTERNAL_ERROR",
-      "IGDB identity collision with a non-IGDB game",
-      500,
+      "GAME_CATALOG_CONFLICT",
+      "This external id belongs to a catalog record from another origin",
+      409,
     );
   }
   return createGame({
     userId,
     gameId: String(globalGame._id),
-    ...(input.personal ? { personal: input.personal } : {}),
+    ...(input.personal ?? {}),
   });
 }

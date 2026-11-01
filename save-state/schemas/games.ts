@@ -145,7 +145,7 @@ const personalFieldsBase = {
   achievementProgress: z.number().int().min(0).max(100).nullable().optional(),
 };
 
-function validateAchievements(data: {
+export function validateAchievements(data: {
   achievements?: boolean;
   achievementProgress?: number | null;
 }): boolean {

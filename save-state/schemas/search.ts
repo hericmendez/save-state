@@ -12,7 +12,7 @@
  */
 
 import { z } from "zod";
-import { GAME_STATUSES } from "@/schemas/games";
+import { GAME_STATUSES, validateAchievements } from "@/schemas/games";
 
 export const searchExternalIdSchema = z
   .string()
@@ -104,12 +104,29 @@ const searchImportPersonalSchema = z.object({
   timesFinished: z.number().int().min(0).max(10000).optional(),
   rating: z.number().min(0).max(10).optional(),
   review: z.string().trim().max(20000).optional(),
+  favorite: z.boolean().optional(),
+  fullyCompleted: z.boolean().optional(),
+  achievements: z.boolean().optional(),
+  achievementProgress: z.number().int().min(0).max(100).nullable().optional(),
 });
 
-export const searchImportSchema = z.object({
-  externalId: searchExternalIdSchema,
-  personal: searchImportPersonalSchema.optional(),
-});
+export const searchImportSchema = z
+  .object({
+    externalId: searchExternalIdSchema,
+    personal: searchImportPersonalSchema.optional(),
+    // Opt-in restrictive policy for the "edit and add" flow: a pre-existing
+    // snapshot is rejected instead of silently reused. Absent = legacy
+    // reuse behavior for current callers.
+    conflictPolicy: z.enum(["reject-existing"]).optional(),
+  })
+  .refine(
+    (data) =>
+      data.personal === undefined || validateAchievements(data.personal),
+    {
+      message: "achievementProgress must be null when achievements is false",
+      path: ["personal", "achievementProgress"],
+    },
+  );
 
 export type SearchImportInput = z.infer<typeof searchImportSchema>;
 export type SearchQueryInput = z.infer<typeof searchQuerySchema>;

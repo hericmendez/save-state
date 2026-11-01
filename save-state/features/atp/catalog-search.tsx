@@ -25,6 +25,7 @@ import type { AtpPreview, AtpSearchPage } from "./atp-result";
 import type { AtpSearchCard } from "./atp-result";
 import type { Game } from "@/features/shared/types";
 import {
+  igdbDetailEndpoint,
   libraryByExternalEndpoint,
   searchCoverEndpoint,
   searchDetailEndpoint,
@@ -73,20 +74,31 @@ function CatalogGridCard({
   onDetails,
   onImport,
   onToggle,
+  onEditAndAdd,
   busy,
   importing,
+  editBusy,
 }: {
   card: AtpSearchCard;
   onDetails: () => void;
   onImport: () => void;
   onToggle: () => void;
+  onEditAndAdd: () => void;
   busy: boolean;
   importing: boolean;
+  editBusy: boolean;
 }) {
   const coverUrl = useAtpCover(card.atpId);
   const presentation = toCardModelFromAtp(card, coverUrl);
   return (
-    <CatalogMenu owned={card.owned} onDetails={onDetails} onToggleBacklog={onToggle} busy={busy}>
+    <CatalogMenu
+      owned={card.owned}
+      onDetails={onDetails}
+      onToggleBacklog={onToggle}
+      onEditAndAdd={onEditAndAdd}
+      busy={busy}
+      editBusy={editBusy}
+    >
       <GameCardFrame
         presentation={presentation}
         onDetails={onDetails}
@@ -182,6 +194,7 @@ export function CatalogSearch({
   const [preview, setPreview] = useState<AtpPreview | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
+  const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const queryRef = useRef(query);
@@ -455,8 +468,24 @@ export function CatalogSearch({
     }
   }
 
-  async function handleToggleBacklog(card: AtpSearchCard) {
-    if (importingId) return;
+  async function handleEditAndAdd(card: AtpSearchCard) {
+    if (editLoadingId) return;
+    setEditLoadingId(card.atpId);
+    setError(null);
+    try {
+      // Fail fast through the same IGDB source the form loads: results
+      // without a compatible IGDB id never navigate. The menu already
+      // closed (CustomContextMenu closes on item click before onClick runs).
+      await apiRequest<AtpPreview>(igdbDetailEndpoint(card.atpId));
+      router.push(`/backlog/new?externalId=${encodeURIComponent(card.atpId)}`);
+    } catch (err) {
+      setError(toAtpError(err));
+    } finally {
+      setEditLoadingId(null);
+    }
+  }
+
+  async function handleToggleBacklog(card: AtpSearchCard) {    if (importingId) return;
     setImportingId(card.atpId);
     setError(null);
     try {
@@ -713,8 +742,10 @@ export function CatalogSearch({
               onDetails={() => void handleDetails(item)}
               onImport={() => void handleImport(item.atpId)}
               onToggle={() => void handleToggleBacklog(item)}
+              onEditAndAdd={() => void handleEditAndAdd(item)}
               busy={importingId === item.atpId}
               importing={importingId === item.atpId}
+              editBusy={editLoadingId === item.atpId}
             />
           )}
           renderListItem={(item) => (
@@ -722,7 +753,9 @@ export function CatalogSearch({
               owned={item.owned}
               onDetails={() => void handleDetails(item)}
               onToggleBacklog={() => void handleToggleBacklog(item)}
+              onEditAndAdd={() => void handleEditAndAdd(item)}
               busy={importingId === item.atpId}
+              editBusy={editLoadingId === item.atpId}
             >
               <article className="rpgui-container framed-golden grid grid-cols-[1fr_auto] items-center gap-3 p-3">
                 <div className="min-w-0">

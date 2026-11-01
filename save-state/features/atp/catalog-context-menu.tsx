@@ -6,13 +6,17 @@ export function CatalogMenu({
   owned,
   onDetails,
   onToggleBacklog,
+  onEditAndAdd,
   busy = false,
+  editBusy = false,
   children,
 }: {
   owned: boolean;
   onDetails: () => void;
   onToggleBacklog: () => void;
+  onEditAndAdd?: () => void;
   busy?: boolean;
+  editBusy?: boolean;
   children: React.ReactNode;
 }) {
   const items: ContextMenuItem[] = [
@@ -24,6 +28,14 @@ export function CatalogMenu({
       disabled: busy,
     },
   ];
+  if (onEditAndAdd) {
+    items.push({
+      key: "edit-add",
+      label: editBusy ? "Carregando…" : "Editar jogo e adicionar",
+      onClick: onEditAndAdd,
+      disabled: editBusy,
+    });
+  }
 
   return <CustomContextMenu items={items}>{children}</CustomContextMenu>;
 }
