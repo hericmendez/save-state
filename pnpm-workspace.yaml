@@ -1,0 +1,12 @@
+# Isolated workspace anchor for Vercel (Root Directory = save-state).
+# `packages: ["."]` keeps pnpm 9/10/11 resolving save-state standalone;
+# without it, Vercel's default pnpm 9 errors with
+# "packages field missing or empty". Keep the `allowBuilds` list below
+# in sync with AGORA_VAI/pnpm-workspace.yaml.
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  mongodb-memory-server: true
+  unrs-resolver: true

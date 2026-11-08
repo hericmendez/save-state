@@ -1,0 +1,25 @@
+import type { NextRequest } from "next/server";
+import { handleRoute, ok } from "@/server/shared/route-handler";
+import { parseParams } from "@/server/shared/validation";
+import { searchIdParamSchema } from "@/schemas/search";
+import { getSessionUser } from "@/server/auth/session";
+import { getCatalogDetail } from "@/server/search/catalog-reads";
+import { igdbForcedSource } from "@/server/search/service";
+
+export const runtime = "nodejs";
+
+/**
+ * Direct IGDB detail for the Novo Jogo metadata lookup (Etapa 5).
+ * Always uses IGDB regardless of SEARCH_METHOD. Same envelope as
+ * /api/search/games/:id (manualDuplicate + owned included).
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return handleRoute(async () => {
+    const session = await getSessionUser(request);
+    const { id } = parseParams(searchIdParamSchema, await params);
+    return ok(await getCatalogDetail(id, session.id, igdbForcedSource()));
+  });
+}

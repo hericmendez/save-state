@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# next
+.next/
+out/
+
+# env (never commit real values; see .env.example)
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+coverage/
+
+# auditoria e2e/perf (artefatos locais, nunca commitar)
+tests/e2e-perf/.auth/
+tests/e2e-perf/.results/
+tests/e2e-perf/.report/
+tests/e2e-perf/test-results/
+test-results/
+lighthouse-report/
+
+# rascunhos e staging locais (nunca commitar)
+.phase1-staging/
+TODO.txt
+rascunho.txt
+atp-platforms-simplified.json
+save-state-platforms.json
+covers.csv

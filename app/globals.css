@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+:root {
+  --font-body: "JetBrains Mono", ui-monospace, monospace;
+  /*
+   * Switchable font stacks. Defaults resolve to the next/font variables
+   * (Press Start 2P / JetBrains Mono); the `data-font-*` attributes set
+   * by the pre-paint init script (and mirrored by the ui-store) swap in
+   * Roboto. Components only ever read `-name` — never the raw families.
+   */
+  --font-body-name: var(--font-body);
+  --font-display-name: var(--font-display), system-ui;
+  /*
+   * Compensação de escala da Press Start 2P (ver "Escala dos títulos"
+   * abaixo). Multiplicador uniforme = a hierarquia vinda dos utilitários
+   * text-* é preservada exatamente. Roboto usa 1 (sem compensação).
+   */
+  --font-display-title-scale: 1;
+  --font-display-title-leading: 1.6;
+}
+
+/*
+ * Escala dos títulos com a fonte display padrão.
+ *
+ * DIAGNÓSTICO: a personalização trocou só `font-family` (diff confirma:
+ * nenhum font-size/line-height alterado) — não houve regressão de
+ * tamanho. A Press Start 2P tem métricas intrinsecamente pequenas
+ * (pixel font em grade de 8px: altura aparente bem menor que Roboto ou
+ * JetBrains Mono no mesmo px), e a chegada da opção Roboto evidenciou
+ * o contraste. A compensação abaixo é em `em` (relativa ao text-*
+ * de cada título) e vale SÓ com display padrão: a Roboto não é tocada.
+ * Escopo restrito a h1/h2/h3.font-display (títulos de páginas, seções,
+ * cards, modais, drawers): botões, badges, navegação e microtextos
+ * (text-xs de loading etc.) mantêm o tamanho original.
+ * Fator 1.2 = estimativa tipográfica conservadora — confirmar visualmente.
+ */
+html[data-font-display="press-start-2p"] {
+  --font-display-title-scale: 1.2;
+}
+
+html[data-font-display="press-start-2p"] h1.font-display,
+html[data-font-display="press-start-2p"] h2.font-display,
+html[data-font-display="press-start-2p"] h3.font-display {
+  font-size: calc(1em * var(--font-display-title-scale));
+  line-height: var(--font-display-title-leading);
+}
+
+/*
+ * JetBrains Mono como display: reutiliza o stack do corpo (a mesma
+ * fonte já carregada pelo next/font — sem importação duplicada). Sem
+ * compensação de escala: métricas normais em tamanhos de título.
+ */
+html[data-font-display="jetbrains-mono"] {
+  --font-display-name: var(--font-body);
+}
+
+/*
+ * Compensação da Roboto como display.
+ *
+ * DIAGNÓSTICO: trocar a família não muda nenhum px (mesmos utilitários
+ * text-*), mas a Roboto parece pequena por dois motivos: (1) os títulos
+ * em Press Start 2P agora têm compensação 1.2, então a Roboto 1.0 fica
+ * relativamente menor; (2) os botões .rpgui-button têm cromo fixo de
+ * 60px de altura + contorno de 2px herdado do tema pixel — desenhados
+ * para texto pixel parrudo, o que apequena Roboto 14px (text-sm).
+ * Fatores 1.1/1rem = estimativas conservadoras — confirmar visualmente.
+ * Press Start 2P e JetBrains Mono não são tocados aqui.
+ */
+html[data-font-display="roboto"] {
+  --font-display-title-scale: 1.1;
+}
+
+html[data-font-display="roboto"] h1.font-display,
+html[data-font-display="roboto"] h2.font-display,
+html[data-font-display="roboto"] h3.font-display {
+  font-size: calc(1em * var(--font-display-title-scale));
+}
+
+/* Texto dos botões: 14px → 16px só com Roboto display. Altura (60px),
+ * paddings, bordas, sprites e text-shadow preservados; o flex centraliza,
+ * então não há clipping nem mudança de dimensão. Sem transforms de escala. */
+html[data-font-display="roboto"] .rpgui-button {
+  font-size: 1rem;
+}
+
+html[data-font-body="roboto"] {
+  --font-body-name: var(--font-roboto), system-ui, sans-serif;
+}
+
+html[data-font-display="roboto"] {
+  --font-display-name: var(--font-roboto), system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-body-name);
+  color: white;
+  background: url("/wallpaper.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+.content-scroll {
+  scroll-behavior: smooth;
+}
+
+@media screen and (min-width: 768px) {
+  .pixel-frame-height {
+    height: calc(100vh - 60px);
+    margin-top: 30px;
+    margin-bottom: 30px;
+  }
+}
+
+/*
+ * Layout-mode frame geometry. `html[data-layout-mode]` is set by the
+ * parser-blocking head script in `app/layout.tsx` BEFORE first paint, so
+ * these rules (more specific than single utilities) own the frame from
+ * the very first pixels: no flash, no late switch, no `useEffect`.
+ * React renders mode-neutral markup and mirrors the same value, keeping
+ * hydration mismatch-free. Geometry mirrors the former conditional
+ * classes exactly; the default (absent attribute) is fullscreen.
+ */
+.layout-shell {
+  max-width: none;
+}
+@media screen and (min-width: 768px) {
+  .layout-shell {
+    aspect-ratio: auto;
+  }
+}
+html[data-layout-mode="pixel-perfect"] .layout-shell {
+  max-width: 133.33vh;
+}
+@media screen and (min-width: 768px) {
+  html[data-layout-mode="pixel-perfect"] .layout-shell {
+    aspect-ratio: 4/3;
+  }
+}
+
+.layout-shell-inner {
+  min-height: 100vh;
+}
+html[data-layout-mode="pixel-perfect"] .layout-shell-inner {
+  min-height: auto;
+}
+
+.layout-frame {
+  height: 100vh;
+}
+html[data-layout-mode="pixel-perfect"] .layout-frame {
+  height: auto;
+}
+@media screen and (min-width: 768px) {
+  html[data-layout-mode="pixel-perfect"] .layout-frame {
+    height: calc(100vh - 60px);
+    margin-top: 30px;
+    margin-bottom: 30px;
+  }
+}
+
+.layout-zoom {
+  zoom: 100%;
+}
+html[data-layout-mode="pixel-perfect"] .layout-zoom {
+  zoom: 80%;
+}
+
+.press-start-2p-regular {
+  font-family: var(--font-display-name) !important;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.font-display {
+  font-family: var(--font-display-name);
+}
+
+/*
+ * Highlight typography: the display font, white with the classic black
+ * outline from the RPGUI theme. Applied ONLY to explicit highlight
+ * selectors — never to structural containers.
+ */
+.font-display,
+.press-start-2p-regular,
+.rpgui-button {
+  color: white;
+  text-shadow:
+    -2px 0 black,
+    0 2px black,
+    2px 0 black,
+    0 -2px black;
+}
+
+.font-display,
+.press-start-2p-regular {
+  font-family: var(--font-display-name);
+}
+
+.rpgui-button {
+  font-family: var(--font-display-name) !important;
+}
+
+/* Pixel-art rendering foundation (mirrors the legacy global rules). */
+.rpgui-content {
+  -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -o-crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* Keep the RPGUI typography consistent for interactive highlights.
+ * NOTE: .rpgui-container is intentionally NOT a font selector — containers
+ * hold body text (the body font); only buttons and explicit highlight
+ * classes below use the display font. */
+
+/* Crisp rendering for RPGUI surfaces wherever they appear. */
+.rpgui-container,
+.rpgui-button,
+.rpgui-content {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/*
+ * Text-input styling for elements carrying .rpgui-input.
+ * The vendored theme only styles inputs under an .rpgui-content ancestor,
+ * but that ancestor is position:fixed and would break App Router layouts,
+ * so the same declarations are applied here through the class our
+ * components already use. Values mirror styles/vendor/rpgui/rpgui.css.
+ */
+.rpgui-input,
+textarea.rpgui-input {
+  box-sizing: border-box;
+  color: white;
+  text-shadow:
+    -2px 0 black,
+    0 2px black,
+    2px 0 black,
+    0 -2px black;
+  font-size: 0.9em;
+  line-height: 32px;
+  background: #4e4a4e;
+  max-width: 100%;
+  width: 100%;
+  padding-left: 10px;
+  min-height: 30px;
+  user-select: text;
+}
+
+textarea.rpgui-input {
+  line-height: 22px;
+  padding-top: 7px;
+  height: 80px;
+  resize: none;
+}

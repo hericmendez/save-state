@@ -1,0 +1,63 @@
+{
+  "name": "save-state",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Save State — Next.js modular monolith (Phase 1 skeleton)",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "db:migrate:collections": "tsx scripts/migrate-lists-to-collections.ts --dry-run",
+    "db:migrate:reviews": "tsx scripts/migrate-reviews.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed:atlas": "tsx scripts/seed-atlas.ts",
+    "db:indexes": "tsx scripts/verify-indexes.ts",
+    "audit:e2e": "playwright test --project=e2e --project=mobile-matrix",
+    "audit:perf": "playwright test --project=perf",
+    "audit:all": "playwright test",
+    "audit:lighthouse": "bash scripts/audit-lighthouse.sh"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^13.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.16.0",
+    "next": "^15.5.29",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.7.0",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "slugify": "^1.6.9",
+    "zod": "^4.0.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.1.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.21.0",
+    "eslint-config-next": "^15.5.0",
+    "jsdom": "^31.0.0",
+    "lighthouse": "^13.6.0",
+    "mongodb-memory-server": "^11.2.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.11"
+  }
+}
