@@ -1,0 +1,728 @@
+[
+  {
+    "id": "3do",
+    "name": "3DO Interactive Multiplayer",
+    "company": "The3DO Company",
+    "releaseYear": "1993",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/3do/logo.png",
+      "image": "/platforms/3do/photo.webp"
+    }
+  },
+  {
+    "id": "android",
+    "name": "Android",
+    "company": "Google",
+    "releaseYear": "2008",
+    "type": "operating system",
+    "thumb": {
+      "logo": "/platforms/android/logo.svg",
+      "image": "/platforms/android/photo.webp"
+    }
+  },
+  {
+    "id": "atari-2600",
+    "name": "Atari 2600",
+    "company": "Atari",
+    "releaseYear": "1977",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/atari-2600/logo.svg",
+      "image": "/platforms/atari-2600/photo.webp"
+    }
+  },
+  {
+    "id": "atari-5200",
+    "name": "Atari 5200",
+    "company": "Atari",
+    "releaseYear": "1982",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/atari-5200/logo.svg",
+      "image": "/platforms/atari-5200/photo.webp"
+    }
+  },
+  {
+    "id": "atari-7800",
+    "name": "Atari 7800",
+    "company": "Atari",
+    "releaseYear": "1986",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/atari-7800/logo.svg",
+      "image": "/platforms/atari-7800/photo.webp"
+    }
+  },
+  {
+    "id": "atari-jaguar",
+    "name": "Atari Jaguar",
+    "company": "Atari",
+    "releaseYear": "1993",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/atari-jaguar/logo.svg",
+      "image": "/platforms/atari-jaguar/photo.webp"
+    }
+  },
+  {
+    "id": "atari-jaguar-cd",
+    "name": "Atari Jaguar CD",
+    "company": "Atari",
+    "releaseYear": "1995",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/atari-jaguar-cd/logo.svg",
+      "image": "/platforms/atari-jaguar-cd/photo.webp"
+    }
+  },
+  {
+    "id": "atari-lynx",
+    "name": "Atari Lynx",
+    "company": "Atari",
+    "releaseYear": "1989",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/atari-lynx/logo.svg",
+      "image": "/platforms/atari-lynx/photo.webp"
+    }
+  },
+  {
+    "id": "cd-i",
+    "name": "CD-i",
+    "company": "Philips",
+    "releaseYear": "1991",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/cd-i/logo.svg",
+      "image": "/platforms/cd-i/photo.webp"
+    }
+  },
+  {
+    "id": "coleco-vision",
+    "name": "ColecoVision",
+    "company": "Coleco",
+    "releaseYear": "1982",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/coleco-vision/logo.svg",
+      "image": "/platforms/coleco-vision/photo.webp"
+    }
+  },
+  {
+    "id": "evercade",
+    "name": "Evercade",
+    "company": "Blaze Entertainment",
+    "releaseYear": "2020",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/evercade/logo.svg",
+      "image": "/platforms/evercade/photo.webp"
+    }
+  },
+  {
+    "id": "fire-tv",
+    "name": "Fire TV",
+    "company": "Amazon",
+    "releaseYear": "2014",
+    "type": "console",
+    "thumb": {
+      "logo": null,
+      "image": null
+    }
+  },
+  {
+    "id": "game-boy",
+    "name": "Game Boy",
+    "company": "Nintendo",
+    "releaseYear": "1989",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/game-boy/logo.svg",
+      "image": "/platforms/game-boy/photo.webp"
+    }
+  },
+  {
+    "id": "game-boy-advance",
+    "name": "Game Boy Advance",
+    "company": "Nintendo",
+    "releaseYear": "2001",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/game-boy-advance/logo.svg",
+      "image": "/platforms/game-boy-advance/photo.webp"
+    }
+  },
+  {
+    "id": "game-boy-color",
+    "name": "Game Boy Color",
+    "company": "Nintendo",
+    "releaseYear": "1998",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/game-boy-color/logo.svg",
+      "image": "/platforms/game-boy-color/photo.webp"
+    }
+  },
+  {
+    "id": "google-stadia",
+    "name": "Google Stadia",
+    "company": "Google",
+    "releaseYear": "2019",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/google-stadia/logo.svg",
+      "image": "/platforms/google-stadia/photo.webp"
+    }
+  },
+  {
+    "id": "html5-web",
+    "name": "HTML5 Web Browser",
+    "company": "Various",
+    "releaseYear": "2014",
+    "type": "web",
+    "thumb": {
+      "logo": null,
+      "image": null
+    }
+  },
+  {
+    "id": "intellivision",
+    "name": "Intellivision",
+    "company": "Mattel",
+    "releaseYear": "1979",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/intellivision/logo.svg",
+      "image": "/platforms/intellivision/photo.webp"
+    }
+  },
+  {
+    "id": "ios",
+    "name": "iOS",
+    "company": "Apple",
+    "releaseYear": "2007",
+    "type": "operating system",
+    "thumb": {
+      "logo": "/platforms/ios/logo.svg",
+      "image": "/platforms/ios/photo.webp"
+    }
+  },
+  {
+    "id": "n-gage",
+    "name": "N-Gage",
+    "company": "Nokia",
+    "releaseYear": "2003",
+    "type": "mobile",
+    "thumb": {
+      "logo": "/platforms/n-gage/logo.svg",
+      "image": "/platforms/n-gage/photo.webp"
+    }
+  },
+  {
+    "id": "neo-geo",
+    "name": "Neo Geo AES",
+    "company": "SNK",
+    "releaseYear": "1990",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/neo-geo/logo.svg",
+      "image": "/platforms/neo-geo/photo.webp"
+    }
+  },
+  {
+    "id": "neo-geo-cd",
+    "name": "Neo Geo CD",
+    "company": "SNK",
+    "releaseYear": "1994",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/neo-geo-cd/logo.svg",
+      "image": "/platforms/neo-geo-cd/photo.webp"
+    }
+  },
+  {
+    "id": "neo-geo-mvs",
+    "name": "Neo Geo MVS",
+    "company": "SNK",
+    "releaseYear": "1990",
+    "type": "arcade",
+    "thumb": {
+      "logo": "/platforms/neo-geo-mvs/logo.png",
+      "image": "/platforms/neo-geo-mvs/photo.webp"
+    }
+  },
+  {
+    "id": "neo-geo-pocket",
+    "name": "Neo Geo Pocket",
+    "company": "SNK",
+    "releaseYear": "1998",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/neo-geo-pocket/logo.svg",
+      "image": "/platforms/neo-geo-pocket/photo.webp"
+    }
+  },
+  {
+    "id": "neo-geo-pocket-color",
+    "name": "Neo Geo Pocket Color",
+    "company": "SNK",
+    "releaseYear": "1999",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/neo-geo-pocket-color/logo.svg",
+      "image": "/platforms/neo-geo-pocket-color/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-3ds",
+    "name": "Nintendo 3DS",
+    "company": "Nintendo",
+    "releaseYear": "2011",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/nintendo-3ds/logo.png",
+      "image": "/platforms/nintendo-3ds/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-64",
+    "name": "Nintendo 64",
+    "company": "Nintendo",
+    "releaseYear": "1996",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/nintendo-64/logo.svg",
+      "image": "/platforms/nintendo-64/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-ds",
+    "name": "Nintendo DS",
+    "company": "Nintendo",
+    "releaseYear": "2004",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/nintendo-ds/logo.svg",
+      "image": "/platforms/nintendo-ds/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-entertainment-system",
+    "name": "Nintendo Entertainment System",
+    "company": "Nintendo",
+    "releaseYear": "1983",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/nintendo-entertainment-system/logo.png",
+      "image": "/platforms/nintendo-entertainment-system/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-gamecube",
+    "name": "Nintendo GameCube",
+    "company": "Nintendo",
+    "releaseYear": "2001",
+    "type": "console",
+    "thumb": {
+      "logo": null,
+      "image": "/platforms/nintendo-gamecube/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-switch",
+    "name": "Nintendo Switch",
+    "company": "Nintendo",
+    "releaseYear": "2017",
+    "type": "hybrid",
+    "thumb": {
+      "logo": "/platforms/nintendo-switch/logo.png",
+      "image": "/platforms/nintendo-switch/photo.webp"
+    }
+  },
+  {
+    "id": "nintendo-switch-2",
+    "name": "Nintendo Switch 2",
+    "company": "Nintendo",
+    "releaseYear": "2025",
+    "type": "hybrid",
+    "thumb": {
+      "logo": "/platforms/nintendo-switch-2/logo.svg",
+      "image": "/platforms/nintendo-switch-2/photo.webp"
+    }
+  },
+  {
+    "id": "odyssey",
+    "name": "Magnavox Odyssey",
+    "company": "Magnavox",
+    "releaseYear": "1972",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/odyssey/logo.svg",
+      "image": "/platforms/odyssey/photo.webp"
+    }
+  },
+  {
+    "id": "odyssey-2",
+    "name": "Magnavox Odyssey²",
+    "company": "Magnavox",
+    "releaseYear": "1978",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/odyssey-2/logo.svg",
+      "image": "/platforms/odyssey-2/photo.webp"
+    }
+  },
+  {
+    "id": "ouya",
+    "name": "Ouya",
+    "company": "Ouya",
+    "releaseYear": "2013",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/ouya/logo.svg",
+      "image": "/platforms/ouya/photo.webp"
+    }
+  },
+  {
+    "id": "pc",
+    "name": "PC",
+    "company": "Various",
+    "releaseYear": null,
+    "type": "operating system",
+    "thumb": {
+      "logo": "/platforms/pc/logo.svg",
+      "image": "/platforms/pc/photo.webp"
+    }
+  },
+  {
+    "id": "pc-amiga",
+    "name": "Amiga",
+    "company": "Commodore",
+    "releaseYear": "1985",
+    "type": "computer",
+    "thumb": {
+      "logo": "/platforms/pc-amiga/logo.svg",
+      "image": "/platforms/pc-amiga/photo.webp"
+    }
+  },
+  {
+    "id": "pc-commodore-64",
+    "name": "Commodore 64",
+    "company": "Commodore",
+    "releaseYear": "1982",
+    "type": "computer",
+    "thumb": {
+      "logo": "/platforms/pc-commodore-64/logo.svg",
+      "image": "/platforms/pc-commodore-64/photo.webp"
+    }
+  },
+  {
+    "id": "pc-dos",
+    "name": "PC (DOS)",
+    "company": "IBM",
+    "releaseYear": "1981",
+    "type": "operating system",
+    "thumb": {
+      "logo": "/platforms/pc-dos/logo.svg",
+      "image": "/platforms/pc-dos/photo.webp"
+    }
+  },
+  {
+    "id": "pc-msx",
+    "name": "MSX",
+    "company": "Microsoft",
+    "releaseYear": "1983",
+    "type": "computer",
+    "thumb": {
+      "logo": "/platforms/pc-msx/logo.svg",
+      "image": "/platforms/pc-msx/photo.webp"
+    }
+  },
+  {
+    "id": "pc-turbo-grafx-16",
+    "name": "TurboGrafx-16",
+    "company": "NEC",
+    "releaseYear": "1987",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/pc-turbo-grafx-16/logo.png",
+      "image": "/platforms/pc-turbo-grafx-16/photo.webp"
+    }
+  },
+  {
+    "id": "pc-zx-spectrum",
+    "name": "ZX Spectrum",
+    "company": "Sinclair Research",
+    "releaseYear": "1982",
+    "type": "computer",
+    "thumb": {
+      "logo": "/platforms/pc-zx-spectrum/logo.svg",
+      "image": "/platforms/pc-zx-spectrum/photo.webp"
+    }
+  },
+  {
+    "id": "playstation",
+    "name": "PlayStation",
+    "company": "Sony",
+    "releaseYear": "1994",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/playstation/logo.svg",
+      "image": "/platforms/playstation/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-2",
+    "name": "PlayStation 2",
+    "company": "Sony",
+    "releaseYear": "2000",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/playstation-2/logo.svg",
+      "image": "/platforms/playstation-2/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-3",
+    "name": "PlayStation 3",
+    "company": "Sony",
+    "releaseYear": "2006",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/playstation-3/logo.svg",
+      "image": "/platforms/playstation-3/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-4",
+    "name": "PlayStation 4",
+    "company": "Sony",
+    "releaseYear": "2013",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/playstation-4/logo.svg",
+      "image": "/platforms/playstation-4/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-5",
+    "name": "PlayStation 5",
+    "company": "Sony",
+    "releaseYear": "2020",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/playstation-5/logo.svg",
+      "image": "/platforms/playstation-5/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-portable",
+    "name": "PlayStation Portable",
+    "company": "Sony",
+    "releaseYear": "2004",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/playstation-portable/logo.svg",
+      "image": "/platforms/playstation-portable/photo.webp"
+    }
+  },
+  {
+    "id": "playstation-vita",
+    "name": "PlayStation Vita",
+    "company": "Sony",
+    "releaseYear": "2011",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/playstation-vita/logo.svg",
+      "image": "/platforms/playstation-vita/photo.webp"
+    }
+  },
+  {
+    "id": "sega-32x",
+    "name": "Sega 32X",
+    "company": "Sega",
+    "releaseYear": "1994",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-32x/logo.png",
+      "image": "/platforms/sega-32x/photo.webp"
+    }
+  },
+  {
+    "id": "sega-cd",
+    "name": "Sega CD",
+    "company": "Sega",
+    "releaseYear": "1991",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-cd/logo.svg",
+      "image": "/platforms/sega-cd/photo.webp"
+    }
+  },
+  {
+    "id": "sega-dreamcast",
+    "name": "Sega Dreamcast",
+    "company": "Sega",
+    "releaseYear": "1998",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-dreamcast/logo.svg",
+      "image": "/platforms/sega-dreamcast/photo.webp"
+    }
+  },
+  {
+    "id": "sega-game-gear",
+    "name": "Sega Game Gear",
+    "company": "Sega",
+    "releaseYear": "1990",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/sega-game-gear/logo.png",
+      "image": "/platforms/sega-game-gear/photo.webp"
+    }
+  },
+  {
+    "id": "sega-master-system",
+    "name": "Sega Master System",
+    "company": "Sega",
+    "releaseYear": "1985",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-master-system/logo.svg",
+      "image": "/platforms/sega-master-system/photo.webp"
+    }
+  },
+  {
+    "id": "sega-mega-drive",
+    "name": "Sega Mega Drive",
+    "company": "Sega",
+    "releaseYear": "1988",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-mega-drive/logo.png",
+      "image": "/platforms/sega-mega-drive/photo.webp"
+    }
+  },
+  {
+    "id": "sega-saturn",
+    "name": "Sega Saturn",
+    "company": "Sega",
+    "releaseYear": "1994",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sega-saturn/logo.png",
+      "image": "/platforms/sega-saturn/photo.webp"
+    }
+  },
+  {
+    "id": "sg-1000",
+    "name": "SG-1000",
+    "company": "Sega",
+    "releaseYear": "1983",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/sg-1000/logo.svg",
+      "image": "/platforms/sg-1000/photo.webp"
+    }
+  },
+  {
+    "id": "super-nintendo-entertainment-system",
+    "name": "Super Nintendo Entertainment System",
+    "company": "Nintendo",
+    "releaseYear": "1990",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/super-nintendo-entertainment-system/logo.svg",
+      "image": "/platforms/super-nintendo-entertainment-system/photo.webp"
+    }
+  },
+  {
+    "id": "wii",
+    "name": "Wii",
+    "company": "Nintendo",
+    "releaseYear": "2006",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/wii/logo.png",
+      "image": "/platforms/wii/photo.webp"
+    }
+  },
+  {
+    "id": "wii-u",
+    "name": "Wii U",
+    "company": "Nintendo",
+    "releaseYear": "2012",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/wii-u/logo.svg",
+      "image": "/platforms/wii-u/photo.webp"
+    }
+  },
+  {
+    "id": "wonderswan",
+    "name": "WonderSwan",
+    "company": "Bandai",
+    "releaseYear": "1999",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/wonderswan/logo.svg",
+      "image": "/platforms/wonderswan/photo.webp"
+    }
+  },
+  {
+    "id": "wonderswan-color",
+    "name": "WonderSwan Color",
+    "company": "Bandai",
+    "releaseYear": "2000",
+    "type": "handheld",
+    "thumb": {
+      "logo": "/platforms/wonderswan-color/logo.svg",
+      "image": "/platforms/wonderswan-color/photo.webp"
+    }
+  },
+  {
+    "id": "xbox",
+    "name": "Xbox",
+    "company": "Microsoft",
+    "releaseYear": "2001",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/xbox/logo.svg",
+      "image": "/platforms/xbox/photo.webp"
+    }
+  },
+  {
+    "id": "xbox-360",
+    "name": "Xbox 360",
+    "company": "Microsoft",
+    "releaseYear": "2005",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/xbox-360/logo.svg",
+      "image": "/platforms/xbox-360/photo.webp"
+    }
+  },
+  {
+    "id": "xbox-one",
+    "name": "Xbox One",
+    "company": "Microsoft",
+    "releaseYear": "2013",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/xbox-one/logo.svg",
+      "image": "/platforms/xbox-one/photo.webp"
+    }
+  },
+  {
+    "id": "xbox-series",
+    "name": "Xbox Series",
+    "company": "Microsoft",
+    "releaseYear": "2020",
+    "type": "console",
+    "thumb": {
+      "logo": "/platforms/xbox-series/logo.svg",
+      "image": "/platforms/xbox-series/photo.webp"
+    }
+  }
+]
