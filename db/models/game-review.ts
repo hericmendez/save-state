@@ -4,11 +4,10 @@ import { defineModel } from "@/db/models";
 import { REVIEW_CONTENT_MAX_LENGTH } from "@/schemas/reviews";
 
 /**
- * GameReview — full Markdown review body (Phase 1).
+ * GameReview — full Markdown review body (single source of truth).
  *
  * Optional 1:1 with UserGame (`userGameId` unique). The complete Markdown
- * lives ONLY here; `UserGame.reviewExcerpt` carries the derived preview and
- * `UserGame.review` remains as the legacy mirror during the transition.
+ * lives ONLY here; `UserGame.reviewExcerpt` carries the derived preview.
  */
 const GameReviewSchema = new Schema(
   {

@@ -7,7 +7,10 @@ import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 
 function contentOf(path: string): string {
-  return readFileSync(path, "utf8");
+  // O checkout Windows grava CRLF no working tree (o repo guarda LF);
+  // as asserções abaixo verificam adjacência de statements, não bytes de
+  // quebra de linha — normalizar preserva a força da asserção.
+  return readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 }
 
 function occurrences(content: string, pattern: string): number {

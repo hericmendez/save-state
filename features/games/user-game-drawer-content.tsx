@@ -140,8 +140,8 @@ export function UserGameDrawerContent({
         </section>
         <section aria-label="Sua avaliação">
           <h3 className="font-display text-lg">Sua avaliação</h3>
-          {shown.review ? (
-            <blockquote className="rpgui-container framed-grey mt-2 p-3">{shown.review}</blockquote>
+          {shown.reviewExcerpt ? (
+            <blockquote className="rpgui-container framed-grey mt-2 p-3">{shown.reviewExcerpt}</blockquote>
           ) : (
             <p className="mt-2 text-sm opacity-70">Sem review por enquanto.</p>
           )}

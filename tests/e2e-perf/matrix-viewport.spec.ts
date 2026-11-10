@@ -37,4 +37,22 @@ test.describe("matriz mobile touch (Pixel 7)", () => {
     await input.fill("mario");
     await expect(input).toHaveValue("mario");
   });
+
+  test("mobile: review editor cria rascunho por toque sem overflow", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(String(e && (e as Error).message ? (e as Error).message : e)));
+    await page.goto("/reviews/editor");
+    await page.getByRole("button", { name: /novo rascunho/i }).first().tap();
+    await expect(page.locator(".tiptap")).toBeVisible();
+    await page.getByRole("tab", { name: /markdown/i }).tap();
+    await page.getByLabel(/markdown bruto/i).fill("# Mobile\n\ntoque funciona.");
+    await expect(page.locator("body")).toContainText(/salvo neste dispositivo/i);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, `mobile /reviews/editor: overflow de ${overflow}px`).toBeLessThanOrEqual(1);
+    expect(errors, "mobile /reviews/editor: pageerrors").toEqual([]);
+  });
 });

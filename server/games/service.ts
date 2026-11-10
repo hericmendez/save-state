@@ -44,7 +44,6 @@ export interface UserGameWithGame {
   timesFinished: number;
   lastFinishedAt: Date | null;
   rating?: number | null;
-  review?: string | null;
   reviewExcerpt?: string | null;
   collectionIds: Types.ObjectId[];
   favorite: boolean;
@@ -513,9 +512,8 @@ export async function createGame(input: {
   const wantsReviewWrite =
     reviewAction.kind === "content" && reviewAction.content.length > 0;
 
-  // Shared base payload. The legacy mirror is stored directly only for
-  // plain-string input; `{ content }` input lands on the document inside
-  // the transaction below (same final state, one commit).
+  // Shared base payload (no review data: GameReview + excerpt are written
+  // inside the transaction below when a review is present).
   const newUserGameBase = {
     userId: input.userId,
     gameId: globalGame._id,
@@ -534,13 +532,11 @@ export async function createGame(input: {
 
   let userGame: UserGameDocument;
   if (!wantsReviewWrite) {
-    // Legacy path, byte-for-byte behavior (incl. empty-string storage):
-    // no GameReview involvement, no transaction.
+    // No review involvement, no transaction.
     try {
       userGame = await UserGame.create({
         ...newUserGameBase,
         timesFinished: timesFinishedForCreate,
-        review: typeof input.review === "string" ? input.review : undefined,
         finished: deriveFinished(timesFinishedForCreate),
         achievements:
           achNormForCreate.achievements ?? input.achievements ?? false,
@@ -558,9 +554,9 @@ export async function createGame(input: {
       throw error;
     }
   } else {
-    // C1: ONE transaction — UserGame + GameReview + excerpt + mirror.
+    // C1: ONE transaction — UserGame + GameReview + excerpt.
     // Any failure rolls back everything: no half-created library entry.
-    const content = (reviewAction as { content: string }).content;
+    const content = reviewAction.content;
     const excerpt = buildReviewExcerpt(content);
     try {
       userGame = await withReviewTransaction(async (session) => {
@@ -569,7 +565,6 @@ export async function createGame(input: {
             {
               ...newUserGameBase,
               timesFinished: timesFinishedForCreate,
-              review: content, // legacy mirror, same Markdown
               reviewExcerpt: excerpt,
               finished: deriveFinished(timesFinishedForCreate),
               achievements:
@@ -656,7 +651,7 @@ export async function updateGame(
     achievementProgress:
       (userGame.achievementProgress ?? null) as number | null,
   };
-  // NOTE (Phase 1): "review" is NOT in the generic loop — it has explicit
+  // NOTE: "review" is NOT in the generic loop — it has explicit
   // union semantics (absent/content/clear) handled below.
   for (const field of [
     "status",
@@ -671,14 +666,9 @@ export async function updateGame(
   }
   const reviewAction = normalizeReviewInput(input.review);
   const touchesReview = reviewAction.kind !== "absent";
-  if (reviewAction.kind === "content" && reviewAction.content.length === 0) {
-    // Legacy empty string: preserve old storage behavior, no GameReview.
-    personalUpdates.review = "";
-  } else if (reviewAction.kind === "content") {
-    personalUpdates.review = reviewAction.content; // legacy mirror
+  if (reviewAction.kind === "content") {
     personalUpdates.reviewExcerpt = buildReviewExcerpt(reviewAction.content);
   } else if (reviewAction.kind === "clear") {
-    personalUpdates.review = null;
     personalUpdates.reviewExcerpt = undefined;
   }
   if (input.timesFinished !== undefined) {
@@ -736,12 +726,6 @@ export async function updateGame(
     (userGame as unknown as { achievementProgress?: unknown }).achievementProgress = undefined;
   }
   if (!touchesReview) {
-    await userGame.save();
-  } else if (
-    reviewAction.kind === "content" &&
-    reviewAction.content.length === 0
-  ) {
-    // Empty-string legacy write: no GameReview involvement, no transaction.
     await userGame.save();
   } else {
     // Review-involving write: UserGame.save + GameReview sync atomically.

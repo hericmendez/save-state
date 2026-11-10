@@ -13,8 +13,8 @@ interface RouteContext {
 
 /**
  * GET /api/games/:gameId/review — on-demand full review content.
- * Never embedded in list/get responses; the drawer/catalog keep using
- * `review` (legacy) + `reviewExcerpt` (preview).
+ * Never embedded in list/get responses; surfaces keep using the
+ * `reviewExcerpt` preview. 404 (REVIEW_NOT_FOUND) when absent.
  */
 export async function GET(request: NextRequest, { params }: RouteContext) {
   return handleRoute(async () => {

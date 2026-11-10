@@ -203,7 +203,7 @@ describe("updateGame diff", () => {
     for (const body of [
       { status: "playing" },
       { favorite: true },
-      { review: "Great game" },
+      { review: { content: "Great game" } },
       { game: { name: "Legend of Legaia Remaster" } },
     ]) {
       expect((await patchUserGame(token, id, body)).status).toBe(200);

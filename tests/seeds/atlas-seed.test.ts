@@ -272,14 +272,32 @@ describe("runAtlasSeed", () => {
     await GlobalGame.updateOne({ _id: global._id }, { summary: "Hand-written note." });
     const user = (await User.findOne({ email: TEST_EMAIL }).lean())!;
     const userGame = (await UserGame.findOne({ userId: user._id, gameId: global._id }).lean())!;
-    await UserGame.updateOne({ _id: userGame._id }, { rating: 7, review: "Mine." });
+    await UserGame.updateOne({ _id: userGame._id }, { rating: 7 });
+    // Manual edit below the service layer (mirrors a hand-written DB
+    // change): GameReview row + derived excerpt, no transaction involved.
+    const { GameReview } = await import("@/db/models/game-review");
+    const { buildReviewExcerpt } = await import(
+      "@/server/reviews/excerpt"
+    );
+    await GameReview.create({
+      userGameId: userGame._id,
+      userId: user._id,
+      content: "Mine.",
+    });
+    await UserGame.updateOne(
+      { _id: userGame._id },
+      { reviewExcerpt: buildReviewExcerpt("Mine.") },
+    );
 
     await runAtlasSeed({ provider: fakeProvider(), email: TEST_EMAIL, password: TEST_PASSWORD });
 
     expect((await GlobalGame.findById(global._id).lean())!.summary).toBe("Hand-written note.");
     const kept = (await UserGame.findById(userGame._id).lean())!;
     expect(kept.rating).toBe(7);
-    expect(kept.review).toBe("Mine.");
+    expect(kept.reviewExcerpt).toContain("Mine.");
+    expect(
+      (await GameReview.findOne({ userGameId: userGame._id }).lean())?.content,
+    ).toBe("Mine.");
   });
 
   it("falls back to minimal records and reports incomplete when the provider is down", async () => {

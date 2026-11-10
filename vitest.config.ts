@@ -15,13 +15,19 @@ export default defineConfig({
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     setupFiles: ["tests/setup.ts"],
   },
-  // NOTE (diagnóstico suíte): o override anterior
-  // `oxc: { jsx: { runtime: "automatic" } }` era ignorado pelo toolchain
-  // instalado (vitest 4.1.11 + vite 8.3.0): com tsconfig `jsx: preserve`
-  // (exigido pelo Next), arquivos .tsx caíam em transform clássico
-  // (`React.createElement`) — invisível enquanto nenhum teste avaliava
-  // JSX em runtime. A chave `esbuild.jsx` abaixo é a honrada e tipada.
-  esbuild: {
-    jsx: "automatic",
+  // JSX sob vitest 4.1.11 + vite 8.3.0: o Vitest injeta `oxc: { target }`
+  // por padrão, e com `oxc` presente o Vite IGNORA `esbuild` por completo
+  // (warning "Both esbuild and oxc options were set"). Resultado: .tsx de
+  // src (ex. components/RPGUI/Button.tsx) chegava sem transform no
+  // vite:import-analysis — "Failed to parse source", com tsconfig
+  // `jsx: preserve` (exigido pelo Next, intocado). A correção é declarar
+  // o JSX no canal que o toolchain realmente usa (`oxc.jsx`), não no
+  // `esbuild` morto.
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "react",
+      development: false,
+    },
   },
 } satisfies ViteUserConfig);

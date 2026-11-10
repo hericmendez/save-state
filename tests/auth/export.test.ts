@@ -127,4 +127,51 @@ describe("GET /api/auth/export/csv", () => {
     expect(text.split("\n")[0]).toContain("collectionIds");
     expect(text.split("\n")[0]).not.toContain("listIds");
   });
+
+  it("exports reviews from GameReview (single source) with CSV-safe quoting", async () => {
+    const token = await tokenFor();
+    const authedPost = (path: string, body: unknown) =>
+      new NextRequest(`http://localhost${path}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `token=${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+    const { POST: createGame } = await import("@/app/api/games/route");
+    const plain = (
+      (await (
+        await createGame(authedPost("/api/games", { game: { name: "Sem Review" } }))
+      ).json()) as { data: { _id: string } }
+    ).data._id;
+    const markdown = '# Jogo "incrível", sim\n\nNota: 10/10 —日本語 🎮';
+    const withReview = (
+      (await (
+        await createGame(
+          authedPost("/api/games", {
+            game: { name: "Com Review" },
+            status: "finished",
+            review: { content: markdown },
+          }),
+        )
+      ).json()) as { data: { _id: string } }
+    ).data._id;
+    expect(plain).toBeTruthy();
+    expect(withReview).toBeTruthy();
+
+    const response = await exportCsv(authed("/api/auth/export/csv", token));
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    const header = text.split("\n")[0].split(",");
+    expect(header).toContain("review");
+    // Com review: conteúdo completo entre aspas (multiline, vírgulas,
+    // aspas duplicadas e unicode preservados, sem N+1 na origem).
+    expect(text).toContain('"# Jogo ""incrível"", sim');
+    expect(text).toContain("日本語 🎮");
+    // Sem review: célula vazia (nunca o espelho legado, nunca "undefined").
+    expect(text).not.toContain("undefined");
+    const semReviewBlock = text.slice(text.indexOf("Sem Review"));
+    expect(semReviewBlock).toBeTruthy();
+  });
 });

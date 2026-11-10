@@ -26,7 +26,8 @@ export interface Game {
   hoursPlayed?: number | null;
   timesFinished?: number | null;
   rating?: number | null;
-  review?: string | null;
+  /** Plain-text preview of the persisted review (no full fetch). */
+  reviewExcerpt?: string | null;
   collectionIds?: string[];
   favorite?: boolean;
   finished?: boolean;

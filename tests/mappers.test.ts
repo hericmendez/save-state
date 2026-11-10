@@ -23,3 +23,21 @@ describe("toPlainGame cover passthrough", () => {
     expect(plain.game?.cover).toBeUndefined();
   });
 });
+
+describe("toPlainGame review excerpt passthrough (Phase 3)", () => {
+  it("carries the server excerpt to the edit form without full fetch", () => {
+    const plain = toPlainGame({
+      _id: "68f1a2b3c4d5e6f708192a3b",
+      reviewExcerpt: "prévia do texto",
+      game: { name: "Jogo" },
+    });
+    expect(plain.reviewExcerpt).toBe("prévia do texto");
+  });
+
+  it("maps missing excerpt to undefined", () => {
+    const plain = toPlainGame(
+      rawGame({ name: "Jogo", cover: null }),
+    );
+    expect(plain.reviewExcerpt).toBeUndefined();
+  });
+});

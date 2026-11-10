@@ -60,7 +60,7 @@ const MANUAL_GAME = {
   status: "playing",
 };
 
-describe("reviews API (Phase 1)", () => {
+describe("reviews API (definitive: GameReview is the single source)", () => {
   it("creates a game with rich review object and derives excerpt", async () => {
     const token = await tokenFor();
     const response = await createGame(
@@ -71,7 +71,8 @@ describe("reviews API (Phase 1)", () => {
     );
     expect(response.status).toBe(201);
     const body = await response.json();
-    expect(body.data.review).toBe("# Great\n\nLoved it.");
+    // No legacy mirror in responses: excerpt only, full text via /review.
+    expect(body.data.review).toBeUndefined();
     expect(typeof body.data.reviewExcerpt).toBe("string");
     expect(body.data.reviewExcerpt).toContain("Great");
     const id = body.data._id as string;
@@ -79,7 +80,7 @@ describe("reviews API (Phase 1)", () => {
     expect(stored?.content).toBe("# Great\n\nLoved it.");
   });
 
-  it("keeps legacy string review working and mirrors to GameReview", async () => {
+  it("rejects plain-string review with 400 (legacy contract removed)", async () => {
     const token = await tokenFor();
     const response = await createGame(
       authed("/api/games", token, {
@@ -87,13 +88,10 @@ describe("reviews API (Phase 1)", () => {
         body: { ...MANUAL_GAME, review: "Legacy text" },
       }),
     );
-    expect(response.status).toBe(201);
-    const body = await response.json();
-    expect(body.data.review).toBe("Legacy text");
-    const stored = await GameReview.findOne({
-      userGameId: body.data._id,
-    }).lean();
-    expect(stored?.content).toBe("Legacy text");
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("VALIDATION_ERROR");
+    expect(await UserGame.countDocuments()).toBe(0);
+    expect(await GameReview.countDocuments()).toBe(0);
   });
 
   it("rolls back the whole creation when review sync fails (C1)", async () => {
@@ -156,7 +154,9 @@ describe("reviews API (Phase 1)", () => {
       { params: Promise.resolve({ gameId: id }) },
     );
     expect(patched.status).toBe(200);
-    expect((await patched.json()).data.review).toBe("# Keep me");
+    const patchedBody = await patched.json();
+    expect(patchedBody.data.review).toBeUndefined();
+    expect(patchedBody.data.reviewExcerpt).toContain("Keep me");
     expect(
       await GameReview.countDocuments({ userGameId: id }),
     ).toBe(1);
@@ -170,7 +170,8 @@ describe("reviews API (Phase 1)", () => {
     );
     expect(cleared.status).toBe(200);
     const clearedBody = await cleared.json();
-    expect(clearedBody.data.review ?? null).toBeNull();
+    expect(clearedBody.data.review).toBeUndefined();
+    expect(clearedBody.data.reviewExcerpt ?? null).toBeNull();
     expect(await GameReview.countDocuments({ userGameId: id })).toBe(0);
   });
 
@@ -204,7 +205,8 @@ describe("reviews API (Phase 1)", () => {
     const kept = await GameReview.findOne({ userGameId: id }).lean();
     expect(kept?.content).toBe("# Original");
     const game = await UserGame.findById(id).lean();
-    expect(game?.review).toBe("# Original");
+    expect(game?.reviewExcerpt).toContain("Original");
+    expect("review" in (game ?? {})).toBe(false);
   });
 
   it("serves full content on demand and 404s when missing", async () => {
@@ -282,7 +284,8 @@ describe("reviews API (Phase 1)", () => {
     });
     const data = (await fetched.json()).data;
     expect(data.reviewExcerpt).toBeDefined();
-    // Full markdown travels only via /review on demand.
+    // Full markdown travels only via /review on demand; no legacy mirror.
+    expect(data.review).toBeUndefined();
     expect(data.game).toBeDefined();
   });
 

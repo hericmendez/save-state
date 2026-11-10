@@ -1,9 +1,11 @@
 import "server-only";
+import { Types } from "mongoose";
 import { connectDatabase } from "@/db/connection";
 import { User } from "@/db/models/user";
 import { GlobalGame } from "@/db/models/global-game";
 import { UserGame } from "@/db/models/user-game";
 import { GameCollection } from "@/db/models/game-collection";
+import { GameReview } from "@/db/models/game-review";
 
 export interface ExportPayload {
   exportedAt: string;
@@ -35,6 +37,20 @@ export async function buildExportPayload(userId: string): Promise<ExportPayload>
     UserGame.find({ userId }).populate("gameId").lean(),
     GameCollection.find({ userId }).lean(),
   ]);
+  // Single batched read of full Markdown — no N+1 over the library.
+  // GameReview.content is the single source of truth (no legacy mirror).
+  const ids = (userGames as Array<Record<string, unknown>>).map(
+    (raw) => raw._id as Types.ObjectId,
+  );
+  const reviews = ids.length
+    ? await GameReview.find({ userGameId: { $in: ids } })
+        .select("userGameId content")
+        .lean()
+    : [];
+  const contentByUserGameId = new Map<string, string>();
+  for (const row of reviews as Array<Record<string, unknown>>) {
+    contentByUserGameId.set(String(row.userGameId), String(row.content ?? ""));
+  }
   const games = userGames.map((ug: unknown) => {
     const raw = ug as Record<string, unknown>;
     const game = raw.gameId as Record<string, unknown> | null;
@@ -51,7 +67,7 @@ export async function buildExportPayload(userId: string): Promise<ExportPayload>
       achievementProgress: raw.achievementProgress as number | null | undefined,
       achievementsCompleted: (raw.achievementsCompleted as boolean) ?? false,
       rating: raw.rating as number | null | undefined,
-      review: raw.review as string | null | undefined,
+      review: contentByUserGameId.get(String(raw._id)) ?? "",
       collectionIds: ((raw.collectionIds as unknown[]) ?? []).map(String),
     };
   });
@@ -86,7 +102,12 @@ export function exportToCsv(payload: ExportPayload): string {
   const escape = (v: unknown) => {
     if (v === null || v === undefined) return "";
     const s = String(v);
-    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    if (
+      s.includes(",") ||
+      s.includes('"') ||
+      s.includes("\n") ||
+      s.includes("\r")
+    ) {
       return `"${s.replace(/"/g, '""')}"`;
     }
     return s;

@@ -100,7 +100,7 @@ describe("searchImportSchema — edit-and-add personal + conflict policy", () =>
         hoursPlayed: 12,
         timesFinished: 1,
         rating: 9,
-        review: "Obra-prima.",
+        review: { content: "Obra-prima." },
         favorite: true,
         fullyCompleted: false,
         achievements: true,
@@ -109,6 +109,22 @@ describe("searchImportSchema — edit-and-add personal + conflict policy", () =>
       conflictPolicy: "reject-existing",
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it("accepts a structured Markdown review (Phase 3, single request)", () => {
+    const parsed = searchImportSchema.safeParse({
+      externalId: "1234",
+      personal: {
+        status: "backlog",
+        review: { content: "# Jogão\n\nMuito bom." },
+      },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.personal?.review).toEqual({
+        content: "# Jogão\n\nMuito bom.",
+      });
+    }
   });
 
   it("rejects achievementProgress without achievements", () => {

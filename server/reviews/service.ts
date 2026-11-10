@@ -16,7 +16,7 @@ import { buildReviewExcerpt } from "@/server/reviews/excerpt";
 export interface ReviewDTO {
   content: string;
   excerpt: string;
-  source: "review" | "legacy";
+  source: "review";
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -38,16 +38,13 @@ async function findOwnedUserGameOrThrow(userId: string, gameId: string) {
 }
 
 /**
- * On-demand full-content read. GameReview wins when present; otherwise the
- * legacy UserGame.review is served (source: "legacy") so old clients keep
- * working during the transition. Neither → REVIEW_NOT_FOUND (404).
+ * On-demand full-content read from GameReview (single source of truth).
+ * Throws REVIEW_NOT_FOUND (404) when no review exists.
  *
- * Normalization note (M9): the endpoint returns TRIMMED content in both
- * branches, while the database preserves the original stored value untouched.
- * Rationale: Mongoose `trim: true` already normalizes on write, so stored
- * values are trimmed in practice; the trim here only guards pre-existing
- * rows written before `trim` existed. `excerpt` is always derived from the
- * trimmed text, so `content`/`excerpt` never disagree on whitespace.
+ * Normalization note (M9): the endpoint returns TRIMMED content, while the
+ * database preserves the original stored value untouched. `excerpt` is
+ * always derived from the trimmed text, so `content`/`excerpt` never
+ * disagree on whitespace.
  */
 export async function getReview(
   userId: string,
@@ -58,28 +55,17 @@ export async function getReview(
   const review: GameReviewDocument | null = await GameReview.findOne({
     userGameId: userGame._id,
   });
-  if (review) {
-    const content = review.content.trim();
-    return {
-      content,
-      excerpt: buildReviewExcerpt(content),
-      source: "review",
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-    };
+  if (!review) {
+    throw new ApiError("REVIEW_NOT_FOUND", "Review not found", 404);
   }
-  const legacy =
-    typeof userGame.review === "string" ? userGame.review.trim() : "";
-  if (legacy.length > 0) {
-    return {
-      content: legacy,
-      excerpt: buildReviewExcerpt(legacy),
-      source: "legacy",
-      createdAt: null,
-      updatedAt: null,
-    };
-  }
-  throw new ApiError("REVIEW_NOT_FOUND", "Review not found", 404);
+  const content = review.content.trim();
+  return {
+    content,
+    excerpt: buildReviewExcerpt(content),
+    source: "review",
+    createdAt: review.createdAt,
+    updatedAt: review.updatedAt,
+  };
 }
 
 export async function deleteReviewsForUserGame(

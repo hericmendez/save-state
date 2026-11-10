@@ -69,7 +69,6 @@ describe("form personal → import personal contract", () => {
       hoursPlayed: "12",
       timesFinished: "1",
       rating: "9",
-      review: "Obra-prima.",
       favorite: true,
       fullyCompleted: false,
       achievements: true,
@@ -87,12 +86,14 @@ describe("form personal → import personal contract", () => {
         hoursPlayed: 12,
         timesFinished: 1,
         rating: 9,
-        review: "Obra-prima.",
         favorite: true,
         fullyCompleted: false,
         achievements: true,
         achievementProgress: 80,
       });
+      // Reviews travel exclusively through the Minha review section
+      // (`{ content }`), never through the legacy form field.
+      expect(parsed.data.personal).not.toHaveProperty("review");
     }
   });
 
@@ -177,5 +178,18 @@ describe("edit-and-add wiring patterns", () => {
     expect(lockNotice > 0 && playerSection > lockNotice).toBe(true);
     const afterPlayer = content.slice(playerSection);
     expect(afterPlayer).not.toContain("metadataLocked");
+  });
+
+  it("replaces the legacy review textarea with the Minha review section", () => {
+    const form = "features/games/game-form.tsx";
+    const section = "features/reviews/review-form-section.tsx";
+    const formContent = readFileSync(form, "utf8");
+    const sectionContent = readFileSync(section, "utf8");
+    expect(formContent).toContain("ReviewFormSection");
+    expect(sectionContent).toContain("Minha review");
+    // The old free-text review field (and its placeholder) is gone;
+    // reviews travel exclusively through the section + draft flow.
+    expect(formContent).not.toContain("Suas experiências pessoais com o jogo");
+    expect(formContent).not.toContain("form.review");
   });
 });

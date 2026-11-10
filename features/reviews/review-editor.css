@@ -1,0 +1,308 @@
+/**
+ * Review Editor — scoped styles (Phase 2).
+ *
+ * RPGUI frames the page; the writing surface itself stays calm for long
+ * reviews: comfortable measure, generous line-height, visible focus.
+ * No global RPGUI *runtime* (JS) is used — CSS classes only.
+ */
+
+.review-editor-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 0.75rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .review-editor-shell {
+    padding: 0 1.5rem 3rem;
+  }
+}
+
+.review-editor-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.35);
+  scrollbar-width: thin;
+}
+
+.review-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.review-toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 6px;
+  background: rgba(201, 162, 39, 0.35);
+  flex: 0 0 auto;
+}
+
+/* Compact Word-like controls over the real RPGUI grey frame (same
+   border images and mechanism, tightened for toolbar density). */
+.rpgui-container.framed-grey.review-toolbar-btn {
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: #fff;
+  border-width: 4px;
+  border-image-width: 4px;
+  cursor: pointer;
+}
+
+.rpgui-container.framed-grey.review-toolbar-btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.rpgui-container.framed-grey.review-toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Active formatting: discreet inset underline (shape cue, not color-only)
+   plus aria-pressed for assistive tech. */
+.rpgui-container.framed-grey.review-toolbar-btn[aria-pressed="true"] {
+  box-shadow: inset 0 -3px 0 #f5c542;
+}
+
+.review-editor-toolbar button:focus-visible,
+.review-mode-tabs button:focus-visible,
+.review-editor-dialog input:focus-visible,
+.review-editor-dialog button:focus-visible,
+.review-markdown-source:focus-visible {
+  outline: 3px solid #7cb3ff;
+  outline-offset: 2px;
+}
+
+.review-mode-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+
+/* Compact RPGUI action buttons shared by the review surfaces (form
+   section, editor header, mode tabs, dialogs). Same grey frame mechanism
+   as the toolbar, tightened for density. Plain text children are valid
+   here: unlike .rpgui-button, framed containers define no text wrapper. */
+.review-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+
+.rpgui-container.framed-grey.review-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 2px 12px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+  color: #fff;
+  cursor: pointer;
+  border-width: 4px;
+  border-image-width: 4px;
+}
+
+.rpgui-container.framed-grey.review-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.rpgui-container.framed-grey.review-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rpgui-container.framed-grey.review-btn:focus-visible {
+  outline: 2px solid #7cb3ff;
+  outline-offset: 1px;
+}
+
+/* Active mode / pressed state: discreet inset underline (shape cue, not
+   color-only) plus aria-selected / aria-pressed for assistive tech. */
+.rpgui-container.framed-grey.review-btn[aria-selected="true"],
+.rpgui-container.framed-grey.review-btn[aria-pressed="true"] {
+  box-shadow: inset 0 -3px 0 #f5c542;
+}
+
+.review-prose {
+  width: 100%;
+  max-width: 72ch;
+  margin: 0 auto;
+  min-height: 16rem;
+  padding: 1rem 1.1rem;
+  background: #fdf6e3;
+  color: #2b2118;
+  border-radius: 4px;
+  line-height: 1.75;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.review-prose .tiptap {
+  min-height: 14rem;
+}
+
+.review-prose .tiptap:focus {
+  outline: none;
+}
+
+.review-prose:focus-within {
+  outline: 3px solid #7cb3ff;
+  outline-offset: 2px;
+}
+
+.review-prose h1,
+.review-prose h2,
+.review-prose h3,
+.review-prose h4,
+.review-prose h5,
+.review-prose h6 {
+  line-height: 1.3;
+  margin: 1.1em 0 0.5em;
+}
+
+.review-prose p {
+  margin: 0.6em 0;
+}
+
+.review-prose ul,
+.review-prose ol {
+  margin: 0.6em 0;
+  padding-left: 1.6em;
+  list-style: revert;
+}
+
+.review-prose blockquote {
+  margin: 0.8em 0;
+  padding: 0.4em 0.9em;
+  border-left: 4px solid #c9a227;
+  background: rgba(201, 162, 39, 0.12);
+}
+
+.review-prose pre {
+  margin: 0.8em 0;
+  padding: 0.7em 0.9em;
+  background: #2b2118;
+  color: #f5eeda;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.review-prose code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+}
+
+.review-prose p code {
+  background: rgba(43, 33, 24, 0.1);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.review-prose hr {
+  margin: 1.2em 0;
+  border: none;
+  border-top: 2px dashed #c9a227;
+}
+
+.review-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.review-markdown-source {
+  width: 100%;
+  max-width: 72ch;
+  margin: 0 auto;
+  min-height: 16rem;
+  padding: 1rem 1.1rem;
+  background: #1c1a17;
+  color: #f0e8d8;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.review-editor-dialog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.review-editor-dialog input {
+  flex: 1 1 12rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.6rem;
+  background: #fff;
+  color: #111;
+  border-radius: 3px;
+}
+
+.review-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.review-banner {
+  padding: 0.7rem 0.9rem;
+  border-radius: 4px;
+  border: 2px solid #c9a227;
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.review-banner[data-tone="danger"] {
+  border-color: #d64545;
+  background: rgba(214, 69, 69, 0.12);
+}
+
+.review-banner[data-tone="info"] {
+  border-color: #7cb3ff;
+  background: rgba(124, 179, 255, 0.12);
+}
+
+.review-draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.review-draft-list > li {
+  padding: 0.7rem 0.9rem;
+}

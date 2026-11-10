@@ -172,7 +172,7 @@ describe("import → UserGame parity with manual games", () => {
           status: "playing",
           hoursPlayed: 12,
           rating: 10,
-          review: "Masterpiece",
+          review: { content: "Masterpiece" },
         },
       }),
       gameParams(userGameId),
@@ -184,8 +184,9 @@ describe("import → UserGame parity with manual games", () => {
       status: "playing",
       hoursPlayed: 12,
       rating: 10,
-      review: "Masterpiece",
     });
+    expect(body.data.review).toBeUndefined();
+    expect(body.data.reviewExcerpt).toContain("Masterpiece");
   });
 
   it("supports Zerei +1, fullyCompleted, and achievements", async () => {

@@ -11,6 +11,11 @@ import RPGUIInput from "@/components/RPGUI/Input";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUISelect from "@/components/RPGUI/Select";
 import RPGUITextArea from "@/components/RPGUI/TextArea";
+import {
+  ReviewFormSection,
+  type OpenEditorRequest,
+  type ReviewFormValue,
+} from "@/features/reviews/review-form-section";
 
 export interface GameFormState {
   name: string;
@@ -25,7 +30,6 @@ export interface GameFormState {
   hoursPlayed: string;
   timesFinished: string;
   rating: string;
-  review: string;
   favorite: boolean;
   fullyCompleted: boolean;
   achievements: boolean;
@@ -45,7 +49,6 @@ export const EMPTY_GAME_FORM: GameFormState = {
   hoursPlayed: "0",
   timesFinished: "0",
   rating: "",
-  review: "",
   favorite: false,
   fullyCompleted: false,
   achievements: false,
@@ -92,10 +95,6 @@ export function formToPayload(form: GameFormState): Record<string, unknown> {
     personal.rating = Number(form.rating);
   }
 
-  if (form.review.trim() !== "") {
-    personal.review = form.review.trim();
-  }
-
   const metadata: Record<string, unknown> = {
     name: form.name.trim(),
   };
@@ -136,6 +135,9 @@ export function GameForm({
   onSubmit,
   onCancel,
   metadataLocked,
+  review,
+  onReviewChange,
+  onOpenReviewEditor,
 }: {
   form: GameFormState;
   isEditing: boolean;
@@ -147,6 +149,18 @@ export function GameForm({
   // True when editing an ATP snapshot: catalog metadata is read-only
   // (GAME_METADATA_IMMUTABLE); only personal fields stay editable.
   metadataLocked?: boolean;
+  /** Phase 3 review section (controlled by the container). */
+  review: {
+    mode: "create" | "edit";
+    userId: string | null;
+    userGameId?: string;
+    serverExcerpt?: string | null;
+    serverHasReview: boolean;
+    value: ReviewFormValue;
+    draftTitle?: string;
+  };
+  onReviewChange: (value: ReviewFormValue) => void;
+  onOpenReviewEditor: (request: OpenEditorRequest) => void;
 }) {
   function field(label: string, node: React.ReactNode) {
     return (
@@ -390,15 +404,18 @@ export function GameForm({
 
        
       </div>
-      {field(
-        "Review",
-        <RPGUITextArea
-          value={form.review}
-          placeholder="Suas experiências pessoais com o jogo"
-          onChange={(event) => onChange({ review: event.target.value })}
-          rows={6}
-        />,
-      )}
+      <ReviewFormSection
+        mode={review.mode}
+        userId={review.userId}
+        userGameId={review.userGameId}
+        serverExcerpt={review.serverExcerpt}
+        serverHasReview={review.serverHasReview}
+        value={review.value}
+        onChange={onReviewChange}
+        onOpenEditor={onOpenReviewEditor}
+        draftTitle={review.draftTitle}
+        disabled={isSubmitting}
+      />
 
       <div className="flex gap-2">
         <RPGUIButton

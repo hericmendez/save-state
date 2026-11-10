@@ -23,12 +23,11 @@ const UserGameSchema = new Schema(
     // completion date). Null until the first recorded completion.
     lastFinishedAt: { type: Date, default: null },
     rating: { type: Number, min: 0, max: 10 },
-    review: { type: String, trim: true },
     // Derived plain-text preview of GameReview.content (~250 chars).
-    // Written ONLY by the server (never by clients). Legacy `review`
-    // stays as the transitional mirror; the full Markdown lives in
-    // GameReview. No `hasReview` flag (presence of GameReview/excerpt
-    // is the signal — avoids redundancy).
+    // Written ONLY by the server (never by clients). The full Markdown
+    // lives ONLY in GameReview (single source of truth). No `hasReview`
+    // flag (presence of GameReview/excerpt is the signal — avoids
+    // redundancy).
     reviewExcerpt: { type: String, trim: true, maxlength: 500 },
     collectionIds: [{ type: Schema.Types.ObjectId, ref: "GameCollection" }],
     favorite: { type: Boolean, default: false, index: true },
@@ -52,7 +51,6 @@ export interface UserGameDocument extends mongoose.Document {
   timesFinished: number;
   lastFinishedAt: Date | null;
   rating?: number;
-  review?: string;
   reviewExcerpt?: string;
   collectionIds: Types.ObjectId[];
   favorite: boolean;

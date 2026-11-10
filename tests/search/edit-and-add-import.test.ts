@@ -116,7 +116,7 @@ const FULL_PERSONAL = {
   hoursPlayed: 12,
   timesFinished: 1,
   rating: 9,
-  review: "Obra-prima.",
+  review: { content: "Obra-prima." },
   favorite: true,
   fullyCompleted: false,
   achievements: true,
@@ -148,7 +148,7 @@ describe("IGDB import personal persistence", () => {
       achievements: false,
     });
     expect(userGame?.rating).toBeUndefined();
-    expect(userGame?.review).toBeUndefined();
+    expect(userGame && "review" in userGame).toBe(false);
   });
 
   it("persists all nine personal fields with derived values", async () => {
@@ -170,17 +170,55 @@ describe("IGDB import personal persistence", () => {
       timesFinished: 1,
       finished: true,
       rating: 9,
-      review: "Obra-prima.",
+      reviewExcerpt: expect.stringContaining("Obra-prima"),
       favorite: true,
       fullyCompleted: false,
       achievements: true,
       achievementProgress: 80,
       achievementsCompleted: false,
     });
+    expect(userGame && "review" in userGame).toBe(false);
+    const { GameReview: ImportGameReview } = await import(
+      "@/db/models/game-review"
+    );
+    const stored = await ImportGameReview.findOne({
+      userGameId: userGame?._id,
+    }).lean();
+    expect(stored?.content).toBe("Obra-prima.");
   });
 
-  it("derives achievementsCompleted at 100%", async () => {
+  it("persists a structured Markdown review with excerpt in one request (Phase 3)", async () => {
     const token = await tokenFor();
+    stubIgdbFetch();
+    const { GameReview } = await import("@/db/models/game-review");
+    const response = await neutralImport(
+      importBody(
+        {
+          externalId: "1234",
+          personal: {
+            status: "playing",
+            review: { content: "# Jogão\n\nMuito **bom**." },
+          },
+        },
+        token,
+      ),
+      // @ts-expect-error Next 15 route context unused here
+      {},
+    );
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    const userGame = await UserGame.findOne({
+      gameId: body.data.game._id,
+    }).lean();
+    expect(userGame && "review" in userGame).toBe(false);
+    expect(userGame?.reviewExcerpt).toContain("Jogão");
+    const review = await GameReview.findOne({
+      userGameId: userGame?._id,
+    }).lean();
+    expect(review?.content).toBe("# Jogão\n\nMuito **bom**.");
+  });
+
+  it("derives achievementsCompleted at 100%", async () => {    const token = await tokenFor();
     stubIgdbFetch();
     const response = await neutralImport(
       importBody(

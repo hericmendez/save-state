@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { GAME_STATUSES } from "@/schemas/games";
+import { reviewCreateInputSchema } from "@/schemas/reviews";
 
 export const atpIdSchema = z
   .string()
@@ -78,7 +79,9 @@ const importPersonalSchema = z.object({
   hoursPlayed: z.number().min(0).max(100000).optional(),
   timesFinished: z.number().int().min(0).max(10000).optional(),
   rating: z.number().min(0).max(10).optional(),
-  review: z.string().trim().max(20000).optional(),
+  // Phase 3: legacy `review: string` OR new `review: { content }` (same
+  // contract as POST /api/games; createGame normalizes both atomically).
+  review: reviewCreateInputSchema.optional(),
 });
 
 export const atpImportSchema = z.object({

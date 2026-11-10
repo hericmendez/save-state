@@ -15,7 +15,8 @@ export function toPlainGame(value: unknown): Game {
     hoursPlayed: (raw.hoursPlayed as number | undefined) ?? undefined,
     timesFinished: (raw.timesFinished as number | undefined) ?? undefined,
     rating: (raw.rating as number | null | undefined) ?? undefined,
-    review: (raw.review as string | null | undefined) ?? undefined,
+    reviewExcerpt:
+      (raw.reviewExcerpt as string | null | undefined) ?? undefined,
     collectionIds: Array.isArray(raw.collectionIds)
       ? (raw.collectionIds as unknown[]).map(String)
       : undefined,

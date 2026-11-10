@@ -211,7 +211,7 @@ describe("PATCH /api/games/:gameId", () => {
     const created = await (
       await createGame(authed("/api/games", token, {
         method: "POST",
-        body: { ...MANUAL_GAME, rating: 7, review: "Great" },
+        body: { ...MANUAL_GAME, rating: 7, review: { content: "Great" } },
       }))
     ).json();
     const id = created.data._id as string;
@@ -223,7 +223,8 @@ describe("PATCH /api/games/:gameId", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data.rating).toBeNull();
-    expect(body.data.review).toBeNull();
+    expect(body.data.review).toBeUndefined();
+    expect(body.data.reviewExcerpt ?? null).toBeNull();
   });
 
   it("rejects empty updates with VALIDATION_ERROR", async () => {

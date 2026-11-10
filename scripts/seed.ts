@@ -215,7 +215,9 @@ async function main(): Promise<void> {
         hoursPlayed: entry.library.hoursPlayed,
         timesFinished: entry.library.timesFinished,
         ...(entry.library.rating !== undefined ? { rating: entry.library.rating } : {}),
-        ...(entry.library.review !== undefined ? { review: entry.library.review } : {}),
+        ...(entry.library.review !== undefined
+          ? { review: { content: entry.library.review } }
+          : {}),
         ...(entry.library.favorite ? { favorite: true } : {}),
         ...(entry.library.fullyCompleted ? { fullyCompleted: true } : {}),
         ...(entry.library.achievements ? { achievements: true } : {}),

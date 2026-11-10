@@ -13,6 +13,7 @@
 
 import { z } from "zod";
 import { GAME_STATUSES, validateAchievements } from "@/schemas/games";
+import { reviewCreateInputSchema } from "@/schemas/reviews";
 
 export const searchExternalIdSchema = z
   .string()
@@ -133,7 +134,10 @@ const searchImportPersonalSchema = z.object({
   hoursPlayed: z.number().min(0).max(100000).optional(),
   timesFinished: z.number().int().min(0).max(10000).optional(),
   rating: z.number().min(0).max(10).optional(),
-  review: z.string().trim().max(20000).optional(),
+  // Phase 3: legacy `review: string` OR new `review: { content }` (same
+  // contract as POST /api/games; the import stays a single request and
+  // createGame normalizes both into UserGame + GameReview atomically).
+  review: reviewCreateInputSchema.optional(),
   favorite: z.boolean().optional(),
   fullyCompleted: z.boolean().optional(),
   achievements: z.boolean().optional(),
