@@ -4,10 +4,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as register } from "@/app/api/auth/register/route";
 import { POST as login } from "@/app/api/auth/login/route";
 import { GET as me, PATCH as patchMe } from "@/app/api/auth/me/route";
+import { User } from "@/db/models/user";
 import {
   TEST_USER,
   authedRequest,
   clearDatabase,
+  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -21,6 +23,7 @@ beforeEach(clearDatabase);
 
 async function loginToken(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
+  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email: TEST_USER.email,
     password: TEST_USER.password,
@@ -100,6 +103,16 @@ describe("GET /api/auth/me", () => {
     const response = await me(authedRequest("/api/auth/me", token));
     expect(response.status).toBe(401);
     expect((await response.json()).error.code).toBe("UNAUTHENTICATED");
+  });
+
+  it("rejects a valid JWT after the user's email is no longer verified", async () => {
+    const token = await loginToken();
+    await User.updateOne(
+      { email: TEST_USER.email },
+      { $set: { emailVerifiedAt: null } },
+    );
+    const response = await me(authedRequest("/api/auth/me", token));
+    expect(response.status).toBe(401);
   });
 });
 

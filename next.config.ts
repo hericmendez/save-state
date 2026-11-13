@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { buildSecurityHeaders } from "./lib/security-headers";
 
 const nextConfig: NextConfig = {
   images: {
@@ -10,6 +11,21 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.igdb.com" },
       { protocol: "https", hostname: "upload.wikimedia.org" },
     ],
+  },
+  async headers() {
+    const securityHeaders = buildSecurityHeaders({
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return [
+      {
+        source: "/:path*",
+        headers: Object.entries(securityHeaders).map(([key, value]) => ({
+          key,
+          value,
+        })),
+      },
+    ];
   },
   // Fase 7.1 URL normalization (Portuguese → English canonical routes).
   // Single implementation per page; these are compat-only redirects.

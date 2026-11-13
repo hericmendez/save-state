@@ -135,9 +135,9 @@ export async function getSessionUserFromToken(
 
   await connectDatabase();
   const user = await User.findById(claims.userId)
-    .select("sessionVersion")
+    .select("sessionVersion emailVerifiedAt")
     .lean();
-  if (!user) {
+  if (!user || !user.emailVerifiedAt) {
     throw new ApiError("UNAUTHENTICATED", INVALID_TOKEN);
   }
   const currentVersion = user.sessionVersion ?? 0;

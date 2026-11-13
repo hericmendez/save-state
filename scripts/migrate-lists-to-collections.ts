@@ -3,47 +3,30 @@
  * Lists → Collections MongoDB migration CLI (Etapa 6).
  *
  * Usage (maintenance window only):
- *   pnpm db:migrate:collections --dry-run
- *   pnpm db:migrate:collections --live --backup-dir ./backups
- *   pnpm db:migrate:collections --drop-legacy --expected-gamelists N --confirm-drop-legacy
+ *   pnpm db:migrate:collections -- --dry-run --db-name save-state-dev
+ *   pnpm db:migrate:collections -- --live --backup-dir ./backups --db-name save-state-dev --confirm-db-name save-state-dev
+ *   pnpm db:migrate:collections -- --drop-legacy --expected-gamelists N --confirm-drop-legacy --allow-drop-legacy --db-name save-state-dev --confirm-db-name save-state-dev
  *
  * - Default mode is dry-run (read-only census, changes nothing).
  * - --live copies gamelists → gamecollections (preserving _id), moves
  *   listIds → collectionIds, writes a JSON backup first, then verifies.
  * - --drop-legacy removes the old collection ONLY with explicit
  *   --confirm-drop-legacy and a matching --expected-gamelists count.
- * - Requires MONGODB_URI. Never runs on build/boot/test.
+ * - Requires MONGODB_URI and an explicit database for all modes.
+ * - Live requires nominal database confirmation. Drop additionally requires
+ *   --allow-drop-legacy. Never runs on build/boot/test.
  */
 import mongoose from "mongoose";
-import "./load-local-env";
 import {
   dropLegacyCollection,
   planMigration,
   runMigration,
 } from "../server/collections/migration";
-
-function arg(name: string): string | undefined {
-  const prefix = `--${name}=`;
-  for (const raw of process.argv.slice(2)) {
-    if (raw === `--${name}`) return "true";
-    if (raw.startsWith(prefix)) return raw.slice(prefix.length);
-  }
-  return undefined;
-}
-
-function usage(): never {
-  console.error(
-    [
-      "Usage:",
-      "  tsx scripts/migrate-lists-to-collections.ts --dry-run",
-      "  tsx scripts/migrate-lists-to-collections.ts --live --backup-dir <dir>",
-      "  tsx scripts/migrate-lists-to-collections.ts --drop-legacy --expected-gamelists <n> --confirm-drop-legacy",
-      "",
-      "Requires MONGODB_URI in the environment.",
-    ].join("\n"),
-  );
-  process.exit(2);
-}
+import { formatTargetSummary, isDirectExecution } from "./lib/db-target-guard";
+import {
+  parseMigrationArgs,
+  resolveMigrationTarget,
+} from "./lib/operational-cli";
 
 function formatPlan(plan: Awaited<ReturnType<typeof planMigration>>): string {
   const lines = [
@@ -58,21 +41,19 @@ function formatPlan(plan: Awaited<ReturnType<typeof planMigration>>): string {
 }
 
 async function main(): Promise<void> {
+  await import("./load-local-env");
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error("MONGODB_URI is required");
     process.exit(2);
   }
-  const mode = arg("dry-run")
-    ? "dry-run"
-    : arg("live")
-      ? "live"
-      : arg("drop-legacy")
-        ? "drop"
-        : undefined;
-  if (!mode) usage();
+  const args = parseMigrationArgs(process.argv.slice(2));
+  const target = resolveMigrationTarget(args, process.env, uri);
+  const { mode, dbName } = target;
+  console.log(formatTargetSummary(uri, dbName));
+  console.log(`mode: ${mode}`);
 
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, { dbName, autoIndex: false });
   try {
     if (mode === "dry-run") {
       const plan = await planMigration();
@@ -85,11 +66,7 @@ async function main(): Promise<void> {
       return;
     }
     if (mode === "live") {
-      const backupDir = arg("backup-dir");
-      if (!backupDir) {
-        console.error("--backup-dir is required for live runs");
-        process.exit(2);
-      }
+      const backupDir = args.backupDir!;
       const result = await runMigration({ backupDir });
       console.log(`[live] backup: ${result.backupFile}`);
       console.log(formatPlan(result));
@@ -102,14 +79,8 @@ async function main(): Promise<void> {
       }
       return;
     }
-    const expected = Number(arg("expected-gamelists"));
-    const confirmed = arg("confirm-drop-legacy") === "true";
-    if (!Number.isInteger(expected) || expected < 0 || !confirmed) {
-      console.error("--drop-legacy requires --expected-gamelists <n> and --confirm-drop-legacy");
-      process.exit(2);
-    }
     const { dropped } = await dropLegacyCollection({
-      expectedGamelists: expected,
+      expectedGamelists: target.expectedGamelists!,
       confirmDropLegacy: true,
     });
     console.log(`[drop-legacy] dropped=${dropped}`);
@@ -118,7 +89,13 @@ async function main(): Promise<void> {
   }
 }
 
-void main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (isDirectExecution(import.meta.url, process.argv[1])) {
+  void main().catch((error: unknown) => {
+    console.error(
+      "collections migration refused or failed:",
+      error instanceof Error ? error.name : "unknown error",
+      "(details omitted to prevent credential or infrastructure disclosure)",
+    );
+    process.exitCode = 1;
+  });
+}

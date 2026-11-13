@@ -20,6 +20,7 @@ import {
   TEST_USER,
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -31,6 +32,7 @@ beforeEach(clearDatabase);
 
 async function tokenFor(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
+  await markTestUserVerified(TEST_USER.email);
   const response = await login(
     postRequest("/api/auth/login", {
       email: TEST_USER.email,

@@ -47,7 +47,7 @@ export async function apiRequest<T>(
 
 export const api = {
   register: (name: string, email: string, password: string) =>
-    apiRequest<{ id: string; name: string; email: string }>(
+    apiRequest<{ message: string }>(
       "/api/auth/register",
       { method: "POST", body: { name, email, password } },
     ),

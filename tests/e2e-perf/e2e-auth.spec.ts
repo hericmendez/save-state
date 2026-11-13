@@ -5,7 +5,19 @@
  * redirecionamentos, 401/403 e isolamento entre usuários (ownership).
  */
 import { test, expect } from "@playwright/test";
-import { uniqueUser, registerUser, loginUser, createGame } from "./helpers";
+import { readFileSync } from "node:fs";
+import {
+  uniqueUser,
+  createVerifiedUserFixture,
+  loginUser,
+  createGame,
+  createPendingUser,
+  createPasswordResetToken,
+  getE2EVerificationState,
+} from "./helpers";
+
+// Confirmation links contain bearer tokens; never persist them in traces or screenshots.
+test.use({ trace: "off", screenshot: "off", video: "off" });
 
 /**
  * Contexto 100% limpo (sem storageState do projeto): garante visitante
@@ -15,6 +27,18 @@ async function freshContext(browser: import("@playwright/test").Browser) {
   return browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
+}
+
+function interceptedVerificationPath(): string {
+  const captureFile = process.env.E2E_EMAIL_CAPTURE_FILE;
+  if (!captureFile) throw new Error("E2E email capture is not configured");
+  const messages = readFileSync(captureFile, "utf8").trim().split("\n").filter(Boolean);
+  if (messages.length === 0) throw new Error("No email was captured by the local E2E adapter");
+  const latest = JSON.parse(messages[messages.length - 1]) as { text: string };
+  const link = /https:\/\/localhost:3101\/verify-email\?token=[^\s]+/u.exec(latest.text)?.[0];
+  if (!link) throw new Error("Captured message did not contain a verification link");
+  const parsed = new URL(link);
+  return `${parsed.pathname}${parsed.search}`;
 }
 
 test.describe("autenticação e sessão", () => {
@@ -33,7 +57,7 @@ test.describe("autenticação e sessão", () => {
     request,
   }) => {
     const user = uniqueUser();
-    await registerUser(request, user);
+    await createVerifiedUserFixture(request, user);
 
     const context = await freshContext(browser);
     const page = await context.newPage();
@@ -48,6 +72,100 @@ test.describe("autenticação e sessão", () => {
       await page.goto(route);
       await expect(page).not.toHaveURL(/\/login/);
     }
+    await context.close();
+  });
+
+  test("cadastro, email interceptado, confirmação pela UI e login", async ({ browser }) => {
+    const context = await freshContext(browser);
+    const page = await context.newPage();
+    const user = uniqueUser();
+
+    await page.goto("/register");
+    await page.getByLabel("Nome").fill(user.name);
+    await page.getByLabel("Email").fill(user.email);
+    await page.getByLabel("Senha", { exact: true }).fill(user.password);
+    await page.getByLabel("Confirmar senha").fill(user.password);
+    const registrationResponsePromise = page.waitForResponse((response) =>
+      response.url().endsWith("/api/auth/register"),
+    );
+    await page.getByRole("button", { name: /criar conta/i }).click();
+    const registrationResponse = await registrationResponsePromise;
+    expect(registrationResponse.status()).toBe(201);
+    const genericRegistrationBody = await registrationResponse.json();
+    expect(genericRegistrationBody).toEqual({
+      data: {
+        message:
+          "Se o endereço puder receber uma confirmação, enviaremos instruções. Verifique sua caixa de entrada ou solicite outro link.",
+      },
+    });
+    await expect(page).toHaveURL(/\/check-email/);
+
+    expect(await getE2EVerificationState(user.email)).toEqual({ exists: true, verified: false });
+    expect((await context.request.get("/api/auth/me")).status()).toBe(401);
+    const captureFile = process.env.E2E_EMAIL_CAPTURE_FILE;
+    if (!captureFile) throw new Error("E2E email capture is not configured");
+    await expect.poll(() => {
+      const captured = readFileSync(captureFile, "utf8").trim();
+      return captured ? captured.split("\n").length : 0;
+    }).toBe(1);
+
+    const duplicatePending = await context.request.post("/api/auth/register", {
+      data: { ...user, password: "different-password-456" },
+    });
+    expect(duplicatePending.status()).toBe(registrationResponse.status());
+    expect(await duplicatePending.json()).toEqual(genericRegistrationBody);
+    expect(readFileSync(captureFile, "utf8").trim().split("\n")).toHaveLength(1);
+    expect((await context.request.post("/api/auth/login", {
+      data: { email: user.email, password: user.password },
+    })).status()).toBe(401);
+
+    const confirmationPath = interceptedVerificationPath();
+    await page.goto(confirmationPath).catch(() => {
+      throw new Error("Could not open the locally intercepted email confirmation link");
+    });
+    await page.getByRole("button", { name: /confirmar e-mail/i }).click();
+    await expect(page.getByRole("status")).toContainText(/e-mail confirmado/i);
+    expect(await getE2EVerificationState(user.email)).toEqual({ exists: true, verified: true });
+
+    const duplicateVerified = await context.request.post("/api/auth/register", {
+      data: { ...user, password: "another-password-789" },
+    });
+    expect(duplicateVerified.status()).toBe(registrationResponse.status());
+    expect(await duplicateVerified.json()).toEqual(genericRegistrationBody);
+    expect(readFileSync(captureFile, "utf8").trim().split("\n")).toHaveLength(1);
+    expect((await context.request.post("/api/auth/login", {
+      data: { email: user.email, password: "another-password-789" },
+    })).status()).toBe(401);
+
+    await page.getByRole("button", { name: /ir para login/i }).click();
+    await page.getByLabel(/email/i).fill(user.email);
+    await page.getByLabel(/senha/i).fill(user.password);
+    await page.getByRole("button", { name: /entrar/i }).click();
+    await expect(page).toHaveURL(/\/home/);
+    await page.reload();
+    await expect(page).not.toHaveURL(/\/login/);
+
+    await context.close();
+  });
+
+  test("conta pendente não autentica; confirmação pelo endpoint permite login", async ({ browser }) => {
+    const context = await freshContext(browser);
+    const request = context.request;
+    const user = uniqueUser();
+    const rawToken = await createPendingUser(user);
+    const pendingLogin = await request.post("/api/auth/login", {
+      data: { email: user.email, password: user.password },
+    });
+    expect(pendingLogin.status()).toBe(401);
+    expect((await pendingLogin.json()).error.message).toBe("Invalid credentials");
+    expect((await request.get("/api/auth/me")).status()).toBe(401);
+
+    const verified = await request.post("/api/auth/verify-email", {
+      data: { token: rawToken },
+    });
+    expect(verified.ok()).toBeTruthy();
+    await loginUser(request, user.email, user.password);
+    expect((await request.get("/api/auth/me")).ok()).toBeTruthy();
     await context.close();
   });
 
@@ -100,7 +218,7 @@ test.describe("autenticação e sessão", () => {
     request,
   }) => {
     const userA = uniqueUser();
-    await registerUser(request, userA);
+    await createVerifiedUserFixture(request, userA);
     await loginUser(request, userA.email, userA.password);
     const game = await createGame(request, {
       game: { name: `Jogo Privado ${Date.now()}` },
@@ -110,7 +228,7 @@ test.describe("autenticação e sessão", () => {
     expect(gameId).toBeTruthy();
 
     const userB = uniqueUser();
-    await registerUser(request, userB);
+    await createVerifiedUserFixture(request, userB);
     await loginUser(request, userB.email, userB.password);
 
     const res = await request.get(`/api/games/${gameId}`);
@@ -122,7 +240,7 @@ test.describe("autenticação e sessão", () => {
     request,
   }) => {
     const user = uniqueUser();
-    await registerUser(request, user);
+    await createVerifiedUserFixture(request, user);
     await loginUser(request, user.email, user.password);
 
     // Captura o cookie da sessão antiga.
@@ -142,5 +260,25 @@ test.describe("autenticação e sessão", () => {
     await loginUser(request, user.email, "nova-Senha-456");
     const meNew = await request.get("/api/auth/me");
     expect(meNew.ok()).toBeTruthy();
+  });
+
+  test("reset consome um token uma vez e invalida a sessão antiga", async ({ request }) => {
+    const user = uniqueUser();
+    await createVerifiedUserFixture(request, user);
+    await loginUser(request, user.email, user.password);
+    const oldSession = await request.get("/api/auth/me");
+    expect(oldSession.ok()).toBeTruthy();
+    const resetToken = await createPasswordResetToken(user.email);
+
+    const reset = await request.post("/api/auth/reset-password", {
+      data: { token: resetToken, password: "reset-E2E-password-456" },
+    });
+    expect(reset.ok()).toBeTruthy();
+    expect((await request.post("/api/auth/reset-password", {
+      data: { token: resetToken, password: "another-E2E-password-789" },
+    })).status()).toBe(400);
+    expect((await request.get("/api/auth/me")).status()).toBe(401);
+    await loginUser(request, user.email, "reset-E2E-password-456");
+    expect((await request.get("/api/auth/me")).ok()).toBeTruthy();
   });
 });

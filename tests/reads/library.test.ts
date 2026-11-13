@@ -28,6 +28,7 @@ async function seedLibrary(): Promise<void> {
     name: "Librarian",
     email: "librarian@test.com",
     passwordHash: "hash",
+    emailVerifiedAt: new Date(),
   });
   userId = String(user._id);
 

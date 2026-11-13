@@ -109,7 +109,7 @@ function NavItemGroup({
 }) {
   const [isOpen, setIsOpen] = useState(hasActiveChild);
   const openCollectionModal = useCollectionModalStore((state) => state.open);
-  console.log("entry ==> ", entry);
+
   return (
     <div className="w-full">
       <RPGUIButton

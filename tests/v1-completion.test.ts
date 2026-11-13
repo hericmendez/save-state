@@ -9,6 +9,7 @@ import { UserGame } from "@/db/models/user-game";
 import {
   TEST_USER,
   clearDatabase,
+  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -21,6 +22,7 @@ beforeEach(clearDatabase);
 
 async function tokenFor(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
+  await markTestUserVerified(TEST_USER.email);
   const res = await login(postRequest("/api/auth/login", { email: TEST_USER.email, password: TEST_USER.password }));
   const t = res.cookies.get("token")?.value;
   if (!t) throw new Error("no token");
@@ -89,6 +91,7 @@ describe("Zerei +1", () => {
     const created = await (await createGame(authed("/api/games", token, { method: "POST", body: { game: { name: "Z3" } } }))).json();
     const id = created.data._id;
     await register(postRequest("/api/auth/register", { name: "Other", email: "other@test.com", password: "password123" }));
+    await markTestUserVerified("other@test.com");
     const otherLogin = await login(postRequest("/api/auth/login", { email: "other@test.com", password: "password123" }));
     const otherToken = otherLogin.cookies.get("token")!.value;
     const res = await finishGame(authed(`/api/games/${id}/finish`, otherToken, { method: "POST" }), { params: Promise.resolve({ gameId: id }) });

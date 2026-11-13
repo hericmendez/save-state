@@ -29,6 +29,8 @@ export interface ExportPayload {
   collections: Array<{ id: string; name: string }>;
 }
 
+const FORMULA_PREFIX = /^[\s\u0000-\u001f\u007f-\u009f\ufeff]*[=+\-@]/;
+
 export async function buildExportPayload(userId: string): Promise<ExportPayload> {
   await connectDatabase();
   const user = await User.findById(userId).lean();
@@ -101,7 +103,15 @@ export function exportToCsv(payload: ExportPayload): string {
   ];
   const escape = (v: unknown) => {
     if (v === null || v === undefined) return "";
-    const s = String(v);
+    const value = String(v);
+    // Spreadsheet applications may execute a text cell as a formula when
+    // its first meaningful character is =, +, -, or @. Treat leading Unicode
+    // whitespace, C0/C1 controls, and BOM as ignorable by spreadsheet importers.
+    // Numeric primitives remain numbers; this only changes untrusted strings.
+    const s =
+      typeof v === "string" && FORMULA_PREFIX.test(value)
+        ? `'${value}`
+        : value;
     if (
       s.includes(",") ||
       s.includes('"') ||

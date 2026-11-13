@@ -7,6 +7,7 @@ import {
   TEST_USER,
   authedRequest,
   clearDatabase,
+  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -18,6 +19,8 @@ beforeEach(clearDatabase);
 
 async function tokenFor(email = TEST_USER.email): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
+  await markTestUserVerified(email);
+  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email,
     password: TEST_USER.password,
@@ -43,6 +46,7 @@ describe("auth normalization and boundaries", () => {
 
   it("logs in with differently-cased email", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
+    await markTestUserVerified(TEST_USER.email);
     const response = await login(postRequest("/api/auth/login", {
       email: "AUTH-USER@TEST.COM",
       password: TEST_USER.password,

@@ -15,6 +15,7 @@ import {
   TEST_USER,
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -31,6 +32,7 @@ const OTHER_USER = {
 
 async function tokenFor(user: { name: string; email: string; password: string } = TEST_USER): Promise<string> {
   await register(postRequest("/api/auth/register", user));
+  await markTestUserVerified(user.email);
   const response = await login(postRequest("/api/auth/login", {
     email: user.email,
     password: user.password,

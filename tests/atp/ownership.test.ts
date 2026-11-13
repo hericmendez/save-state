@@ -17,6 +17,7 @@ import {
   TEST_USER,
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -58,6 +59,7 @@ function stubCatalog(): void {
 
 async function tokenFor(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
+  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email: TEST_USER.email,
     password: TEST_USER.password,
@@ -157,6 +159,7 @@ describe("ATP ownership marking", () => {
         password: "password-123",
       }),
     );
+    await markTestUserVerified("other@test.com");
     const otherLogin = await login(
       postRequest("/api/auth/login", {
         email: "other@test.com",

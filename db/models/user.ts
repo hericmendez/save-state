@@ -25,6 +25,7 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
+    emailVerifiedAt: { type: Date, default: null },
     top10: {
       type: [{ type: Schema.Types.ObjectId, ref: "UserGame" }],
       default: [],
@@ -40,6 +41,7 @@ export interface UserDocument extends mongoose.Document {
   email: string;
   passwordHash: string;
   sessionVersion: number;
+  emailVerifiedAt: Date | null;
   top10: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;

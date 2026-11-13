@@ -19,6 +19,7 @@ import { handleRoute } from "@/server/shared/route-handler";
 import {
   TEST_USER,
   clearDatabase,
+  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -44,6 +45,7 @@ describe("seed-created user compatibility", () => {
   it("authenticates a registerUser-created account via POST /api/auth/login", async () => {
     // Same service path the Atlas seed uses: no HTTP registration involved.
     await registerUser({ ...SEED_STYLE_USER });
+    await markTestUserVerified(SEED_STYLE_USER.email);
     const response = await login(
       postRequest("/api/auth/login", {
         email: SEED_STYLE_USER.email,
@@ -63,6 +65,7 @@ describe("seed-created user compatibility", () => {
 describe("login infrastructure failures", () => {
   it("maps a database outage to sanitized 500 INTERNAL_ERROR", async () => {
     await registerUser({ ...TEST_USER });
+    await markTestUserVerified(TEST_USER.email);
     __resetConnectionCache();
     const connect = vi
       .spyOn(mongoose, "connect")
@@ -88,6 +91,7 @@ describe("login infrastructure failures", () => {
 
   it("does not mask an outage as 401", async () => {
     await registerUser({ ...TEST_USER });
+    await markTestUserVerified(TEST_USER.email);
     __resetConnectionCache();
     const connect = vi.spyOn(mongoose, "connect").mockRejectedValueOnce(new Error("boom"));
     try {
@@ -106,6 +110,7 @@ describe("login infrastructure failures", () => {
 
   it("fails closed with sanitized 500 on invalid auth configuration", async () => {
     await registerUser({ ...TEST_USER });
+    await markTestUserVerified(TEST_USER.email);
     const savedSecret = process.env.JWT_SECRET;
     delete process.env.JWT_SECRET;
     __resetServerEnvCache();

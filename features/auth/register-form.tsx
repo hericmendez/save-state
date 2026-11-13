@@ -26,14 +26,15 @@ export function RegisterForm() {
     setIsLoading(true);
     try {
       await api.register(name, email, password);
-      // Registration does not establish a session; sign in afterwards.
-      await api.login(email, password);
-      router.refresh();
-      router.push("/home");
+      router.push("/check-email");
     } catch (err) {
-      setError(
-        err instanceof ApiRequestError ? err.message : "Registration failed",
-      );
+      if (!(err instanceof ApiRequestError) || err.status >= 500) {
+        setError(
+          "Não foi possível confirmar o resultado do cadastro. Se ele foi concluído, você ainda pode solicitar um novo link de confirmação.",
+        );
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +63,9 @@ export function RegisterForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
+          maxLength={254}
           autoComplete="email"
+          onBlur={(event) => setEmail(event.target.value.trim().toLowerCase())}
         />
       </label>
       <label>
@@ -94,6 +97,10 @@ export function RegisterForm() {
         title={isLoading ? "Criando…" : "Criar conta"}
         disabled={isLoading}
       />
+      <p className="text-center">
+        Já se cadastrou ou não recebeu a confirmação?{" "}
+        <Link href="/check-email">Solicitar outro link</Link>
+      </p>
       <p className="text-center">
         Já tem conta? <Link href="/login">Entrar</Link>
       </p>

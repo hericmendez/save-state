@@ -5,7 +5,7 @@
   "description": "Save State — Next.js modular monolith (Phase 1 skeleton)",
   "packageManager": "pnpm@11.3.0",
   "engines": {
-    "node": ">=22"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",

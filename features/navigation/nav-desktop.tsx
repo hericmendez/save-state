@@ -27,7 +27,7 @@ function useSidebarKeyboard(paths: string[]) {
 
 const ALL_NAV_PATHS = flattenNavPaths(NAV_STRUCTURE);
 
-function LogoutLink({ onDone }: { onDone?: () => void }) {
+export function LogoutLink({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,10 +39,17 @@ function LogoutLink({ onDone }: { onDone?: () => void }) {
     setIsLoading(true);
     try {
       await api.logout();
-    } finally {
       onDone?.();
       router.refresh();
-      router.push("/login");
+      router.replace("/login?loggedOut=1");
+    } catch {
+      // The API clears this browser's HttpOnly cookie even when global
+      // revocation fails. Do not claim other devices were logged out.
+      onDone?.();
+      router.refresh();
+      router.replace("/login?logout=unconfirmed");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -52,6 +59,7 @@ function LogoutLink({ onDone }: { onDone?: () => void }) {
       href="#"
       onClick={handleLogout}
       aria-busy={isLoading}
+      aria-label={isLoading ? "Saindo…" : "Sair"}
     >
       (Logout)
     </a>

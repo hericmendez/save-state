@@ -392,7 +392,9 @@ export async function runAtlasSeed(input: RunAtlasSeedInput): Promise<AtlasSeedS
   const email = input.email.trim().toLowerCase();
   if (!email) throw new Error("seed user email is required");
   if (!input.password) throw new Error("seed user password is required");
-  await connectDatabase();
+  // Atlas seeds must never provision indexes as an incidental side effect.
+  // Index readiness is verified read-only; structural changes belong to B-01.
+  await connectDatabase({ readOnlyIndexes: true });
 
   const summary: AtlasSeedSummary = {
     userReused: false,

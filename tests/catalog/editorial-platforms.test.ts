@@ -3,7 +3,8 @@
  * mapeamento explícito editorial → IGDB (puro, sem I/O de rede).
  */
 
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import { describe, expect, it } from "vitest";
 import raw from "@/atp-platforms-simplified.json";
 import {
@@ -21,7 +22,7 @@ describe("editorial platform directory", () => {
   it("renders every JSON entry in editorial order", () => {
     const platforms = listEditorialPlatforms();
     expect(platforms).toHaveLength((raw as unknown[]).length);
-    expect(platforms).toHaveLength(64);
+    expect(platforms).toHaveLength(66);
     expect(platforms.map((p) => p.id)).toEqual(
       (raw as Array<{ id: string }>).map((entry) => entry.id),
     );
@@ -99,33 +100,28 @@ describe("editorial → IGDB resolution", () => {
   });
 });
 
-describe("corrected editorial thumbs (Parte A)", () => {
+describe("curated local thumbs (save-state)", () => {
   const byId = new Map(
     listEditorialPlatforms().map((platform) => [platform.id, platform]),
   );
 
-  it("odyssey-2 image uses the valid .jpg URL", () => {
+  it("points odyssey-2 at its vendored photo", () => {
     expect(byId.get("odyssey-2")?.thumb.image).toBe(
-      "https://upload.wikimedia.org/wikipedia/commons/2/2d/Magnavox-Odyssey-2-Console-Set.jpg",
+      "/platforms/odyssey-2/photo.webp",
     );
   });
 
-  it("pc-dos logo has no trailing query marker", () => {
+  it("points pc-dos at its vendored logo without query junk", () => {
     const logo = byId.get("pc-dos")?.thumb.logo ?? "";
-    expect(logo).toBe(
-      "https://upload.wikimedia.org/wikipedia/commons/c/c9/MS-DOS_logo_2.svg",
-    );
+    expect(logo).toBe("/platforms/pc-dos/logo.svg");
     expect(logo.endsWith("?")).toBe(false);
   });
 
   it("sega-master-system logo/image sit in their conventional fields", () => {
+    // Regression guard: a previous curation had these two inverted.
     const sms = byId.get("sega-master-system");
-    expect(sms?.thumb.logo).toBe(
-      "https://upload.wikimedia.org/wikipedia/commons/8/83/Master_System_Logo.svg",
-    );
-    expect(sms?.thumb.image).toBe(
-      "https://upload.wikimedia.org/wikipedia/commons/0/0b/Sega-Master-System-Set.png",
-    );
+    expect(sms?.thumb.logo).toBe("/platforms/sega-master-system/logo.svg");
+    expect(sms?.thumb.image).toBe("/platforms/sega-master-system/photo.webp");
   });
 });
 
@@ -138,7 +134,7 @@ describe("PlatformCard editorial navigation (Parte A)", () => {
   // `edit-and-add-form.test.ts`), unrelated to this change.
   it("links every platform to its editorial detail slug", () => {
     const platforms = listEditorialPlatforms();
-    expect(platforms).toHaveLength(64);
+    expect(platforms).toHaveLength(66);
     for (const platform of platforms) {
       expect(editorialPlatformHref(platform)).toBe(
         `/catalog/platforms/${platform.id}`,
@@ -146,11 +142,13 @@ describe("PlatformCard editorial navigation (Parte A)", () => {
     }
   });
 
-  it("keeps thumbs as absolute https URLs without query junk", () => {
+  it("keeps thumbs as local public paths (or null) without query junk", () => {
     for (const platform of listEditorialPlatforms()) {
       for (const url of [platform.thumb.logo, platform.thumb.image]) {
         if (url === null) continue;
-        expect(url.startsWith("https://")).toBe(true);
+        expect(url.startsWith("/platforms/")).toBe(true);
+        expect(url.startsWith("https://")).toBe(false);
+        expect(url.startsWith("http://")).toBe(false);
         expect(url.trim()).toBe(url);
         expect(url.endsWith("?")).toBe(false);
         expect(/\.(jpgg|pngg|svgg)$/i.test(url)).toBe(false);
@@ -158,10 +156,20 @@ describe("PlatformCard editorial navigation (Parte A)", () => {
     }
   });
 
-  it("keeps the gamecube image as a valid absolute URL", () => {
+  it("keeps the gamecube photo local with a null logo (no asset)", () => {
     expect(findEditorialPlatform("nintendo-gamecube")?.thumb.image).toBe(
-      "https://upload.wikimedia.org/wikipedia/commons/d/d1/GameCube-Set.jpg",
+      "/platforms/nintendo-gamecube/photo.webp",
     );
+    expect(findEditorialPlatform("nintendo-gamecube")?.thumb.logo).toBeNull();
+  });
+
+  it("keeps platforms without assets as explicit null thumbs", () => {
+    for (const id of ["fire-tv", "html5-web"]) {
+      const platform = findEditorialPlatform(id);
+      expect(platform).not.toBeNull();
+      expect(platform?.thumb.logo).toBeNull();
+      expect(platform?.thumb.image).toBeNull();
+    }
   });
 });
 
@@ -248,19 +256,19 @@ describe("platforms grid pagination (query state, pure)", () => {
     ).toEqual({ page: 2, limit: 8 });
   });
 
-  it("splits the 64 editorial entries into 4 pages of 16, order kept", () => {
+  it("splits the 66 editorial entries into 5 pages of 16, order kept", () => {
     const platforms = listEditorialPlatforms();
     const first = paginatePlatforms(platforms, { page: 1, limit: 16 });
-    expect(first.totalPages).toBe(4);
+    expect(first.totalPages).toBe(5);
     expect(first.page).toBe(1);
     expect(first.items).toHaveLength(16);
     expect(first.items.map((p) => p.id)).toEqual(
       platforms.slice(0, 16).map((p) => p.id),
     );
-    const last = paginatePlatforms(platforms, { page: 4, limit: 16 });
-    expect(last.items).toHaveLength(16);
+    const last = paginatePlatforms(platforms, { page: 5, limit: 16 });
+    expect(last.items).toHaveLength(2);
     expect(last.items.map((p) => p.id)).toEqual(
-      platforms.slice(48).map((p) => p.id),
+      platforms.slice(64).map((p) => p.id),
     );
   });
 
@@ -285,13 +293,13 @@ describe("platforms grid pagination (query state, pure)", () => {
     const platforms = listEditorialPlatforms();
     expect(
       paginatePlatforms(platforms, { page: 99, limit: 16 }).page,
-    ).toBe(4);
+    ).toBe(5);
     expect(
       paginatePlatforms(platforms, { page: 99, limit: 16 }).items,
-    ).toHaveLength(16);
+    ).toHaveLength(2);
     expect(
-      paginatePlatforms(platforms, { page: 9, limit: 8 }).page,
-    ).toBe(8);
+      paginatePlatforms(platforms, { page: 99, limit: 8 }).page,
+    ).toBe(9);
   });
 
   it("bounds card images per page (16 cards → at most 32)", () => {
@@ -387,7 +395,7 @@ describe("resolvePlatformThumb (local-first, pure)", () => {
     });
   });
 
-  it("falls back to remote per kind when the manifest is partial", () => {
+  it("falls back to the JSON local paths when the manifest is partial", () => {
     const platform = findEditorialPlatform("3do");
     if (!platform) throw new Error("3do missing");
     expect(
@@ -409,10 +417,108 @@ describe("resolvePlatformThumb (local-first, pure)", () => {
   it("never mixes platforms (slug-scoped keys)", () => {
     const android = findEditorialPlatform("android");
     if (!android) throw new Error("android missing");
-    // Fixture only covers 3do: android must stay fully remote.
+    // Fixture only covers 3do: android must stay on its JSON paths.
     expect(resolvePlatformThumb(android, fixture)).toEqual({
       logo: android.thumb.logo,
       image: android.thumb.image,
     });
+  });
+
+  it("passes null thumbs through for the visual fallback", () => {
+    const fireTv = findEditorialPlatform("fire-tv");
+    if (!fireTv) throw new Error("fire-tv missing");
+    expect(fireTv.thumb).toEqual({ logo: null, image: null });
+    expect(resolvePlatformThumb(fireTv, fixture)).toEqual({
+      logo: null,
+      image: null,
+    });
+    expect(resolvePlatformThumb(fireTv, null)).toEqual({
+      logo: null,
+      image: null,
+    });
+  });
+});
+
+describe("editorial dataset integrity (local assets)", () => {
+  const entries = raw as Array<{
+    id: string;
+    name: string;
+    company: string;
+    releaseYear: string | number | null;
+    type: string;
+    thumb: { logo: string | null; image: string | null } | null;
+  }>;
+
+  it("holds 66 records with unique ids", () => {
+    expect(entries).toHaveLength(66);
+    const ids = entries.map((entry) => entry.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("has no external URLs in thumb fields", () => {
+    for (const entry of entries) {
+      for (const url of [entry.thumb?.logo, entry.thumb?.image]) {
+        if (url === null || url === undefined) continue;
+        expect(url.startsWith("http://")).toBe(false);
+        expect(url.startsWith("https://")).toBe(false);
+        expect(url.startsWith("/platforms/")).toBe(true);
+      }
+    }
+  });
+
+  it("points every non-null thumb at a file that exists on disk", () => {
+    const missing: string[] = [];
+    for (const entry of entries) {
+      for (const url of [entry.thumb?.logo, entry.thumb?.image]) {
+        if (url === null || url === undefined) continue;
+        const relative = url.replace(/^\/+/, "");
+        if (!existsSync(join(process.cwd(), "public", relative))) {
+          missing.push(`${entry.id}:${url}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it("preserves the editorial metadata alongside the new thumbs", () => {
+    const byId = new Map(entries.map((entry) => [entry.id, entry]));
+    expect(byId.get("playstation-2")).toMatchObject({
+      name: "PlayStation 2",
+      company: "Sony",
+      releaseYear: "2000",
+      type: "console",
+    });
+    expect(byId.get("sega-master-system")).toMatchObject({
+      name: "Sega Master System",
+      company: "Sega",
+      releaseYear: "1985",
+      type: "console",
+    });
+    expect(byId.get("pc")).toMatchObject({
+      name: "PC",
+      company: "Various",
+      releaseYear: null,
+    });
+  });
+
+  it("has no orphaned vendored assets outside the catalog ids", () => {
+    const manifest = JSON.parse(
+      readFileSync("public/platforms/manifest.json", "utf8"),
+    ) as { files: Record<string, unknown> };
+    const ids = new Set(entries.map((entry) => entry.id));
+    const orphans = Object.keys(manifest.files).filter((key) => {
+      const slug = key.split("/")[0];
+      return !ids.has(slug);
+    });
+    expect(orphans).toEqual([]);
+  });
+
+  it("renders the card fallbacks when logo/image are absent", () => {
+    const card = readFileSync("features/catalog/platform-card.tsx", "utf8");
+    // Initial-letter logo fallback + photo placeholder, both with
+    // onError recovery so one missing asset never breaks the grid.
+    expect(card).toContain("charAt(0).toUpperCase()");
+    expect(card).toContain("Image not found");
+    expect(card).toContain("setFailed(true)");
   });
 });

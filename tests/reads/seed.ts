@@ -25,8 +25,18 @@ export interface SeedResult {
 export async function seedReadFixtures(): Promise<SeedResult> {
   const passwordHash = await bcrypt.hash("password-123", 10);
   const [userA, userB] = await Promise.all([
-    User.create({ name: "Reader A", email: "reader-a@test.com", passwordHash }),
-    User.create({ name: "Reader B", email: "reader-b@test.com", passwordHash }),
+    User.create({
+      name: "Reader A",
+      email: "reader-a@test.com",
+      passwordHash,
+      emailVerifiedAt: new Date(),
+    }),
+    User.create({
+      name: "Reader B",
+      email: "reader-b@test.com",
+      passwordHash,
+      emailVerifiedAt: new Date(),
+    }),
   ]);
 
   const [zelda, mario, tetris] = await Promise.all([

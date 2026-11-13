@@ -6,13 +6,13 @@ import {
   CHANGE_PASSWORD_RATE_LIMIT,
   checkRateLimit,
 } from "@/server/auth/rate-limit";
-import { getSessionUser } from "@/server/auth/session";
+import { clearAuthCookie, getSessionUser } from "@/server/auth/session";
 import { changePassword } from "@/server/auth/service";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  return handleRoute(async () => {
+  const response = await handleRoute(async () => {
     const session = await getSessionUser(request);
     checkRateLimit(
       request,
@@ -23,4 +23,6 @@ export async function POST(request: NextRequest) {
     await changePassword(session.id, body.currentPassword, body.newPassword);
     return ok({ message: "Password changed successfully" });
   });
+  if (response.ok) clearAuthCookie(response);
+  return response;
 }

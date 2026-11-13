@@ -7,14 +7,27 @@
  * para escrita (somente leitura do fluxo `?userGameId=`).
  */
 import { test, expect } from "@playwright/test";
-import { uniqueId, uniqueUser, registerUser, loginUser, createGame } from "./helpers";
+import {
+  uniqueId,
+  uniqueUser,
+  createVerifiedUserFixture,
+  loginUser,
+  createAuthenticatedE2EContext,
+  createGame,
+} from "./helpers";
+
+async function sharedUserContext(browser: any) {
+  const context = await createAuthenticatedE2EContext(browser);
+  const page = await context.newPage();
+  return { context, page };
+}
 
 async function freshUserContext(browser: any) {
   const context = await browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
   const user = uniqueUser();
-  await registerUser(context.request, user);
+  await createVerifiedUserFixture(context.request, user);
   await loginUser(context.request, user.email, user.password);
   const page = await context.newPage();
   return { context, page, user };
@@ -22,7 +35,7 @@ async function freshUserContext(browser: any) {
 
 test.describe("review editor — página independente", () => {
   test("estado vazio oferece criação explícita de rascunho", async ({ browser }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     await page.goto("/reviews/editor");
     await expect(page.getByRole("heading", { name: /review editor/i })).toBeVisible();
     await expect(page.locator("body")).toContainText(/nenhum rascunho/i);
@@ -31,7 +44,7 @@ test.describe("review editor — página independente", () => {
   });
 
   test("criar rascunho, editar Markdown e recuperar após reload", async ({ browser }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     await page.goto("/reviews/editor");
     await page.getByRole("button", { name: /novo rascunho/i }).first().click();
 
@@ -53,7 +66,7 @@ test.describe("review editor — página independente", () => {
   });
 
   test("modos visual e prévia renderizam sem perder conteúdo", async ({ browser }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     await page.goto("/reviews/editor");
     await page.getByRole("button", { name: /novo rascunho/i }).first().click();
     await page.getByRole("tab", { name: /markdown/i }).click();
@@ -75,7 +88,7 @@ test.describe("review editor — página independente", () => {
   });
 
   test("parâmetros ambíguos são rejeitados com escolha explícita", async ({ browser }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     await page.goto("/reviews/editor?draftId=abc&userGameId=def");
     await expect(page.locator("body")).toContainText(/conflitantes/i);
     await expect(page.getByRole("link", { name: /rascunhos/i })).toBeVisible();
@@ -83,7 +96,7 @@ test.describe("review editor — página independente", () => {
   });
 
   test("draftId desconhecido não cria documento silencioso", async ({ browser }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     await page.goto("/reviews/editor?draftId=00000000-0000-4000-8000-000000000000");
     await expect(page.locator("body")).toContainText(/não encontrado/i);
     await expect(page.getByRole("button", { name: /novo rascunho/i }).first()).toBeVisible();
@@ -93,7 +106,7 @@ test.describe("review editor — página independente", () => {
   test("modo userGameId lê a cópia do servidor e cria rascunho explicitamente", async ({
     browser,
   }) => {
-    const { context, page } = await freshUserContext(browser);
+    const { context, page } = await sharedUserContext(browser);
     const marker = uniqueId("ReviewE2E");
     // Sem review persistida: cobre o ramo `missing` do contrato real
     // (escritas com review exigem replica set — indisponível neste mongod

@@ -5,7 +5,13 @@
  * "favorito" é flag; listas = game-collections).
  */
 import { test, expect } from "@playwright/test";
-import { uniqueId, uniqueUser, registerUser, loginUser } from "./helpers";
+import {
+  uniqueId,
+  uniqueUser,
+  createVerifiedUserFixture,
+  loginUser,
+  createAuthenticatedE2EContext,
+} from "./helpers";
 
 test.describe("biblioteca de jogos", () => {
   test("backlog vazio exibe estado vazio consistente", async ({ browser }) => {
@@ -15,7 +21,7 @@ test.describe("biblioteca de jogos", () => {
       storageState: { cookies: [], origins: [] },
     });
     const user = uniqueUser();
-    await registerUser(context.request, user);
+    await createVerifiedUserFixture(context.request, user);
     await loginUser(context.request, user.email, user.password);
     const page = await context.newPage();
     await page.goto("/backlog");
@@ -195,13 +201,8 @@ test.describe("biblioteca de jogos", () => {
   test("usuário isolado: biblioteca de outro usuário não vaza entre contas", async ({
     browser,
   }) => {
-    const ctx = await browser.newContext({
-      storageState: { cookies: [], origins: [] },
-    });
+    const ctx = await createAuthenticatedE2EContext(browser);
     const req = ctx.request;
-    const userA = uniqueUser();
-    await registerUser(req, userA);
-    await loginUser(req, userA.email, userA.password);
     const secret = `Segredo ${uniqueId("s")}`;
     await req.post("/api/games", {
       data: { game: { name: secret }, status: "backlog" },
@@ -213,7 +214,7 @@ test.describe("biblioteca de jogos", () => {
     });
     const reqB = ctxB.request;
     const userB = uniqueUser();
-    await registerUser(reqB, userB);
+    await createVerifiedUserFixture(reqB, userB);
     await loginUser(reqB, userB.email, userB.password);
     const list = await reqB.get("/api/games");
     const json = await list.json();

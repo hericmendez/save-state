@@ -11,7 +11,9 @@ import { resolveIgdbPlatformIds } from "@/server/search/igdb-platforms";
  *
  * `releaseYear` in the JSON is a string ("1993") with one null (`pc`);
  * it is normalized to number|null for compatibility with the neutral
- * `SearchPlatform` contract. The JSON file itself is never rewritten.
+ * `SearchPlatform` contract. `thumb` holds curated local paths
+ * (`/platforms/<slug>/...`) or nulls when no asset exists; `thumb` itself
+ * may be null (normalized to `{ logo: null, image: null }`).
  */
 
 const editorialThumbSchema = z.object({
@@ -19,13 +21,20 @@ const editorialThumbSchema = z.object({
   image: z.string().nullable(),
 });
 
+/**
+ * `thumb` aceita `null`/ausente (ausência legítima de imagem: a plataforma
+ * existe no catálogo mas não possui asset local) e normaliza para
+ * `{ logo: null, image: null }`, preservando o fallback visual do
+ * `PlatformCard`. Qualquer outro desvio (ex.: `logo` não-string) continua
+ * sendo `ZodError`, sem mascarar inconsistências estruturais.
+ */
 const editorialRawSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   company: z.string(),
   releaseYear: z.union([z.string(), z.number(), z.null()]),
   type: z.string(),
-  thumb: editorialThumbSchema,
+  thumb: editorialThumbSchema.nullish(),
 });
 
 export interface EditorialPlatform {
@@ -50,13 +59,14 @@ function normalizeReleaseYear(value: string | number | null): number | null {
 
 function toEditorialPlatform(raw: unknown): EditorialPlatform {
   const parsed = editorialRawSchema.parse(raw);
+  const thumb = parsed.thumb ?? { logo: null, image: null };
   return {
     id: parsed.id,
     name: parsed.name,
     company: parsed.company,
     releaseYear: normalizeReleaseYear(parsed.releaseYear),
     type: parsed.type,
-    thumb: { logo: parsed.thumb.logo, image: parsed.thumb.image },
+    thumb: { logo: thumb.logo, image: thumb.image },
   };
 }
 
@@ -86,11 +96,11 @@ export function editorialPlatformHref(editorial: EditorialPlatform): string {
 /**
  * Editorial listing pagination (platforms grid).
  *
- * The grid renders 64 cards × 2 Wikimedia images each. Paginating the local
- * editorial array bounds concurrent upstream/optimizer fetches per page
- * (default 16 → ≤32 images) without any provider request. The URL is the
- * source of truth (`page`/`limit`), so reload and back/forward work with
- * zero client state; invalid values normalize to predictable defaults.
+ * Paginates the local editorial array (default 16 cards per page) to bound
+ * concurrent `next/image` fetches per page without any provider request.
+ * The URL is the source of truth (`page`/`limit`), so reload and
+ * back/forward work with zero client state; invalid values normalize to
+ * predictable defaults.
  */
 
 /** Allowed page sizes for the platforms grid. */
@@ -223,9 +233,10 @@ export interface PlatformAssetManifest {
 
 /**
  * Resolve card images local-first: `/platforms/<file>` when the manifest
- * lists a vendored copy for this platform+kinds, otherwise the curated
- * remote URL (pending assets and the single IGDB logo keep working).
- * Pure — unit-tested with fixture manifests, no filesystem access.
+ * lists a vendored copy for this platform+kind, otherwise the curated local
+ * path from the editorial JSON (possibly null → `PlatformCard` renders its
+ * visual fallback). Pure — unit-tested with fixture manifests, no
+ * filesystem access.
  */
 export function resolvePlatformThumb(
   platform: EditorialPlatform,

@@ -13,6 +13,7 @@ import {
 import {
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -25,6 +26,7 @@ const PASSWORD = "password-123";
 
 async function registerUser(name: string, email: string): Promise<{ id: string; token: string }> {
   await register(postRequest("/api/auth/register", { name, email, password: PASSWORD }));
+  await markTestUserVerified(email);
   const response = await login(postRequest("/api/auth/login", { email, password: PASSWORD }));
   const token = response.cookies.get("token")?.value;
   if (!token) throw new Error("login did not issue a token");

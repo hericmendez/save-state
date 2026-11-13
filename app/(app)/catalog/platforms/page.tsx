@@ -26,7 +26,7 @@ import RPGUISelect from "@/components/RPGUI/Select";
  * No provider requests are made to render this listing.
  *
  * Pagination slices the local editorial array (default 16 → at most 32
- * card images per page, bounding concurrent Wikimedia fetches). `page`
+ * card images per page, bounding concurrent `next/image` fetches). `page`
  * and `limit` live in the URL, so reload and back/forward navigation work
  * with zero client state; invalid values normalize to the nearest valid
  * page instead of an empty grid. Controls are plain links + a GET form,
@@ -190,9 +190,10 @@ export default async function PlatformsPage({
 
 /**
  * Local asset manifest (`public/platforms/manifest.json`, emitted by the
- * manual import script). Missing or unreadable → null, and every card falls
- * back to its curated remote URL, so the listing works before/after
- * vendoring with zero behavior change for pending assets.
+ * manual import script). Missing or unreadable → null, and every card keeps
+ * its curated local path from the editorial JSON (nulls render the card
+ * fallback), so the listing works with zero behavior change for pending
+ * assets.
  */
 function loadPlatformAssetManifest(): PlatformAssetManifest | null {
   try {

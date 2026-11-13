@@ -3,8 +3,10 @@ import { useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
+import { useRouter } from "next/navigation";
 
 export function PasswordForm() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -19,10 +21,7 @@ export function PasswordForm() {
     setLoading(true);
     try {
       await apiRequest("/api/auth/change-password", { method: "POST", body: { currentPassword, newPassword } });
-      setMessage("Senha alterada com sucesso!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setIsEditing(false);
+      router.replace("/login?passwordChanged=1");
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Falha ao alterar senha");
     } finally {
