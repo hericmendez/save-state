@@ -282,11 +282,33 @@ Este relatório é adicionado em um segundo commit documental, imediatamente ap�
 
 ## 18. Resultado do push
 
-**NÃO EXECUTADO.**
+**NÃO EXECUTADO. PUSH-GATE REPROVADO por dois motivos independentes.**
 
-Motivo: não foi possível verificar se o repositório `hericmendez/save-state` possui integração automática com a Vercel que dispararia um deploy ao receber push em `main`. Não há `.vercel/`, `vercel.json` ou workflows locais que permitam essa verificação, e a tarefa proíbe deploy não autorizado. Conforme a Fase L, o push foi interrompido para decisão do proprietário.
+### 18.1 Divergência de histórico (non-fast-forward)
 
-Nenhum comando de push, force push, rebase ou merge foi executado.
+A verificação read-only `git ls-remote origin refs/heads/main` revelou que `origin/main` já havia avançado para `ced554059588fbf94945015fb57220bda288b036`, dois commits acima da base local `9aaa952`:
+
+```text
+320d732 docs: registrar incidente de autenticacao Atlas
+ced5540 chore: incluir progresso atual do Save State
+```
+
+Após `git fetch origin` (read-only):
+
+| Indicador | Valor |
+|---|---|
+| Merge base | `9aaa952` |
+| Commits só no remoto | 2 |
+| Commits só no local | 2 (`c5555d5`, `609de29`) |
+| Ahead/behind | `2 / 2` |
+
+O commit remoto `ced5540` contém 432 arquivos do mesmo trabalho acumulado. Em conteúdo real (`--ignore-cr-at-eol`), o commit local `c5555d5` ainda adiciona 36 arquivos (autenticação híbrida, verificação/recuperação de e-mail, `PasswordInput`, testes e documentação correlatos), além deste relatório. Ou seja, o trabalho local **não é redundante**, mas o histórico divergiu.
+
+Um `git push` normal seria rejeitado. Resolver a divergência exigiria `merge`, `rebase` ou `force push`, todos expressamente proibidos pela tarefa. Nenhum desses comandos foi executado.
+
+### 18.2 Impossibilidade de verificar auto-deploy da Vercel
+
+Não foi possível verificar se o repositório `hericmendez/save-state` possui integração automática com a Vercel que dispararia um deploy ao receber push em `main`. Não há `.vercel/`, `vercel.json` ou workflows locais que permitam essa verificação, e a tarefa proíbe deploy não autorizado. Conforme a Fase L, o push deve ser interrompido para decisão do proprietário.
 
 ---
 
@@ -295,12 +317,12 @@ Nenhum comando de push, force push, rebase ou merge foi executado.
 | Item | Valor |
 |---|---|
 | Branch | `main` |
-| HEAD | `c5555d5` (commit principal) + commit documental deste relatório |
-| Upstream | `origin/main`, sem push |
-| Ahead | 2 commits locais |
-| Divergência remota | Nenhuma alteração de `origin/main` observada |
+| HEAD | `609de29` (2 commits locais) + este ajuste documental |
+| Upstream | `origin/main` = `ced5540`, **sem push** |
+| Ahead/behind | `2 / 2` (histórico divergente) |
 | Working tree | 301 arquivos apenas-CRLF preservados |
 | Segredos | Nenhum |
+| Operações proibidas | Nenhum merge, rebase, force push ou reset executado |
 
 ---
 
