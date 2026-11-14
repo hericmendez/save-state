@@ -1,7 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { loadServerEnv } from "@/lib/env";
-import { emailService, type EmailOptions } from "@/server/auth/email";
+import { emailService, emailFailureLogFields, type EmailOptions } from "@/server/auth/email";
 import type { VerificationEmailJob } from "@/server/auth/service";
 import { logger } from "@/server/shared/logger";
 
@@ -26,9 +26,10 @@ export async function deliverVerificationEmail(
     await emailService.send(toEmailOptions(job));
   } catch (error) {
     try {
-      logger.error("Verification email delivery failed", {
-        name: error instanceof Error ? error.name : typeof error,
-      });
+      logger.error(
+        "Verification email delivery failed",
+        emailFailureLogFields(error),
+      );
     } catch {
       // A logging failure must not turn a deferred notification into a route error.
     }
@@ -43,6 +44,9 @@ export async function deliverVerificationEmail(
 export async function scheduleVerificationEmail(
   job: VerificationEmailJob | null,
 ): Promise<void> {
+  // Nothing to deliver (unknown/pending-less address, or mail unavailable).
+  // Returning before `after()` also keeps direct route invocation safe.
+  if (!job) return;
   if (process.env.NODE_ENV === "test") {
     await deliverVerificationEmail(job);
     return;

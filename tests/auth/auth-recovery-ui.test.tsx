@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+import ForgotPasswordPage from "@/app/(auth)/forgot-password/page";
 import { CheckEmail } from "@/features/auth/check-email";
 import { LoginForm } from "@/features/auth/login-form";
 import { RegisterForm } from "@/features/auth/register-form";
@@ -46,6 +47,18 @@ afterEach(() => {
 });
 
 describe("authentication recovery UI", () => {
+  it("shows the development notice with a mailto contact on the forgot-password page", () => {
+    render(<ForgotPasswordPage />);
+
+    expect(screen.getByRole("note", { name: "Recuperação de senha em desenvolvimento" }))
+      .toBeTruthy();
+    const contact = screen.getByRole("link", { name: "heric.mendez00@gmail.com" });
+    expect(contact.getAttribute("href")).toBe("mailto:heric.mendez00@gmail.com");
+    // The recovery form must stay usable next to the notice.
+    expect(screen.getByLabelText("E-mail")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /enviar link/i })).toBeTruthy();
+  });
+
   it("uses the validated fallback for an attacker-controlled login destination", async () => {
     navigation.from = "javascript:alert(1)";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ data: { id: "user" } })));
@@ -69,9 +82,23 @@ describe("authentication recovery UI", () => {
     fireEvent.submit(container.querySelector("form")!);
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/não foi possível confirmar o resultado/i);
-    expect(screen.getByRole("link", { name: "Solicitar outro link" }).getAttribute("href"))
+    expect(screen.getByRole("link", { name: "Confirmar e-mail" }).getAttribute("href"))
       .toBe("/check-email");
     expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it("navigates to login after a successful registration instead of requiring e-mail confirmation", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+      data: { message: "Cadastro processado." },
+    }, 201)));
+    const { container } = render(<RegisterForm />);
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Test Player" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "user@example.com" } });
+    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "password-123" } });
+    fireEvent.change(screen.getByLabelText("Confirmar senha"), { target: { value: "password-123" } });
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => expect(navigation.push).toHaveBeenCalledWith("/login?registered=1"));
   });
 
   it("lets a user manually request resend without putting the email in the URL", async () => {
@@ -103,6 +130,13 @@ describe("authentication recovery UI", () => {
 
     expect((await screen.findByRole("alert")).textContent).toBe("Invalid credentials");
     expect(screen.queryByText(/pendente|não verificado/i)).toBeNull();
+  });
+
+  it("shows the fixed registration status message on the login screen", () => {
+    navigation.params.registered = "1";
+    render(<LoginForm />);
+    expect(screen.getByRole("status").textContent)
+      .toBe("Cadastro processado. Entre com seu e-mail e senha.");
   });
 
   it("shows only the fixed password-reset success message for the known flag", () => {
@@ -170,6 +204,7 @@ describe("authentication recovery UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "old-password" } });
     fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "new-password-123" } });
+    fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: "new-password-123" } });
     fireEvent.click(screen.getByRole("button", { name: "Alterar senha" }));
 
     await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/login?passwordChanged=1"));
@@ -183,9 +218,25 @@ describe("authentication recovery UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "wrong-password" } });
     fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "new-password-123" } });
+    fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: "new-password-123" } });
     fireEvent.click(screen.getByRole("button", { name: "Alterar senha" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe("Current password is incorrect");
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
+  it("blocks submission when the new-password confirmation differs", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    render(<PasswordForm />);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Senha atual"), { target: { value: "old-password" } });
+    fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "new-password-123" } });
+    fireEvent.change(screen.getByLabelText("Confirmar nova senha"), { target: { value: "different-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Alterar senha" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe("As senhas não coincidem.");
+    expect(fetch).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
   });
 });

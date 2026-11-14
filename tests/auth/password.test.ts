@@ -6,12 +6,12 @@ import { POST as changePassword } from "@/app/api/auth/change-password/route";
 import { POST as forgotPassword } from "@/app/api/auth/forgot-password/route";
 import { POST as resetPassword } from "@/app/api/auth/reset-password/route";
 import { emailService } from "@/server/auth/email";
+import { User } from "@/db/models/user";
 import { PasswordResetToken } from "@/db/models/password-reset-token";
 import {
   TEST_USER,
   authedRequest,
   clearDatabase,
-  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -23,7 +23,6 @@ beforeEach(clearDatabase);
 
 async function loginToken(password: string = TEST_USER.password): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
-  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email: TEST_USER.email,
     password,
@@ -34,8 +33,10 @@ async function loginToken(password: string = TEST_USER.password): Promise<string
 }
 
 describe("POST /api/auth/change-password", () => {
-  it("changes the password and invalidates the previous session", async () => {
+  it("changes the password without Resend, even for an unverified account", async () => {
     const oldToken = await loginToken();
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
+    const send = vi.spyOn(emailService, "send");
     const response = await changePassword(
       authedRequest("/api/auth/change-password", oldToken, {
         method: "POST",
@@ -43,6 +44,8 @@ describe("POST /api/auth/change-password", () => {
       }),
     );
     expect(response.status).toBe(200);
+    expect(send).not.toHaveBeenCalled();
+    send.mockRestore();
     expect(await response.json()).toEqual({
       data: { message: "Password changed successfully" },
     });
@@ -103,7 +106,6 @@ describe("POST /api/auth/change-password", () => {
 describe("POST /api/auth/forgot-password", () => {
   it("creates a reset token and uses APP_URL without localhost", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const sent: Array<{ text: string }> = [];
     const spy = vi
       .spyOn(emailService, "send")
@@ -150,7 +152,6 @@ describe("POST /api/auth/forgot-password", () => {
 describe("POST /api/auth/reset-password", () => {
   async function requestResetToken(): Promise<string> {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     let captured = "";
     const spy = vi
       .spyOn(emailService, "send")

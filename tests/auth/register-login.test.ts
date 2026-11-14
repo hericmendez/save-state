@@ -5,7 +5,6 @@ import {
   TEST_USER,
   authedRequest,
   clearDatabase,
-  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -13,7 +12,9 @@ import {
 import { GET as me } from "@/app/api/auth/me/route";
 import { POST as verifyEmail } from "@/app/api/auth/verify-email/route";
 import { POST as resendVerification } from "@/app/api/auth/resend-verification/route";
-import { emailService } from "@/server/auth/email";
+import {
+  emailService,
+} from "@/server/auth/email";
 import { User } from "@/db/models/user";
 import { EmailVerificationToken } from "@/db/models/email-verification-token";
 import bcrypt from "bcryptjs";
@@ -37,11 +38,12 @@ describe("POST /api/auth/register", () => {
     expect(body).toEqual({
       data: {
         message:
-          "Se o endereço puder receber uma confirmação, enviaremos instruções. Verifique sua caixa de entrada ou solicite outro link.",
+          "Cadastro processado. Se os dados estiverem corretos, você já pode entrar com seu e-mail e senha.",
       },
     });
     const stored = await User.findOne({ email: TEST_USER.email });
     expect(stored?.emailVerifiedAt).toBeNull();
+    expect(await EmailVerificationToken.countDocuments()).toBe(0);
     expect(setCookieHeader(response)).toBeNull();
   });
 
@@ -51,51 +53,23 @@ describe("POST /api/auth/register", () => {
     expect(setCookieHeader(response)).toBeNull();
   });
 
-  it.each([
-    ["missing email configuration", "Transactional email is not configured"],
-    ["provider rejection", "Email provider rejected request (503)"],
-    ["indeterminate network timeout", "The email request timed out"],
-  ])("keeps the public signup response generic after %s", async (_scenario, failure) => {
-    let rawToken = "";
-    const errorLog = vi.spyOn(logger, "error");
-    const send = vi.spyOn(emailService, "send").mockImplementation(async ({ text }) => {
-      rawToken = /token=([^\s]+)/u.exec(text)?.[1] ?? "";
-      throw new Error(failure);
-    });
+  it("sends no verification e-mail and creates no token during registration", async () => {
+    const send = vi.spyOn(emailService, "send");
 
-    try {
-      const response = await register(postRequest("/api/auth/register", TEST_USER));
-      expect(response.status).toBe(201);
-      const body = await response.json();
-      expect(body).toEqual({
-        data: {
-          message:
-            "Se o endereço puder receber uma confirmação, enviaremos instruções. Verifique sua caixa de entrada ou solicite outro link.",
-        },
-      });
-      expect(JSON.stringify(body)).not.toContain(rawToken);
+    const response = await register(postRequest("/api/auth/register", TEST_USER));
 
-      const account = await User.findOne({ email: TEST_USER.email });
-      expect(account?.emailVerifiedAt).toBeNull();
-      expect(await EmailVerificationToken.countDocuments({ userId: account?._id })).toBe(1);
-      expect(rawToken).toMatch(/^[0-9a-f]{64}$/u);
-      expect((await EmailVerificationToken.findOne({ userId: account?._id }))?.tokenHash)
-        .not.toBe(rawToken);
-      expect(errorLog).toHaveBeenCalledWith("Verification email delivery failed", { name: "Error" });
-      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(TEST_USER.email);
-      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(rawToken);
-      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(TEST_USER.password);
+    expect(response.status).toBe(201);
+    expect(send).not.toHaveBeenCalled();
+    expect(await EmailVerificationToken.countDocuments()).toBe(0);
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
 
-      const loginResponse = await login(postRequest("/api/auth/login", {
-        email: TEST_USER.email,
-        password: TEST_USER.password,
-      }));
-      expect(loginResponse.status).toBe(401);
-      expect(setCookieHeader(loginResponse)).toBeNull();
-    } finally {
-      send.mockRestore();
-      errorLog.mockRestore();
-    }
+    const loginResponse = await login(postRequest("/api/auth/login", {
+      email: TEST_USER.email,
+      password: TEST_USER.password,
+    }));
+    expect(loginResponse.status).toBe(200);
+    expect(setCookieHeader(loginResponse)).not.toBeNull();
+    send.mockRestore();
   });
 
   it("does not convert unrelated database failures into a generic signup success", async () => {
@@ -117,7 +91,7 @@ describe("POST /api/auth/register", () => {
       keyPattern: { username: 1 },
       keyValue: { username: "test" },
     });
-    const create = vi.spyOn(User, "create").mockRejectedValue(duplicateOtherIndex);
+    const save = vi.spyOn(User.prototype, "save").mockRejectedValue(duplicateOtherIndex);
     try {
       const response = await register(postRequest("/api/auth/register", TEST_USER));
       expect(response.status).toBe(500);
@@ -125,7 +99,7 @@ describe("POST /api/auth/register", () => {
         error: { code: "INTERNAL_ERROR", message: "Internal server error" },
       });
     } finally {
-      create.mockRestore();
+      save.mockRestore();
     }
   });
 
@@ -147,7 +121,10 @@ describe("POST /api/auth/register", () => {
     try {
       await deliverVerificationEmail({ to: TEST_USER.email, rawToken: "verification-token-secret" });
       expect(send).toHaveBeenCalledTimes(1);
-      expect(errorLog).toHaveBeenCalledWith("Verification email delivery failed", { name: "Error" });
+      expect(errorLog).toHaveBeenCalledWith("Verification email delivery failed", {
+        category: "EMAIL_NOT_CONFIGURED",
+        name: "EmailDeliveryError",
+      });
       expect(JSON.stringify(errorLog.mock.calls)).not.toContain(TEST_USER.email);
       expect(JSON.stringify(errorLog.mock.calls)).not.toContain("verification-token-secret");
       expect(JSON.stringify(errorLog.mock.calls)).not.toContain(TEST_USER.password);
@@ -162,22 +139,25 @@ describe("POST /api/auth/register", () => {
     }
   });
 
-  it("recovers a failed deferred delivery through the existing generic resend endpoint", async () => {
+  it("issues the first verification link only through the optional resend endpoint", async () => {
     const issuedTokens: string[] = [];
-    const send = vi.spyOn(emailService, "send").mockImplementationOnce(async ({ text }) => {
-      issuedTokens.push(/token=([^\s]+)/u.exec(text)?.[1] ?? "");
-      throw new Error("Synthetic provider timeout after request");
-    }).mockImplementationOnce(async ({ text }) => {
+    const registrationSend = vi.spyOn(emailService, "send");
+    const registration = await register(postRequest("/api/auth/register", TEST_USER));
+    expect(registration.status).toBe(201);
+    expect(registrationSend).not.toHaveBeenCalled();
+    registrationSend.mockRestore();
+
+    const account = await User.findOne({ email: TEST_USER.email });
+    expect(await EmailVerificationToken.countDocuments({ userId: account?._id })).toBe(0);
+    expect((await login(postRequest("/api/auth/login", {
+      email: TEST_USER.email,
+      password: TEST_USER.password,
+    }))).status).toBe(200);
+
+    const send = vi.spyOn(emailService, "send").mockImplementation(async ({ text }) => {
       issuedTokens.push(/token=([^\s]+)/u.exec(text)?.[1] ?? "");
     });
-
     try {
-      const registration = await register(postRequest("/api/auth/register", TEST_USER));
-      expect(registration.status).toBe(201);
-      const account = await User.findOne({ email: TEST_USER.email });
-      const originalToken = await EmailVerificationToken.findOne({ userId: account?._id }).lean();
-      expect(originalToken).toBeTruthy();
-
       const response = await resendVerification(postRequest(
         "/api/auth/resend-verification",
         { email: TEST_USER.email },
@@ -188,16 +168,17 @@ describe("POST /api/auth/register", () => {
       expect(responseBody).toEqual({
         data: { message: "If the account is pending, a verification email will be sent" },
       });
-      expect(issuedTokens).toHaveLength(2);
-      expect(issuedTokens[0]).not.toBe(issuedTokens[1]);
-      expect(JSON.stringify(responseBody)).not.toContain(issuedTokens[1]);
+      expect(issuedTokens).toHaveLength(1);
+      expect(JSON.stringify(responseBody)).not.toContain(issuedTokens[0]);
       const issuedRecords = await EmailVerificationToken.find({ userId: account?._id }).lean();
-      // Reissue does not invalidate an older link before delivery is known;
-      // either valid link can verify, and success retires every account link.
-      expect(issuedRecords).toHaveLength(2);
-      expect(issuedRecords.some((record) => record.tokenHash === originalToken?.tokenHash)).toBe(true);
-      expect(issuedRecords.some((record) => record.tokenHash !== originalToken?.tokenHash)).toBe(true);
-      expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
+      expect(issuedRecords).toHaveLength(1);
+      expect(issuedRecords[0].tokenHash).not.toBe(issuedTokens[0]);
+
+      const verified = await verifyEmail(postRequest("/api/auth/verify-email", {
+        token: issuedTokens[0],
+      }));
+      expect(verified.status).toBe(200);
+      expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeInstanceOf(Date);
     } finally {
       send.mockRestore();
     }
@@ -254,9 +235,8 @@ describe("POST /api/auth/register", () => {
 });
 
 describe("POST /api/auth/login", () => {
-  it("logs in and sets an httpOnly session cookie", async () => {
+  it("logs in and sets an httpOnly session cookie without prior verification", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const response = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
@@ -277,7 +257,6 @@ describe("POST /api/auth/login", () => {
 
   it("rejects wrong passwords without distinguishing the cause", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const wrongPassword = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: "wrong-password-123",
@@ -294,18 +273,19 @@ describe("POST /api/auth/login", () => {
     }
   });
 
-  it("rejects valid credentials until the email is verified and emits no session", async () => {
+  it("logs in immediately with valid credentials while emailVerifiedAt is null", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
     const response = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
     }));
-    expect(response.status).toBe(401);
-    expect(setCookieHeader(response)).toBeNull();
-    expect(response.cookies.get("token")).toBeUndefined();
+    expect(response.status).toBe(200);
+    expect(setCookieHeader(response)).not.toBeNull();
+    expect(response.cookies.get("token")?.value).toBeTruthy();
   });
 
-  it("verifies the email through the real token endpoint and then permits login", async () => {
+  it("keeps login working after the optional e-mail confirmation", async () => {
     let verificationToken = "";
     const send = vi.spyOn(emailService, "send").mockImplementation(async ({ text }) => {
       verificationToken = /token=([^\s]+)/.exec(text)?.[1] ?? "";
@@ -313,6 +293,19 @@ describe("POST /api/auth/login", () => {
     try {
       const registration = await register(postRequest("/api/auth/register", TEST_USER));
       expect(registration.status).toBe(201);
+      expect(verificationToken).toBe("");
+
+      const firstLogin = await login(postRequest("/api/auth/login", {
+        email: TEST_USER.email,
+        password: TEST_USER.password,
+      }));
+      expect(firstLogin.status).toBe(200);
+
+      const resent = await resendVerification(postRequest(
+        "/api/auth/resend-verification",
+        { email: TEST_USER.email },
+      ));
+      expect(resent.status).toBe(200);
       expect(verificationToken).toMatch(/^[0-9a-f]{64}$/);
 
       const verified = await verifyEmail(postRequest("/api/auth/verify-email", {
@@ -344,7 +337,6 @@ describe("POST /api/auth/login", () => {
 
   it("issued session grants access to /me", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,

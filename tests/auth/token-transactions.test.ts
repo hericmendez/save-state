@@ -14,7 +14,6 @@ import {
   TEST_USER,
   authedRequest,
   clearDatabase,
-  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -26,13 +25,20 @@ beforeEach(clearDatabase);
 afterEach(() => vi.restoreAllMocks());
 
 async function registerAndCaptureVerificationToken(): Promise<string> {
+  const registration = await register(postRequest("/api/auth/register", TEST_USER));
+  expect(registration.status).toBe(201);
+  expect(await EmailVerificationToken.countDocuments()).toBe(0);
+
   let rawToken = "";
   const send = vi.spyOn(emailService, "send").mockImplementation(async ({ text }) => {
     rawToken = /token=([^\s]+)/u.exec(text)?.[1] ?? "";
   });
   try {
-    const response = await register(postRequest("/api/auth/register", TEST_USER));
-    expect(response.status).toBe(201);
+    const response = await resendVerification(postRequest(
+      "/api/auth/resend-verification",
+      { email: TEST_USER.email },
+    ));
+    expect(response.status).toBe(200);
   } finally {
     send.mockRestore();
   }
@@ -60,7 +66,6 @@ async function createResetToken(): Promise<string> {
 async function createVerifiedUser(): Promise<void> {
   const response = await register(postRequest("/api/auth/register", TEST_USER));
   expect(response.status).toBe(201);
-  await markTestUserVerified(TEST_USER.email);
 }
 
 async function loginToken(): Promise<string> {
@@ -268,7 +273,7 @@ describe("transactional password reset tokens", () => {
     }));
     send.mockRestore();
 
-    expect(failedRequest.status).toBe(500);
+    expect(failedRequest.status).toBe(200);
     expect(await PasswordResetToken.countDocuments({ used: false })).toBe(2);
     const reset = await resetPassword(postRequest("/api/auth/reset-password", {
       token: oldToken,

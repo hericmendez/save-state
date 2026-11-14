@@ -9,7 +9,6 @@ import {
   TEST_USER,
   authedRequest,
   clearDatabase,
-  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -23,7 +22,6 @@ beforeEach(clearDatabase);
 
 async function loginToken(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
-  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email: TEST_USER.email,
     password: TEST_USER.password,
@@ -105,11 +103,18 @@ describe("GET /api/auth/me", () => {
     expect((await response.json()).error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("rejects a valid JWT after the user's email is no longer verified", async () => {
+  it("keeps a valid JWT when emailVerifiedAt is null", async () => {
+    const token = await loginToken();
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
+    const response = await me(authedRequest("/api/auth/me", token));
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects a valid JWT after sessionVersion is revoked", async () => {
     const token = await loginToken();
     await User.updateOne(
       { email: TEST_USER.email },
-      { $set: { emailVerifiedAt: null } },
+      { $inc: { sessionVersion: 1 } },
     );
     const response = await me(authedRequest("/api/auth/me", token));
     expect(response.status).toBe(401);

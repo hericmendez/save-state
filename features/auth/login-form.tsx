@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
+import PasswordInput from "@/components/RPGUI/PasswordInput";
 import { getSafePostLoginDestination } from "@/lib/auth/post-login-destination";
 export function LoginForm() {
   const router = useRouter();
@@ -35,6 +36,9 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <h1 className="font-display text-center text-xl">Entrar</h1>
+      {searchParams.get("registered") === "1" && (
+        <p role="status">Cadastro processado. Entre com seu e-mail e senha.</p>
+      )}
       {searchParams.get("passwordReset") === "1" && (
         <p role="status">Senha redefinida com sucesso. Entre usando sua nova senha.</p>
       )}
@@ -61,9 +65,8 @@ export function LoginForm() {
       </label>
       <label>
         Senha
-        <RPGUInput
+        <PasswordInput
           className="w-full"
-          type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required

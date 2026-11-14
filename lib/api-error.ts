@@ -19,6 +19,10 @@ export const ERROR_CODES = [
   "INVALID_PASSWORD",
   "INVALID_TOKEN",
   "RATE_LIMIT_EXCEEDED",
+  // Transactional-e-mail availability. Returned before any account is
+  // persisted so a signup is never reported as created when its verification
+  // message cannot possibly be sent.
+  "EMAIL_UNAVAILABLE",
   // Read-phase codes (Phase 4).
   "GAME_NOT_FOUND",
   "INVALID_GAME_ID",
@@ -77,6 +81,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   INVALID_PASSWORD: 400,
   INVALID_TOKEN: 400,
   RATE_LIMIT_EXCEEDED: 429,
+  EMAIL_UNAVAILABLE: 503,
   GAME_NOT_FOUND: 404,
   INVALID_GAME_ID: 400,
   LIST_NOT_FOUND: 404,

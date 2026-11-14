@@ -9,7 +9,6 @@ import {
   TEST_USER,
   authedRequest,
   clearDatabase,
-  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -22,7 +21,6 @@ beforeEach(clearDatabase);
 describe("POST /api/logout", () => {
   it("clears the cookie and returns the logout message", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
@@ -41,7 +39,6 @@ describe("POST /api/logout", () => {
 
   it("increments sessionVersion and rejects the token used to log out", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
@@ -64,7 +61,6 @@ describe("POST /api/logout", () => {
 
   it("revokes all devices when one device logs out", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
@@ -88,9 +84,7 @@ describe("POST /api/logout", () => {
       password: "password-123",
     };
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     await register(postRequest("/api/auth/register", otherUser));
-    await markTestUserVerified(otherUser.email);
     const [firstLogin, otherLogin] = await Promise.all([
       login(postRequest("/api/auth/login", {
         email: TEST_USER.email,
@@ -114,7 +108,6 @@ describe("POST /api/logout", () => {
 
   it("keeps concurrent revocations atomic", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,
@@ -133,7 +126,6 @@ describe("POST /api/logout", () => {
 
   it("clears the local cookie but does not report success if revocation storage fails", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
-    await markTestUserVerified(TEST_USER.email);
     const loginResponse = await login(postRequest("/api/auth/login", {
       email: TEST_USER.email,
       password: TEST_USER.password,

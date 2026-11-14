@@ -134,10 +134,12 @@ export async function getSessionUserFromToken(
   }
 
   await connectDatabase();
+  // E-mail verification is not a session requirement. Only the user's
+  // existence and the revocation counter decide whether the JWT is still valid.
   const user = await User.findById(claims.userId)
-    .select("sessionVersion emailVerifiedAt")
+    .select("sessionVersion")
     .lean();
-  if (!user || !user.emailVerifiedAt) {
+  if (!user) {
     throw new ApiError("UNAUTHENTICATED", INVALID_TOKEN);
   }
   const currentVersion = user.sessionVersion ?? 0;

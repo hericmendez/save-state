@@ -75,7 +75,7 @@ test.describe("autenticação e sessão", () => {
     await context.close();
   });
 
-  test("cadastro, email interceptado, confirmação pela UI e login", async ({ browser }) => {
+  test("cadastro, login imediato e confirmação opcional por e-mail", async ({ browser }) => {
     const context = await freshContext(browser);
     const page = await context.newPage();
     const user = uniqueUser();
@@ -95,29 +95,39 @@ test.describe("autenticação e sessão", () => {
     expect(genericRegistrationBody).toEqual({
       data: {
         message:
-          "Se o endereço puder receber uma confirmação, enviaremos instruções. Verifique sua caixa de entrada ou solicite outro link.",
+          "Cadastro processado. Se os dados estiverem corretos, você já pode entrar com seu e-mail e senha.",
       },
     });
-    await expect(page).toHaveURL(/\/check-email/);
+    await expect(page).toHaveURL(/\/login\?registered=1/);
 
     expect(await getE2EVerificationState(user.email)).toEqual({ exists: true, verified: false });
     expect((await context.request.get("/api/auth/me")).status()).toBe(401);
     const captureFile = process.env.E2E_EMAIL_CAPTURE_FILE;
     if (!captureFile) throw new Error("E2E email capture is not configured");
-    await expect.poll(() => {
-      const captured = readFileSync(captureFile, "utf8").trim();
-      return captured ? captured.split("\n").length : 0;
-    }).toBe(1);
+    expect(readFileSync(captureFile, "utf8").trim()).toBe("");
 
     const duplicatePending = await context.request.post("/api/auth/register", {
       data: { ...user, password: "different-password-456" },
     });
     expect(duplicatePending.status()).toBe(registrationResponse.status());
     expect(await duplicatePending.json()).toEqual(genericRegistrationBody);
-    expect(readFileSync(captureFile, "utf8").trim().split("\n")).toHaveLength(1);
-    expect((await context.request.post("/api/auth/login", {
+    expect(readFileSync(captureFile, "utf8").trim()).toBe("");
+
+    const immediateLogin = await context.request.post("/api/auth/login", {
       data: { email: user.email, password: user.password },
-    })).status()).toBe(401);
+    });
+    expect(immediateLogin.status()).toBe(200);
+    expect((await context.request.get("/api/auth/me")).status()).toBe(200);
+    await context.request.post("/api/logout");
+
+    const resend = await context.request.post("/api/auth/resend-verification", {
+      data: { email: user.email },
+    });
+    expect(resend.status()).toBe(200);
+    await expect.poll(() => {
+      const captured = readFileSync(captureFile, "utf8").trim();
+      return captured ? captured.split("\n").length : 0;
+    }).toBe(1);
 
     const confirmationPath = interceptedVerificationPath();
     await page.goto(confirmationPath).catch(() => {
@@ -133,9 +143,6 @@ test.describe("autenticação e sessão", () => {
     expect(duplicateVerified.status()).toBe(registrationResponse.status());
     expect(await duplicateVerified.json()).toEqual(genericRegistrationBody);
     expect(readFileSync(captureFile, "utf8").trim().split("\n")).toHaveLength(1);
-    expect((await context.request.post("/api/auth/login", {
-      data: { email: user.email, password: "another-password-789" },
-    })).status()).toBe(401);
 
     await page.getByRole("button", { name: /ir para login/i }).click();
     await page.getByLabel(/email/i).fill(user.email);
@@ -148,7 +155,7 @@ test.describe("autenticação e sessão", () => {
     await context.close();
   });
 
-  test("conta pendente não autentica; confirmação pelo endpoint permite login", async ({ browser }) => {
+  test("conta não verificada autentica; confirmação opcional preserva a sessão", async ({ browser }) => {
     const context = await freshContext(browser);
     const request = context.request;
     const user = uniqueUser();
@@ -156,14 +163,14 @@ test.describe("autenticação e sessão", () => {
     const pendingLogin = await request.post("/api/auth/login", {
       data: { email: user.email, password: user.password },
     });
-    expect(pendingLogin.status()).toBe(401);
-    expect((await pendingLogin.json()).error.message).toBe("Invalid credentials");
-    expect((await request.get("/api/auth/me")).status()).toBe(401);
+    expect(pendingLogin.status()).toBe(200);
+    expect((await request.get("/api/auth/me")).status()).toBe(200);
 
     const verified = await request.post("/api/auth/verify-email", {
       data: { token: rawToken },
     });
     expect(verified.ok()).toBeTruthy();
+    expect((await request.get("/api/auth/me")).status()).toBe(200);
     await loginUser(request, user.email, user.password);
     expect((await request.get("/api/auth/me")).ok()).toBeTruthy();
     await context.close();
