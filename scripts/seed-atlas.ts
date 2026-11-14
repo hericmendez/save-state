@@ -13,20 +13,24 @@ import "./register-server-only-stub.mjs";
  * reported as incomplete instead of invented.
  *
  * Usage:
- *   pnpm db:seed:atlas
+ *   pnpm db:seed:atlas -- --db-name save-state-dev --confirm-db-name save-state-dev --allow-atlas-seed
  *
  * Requires Atlas MONGODB_URI (mongodb+srv / *.mongodb.net) plus
  * MOCK_EMAIL / MOCK_PASSWORD identifying the test account. Refuses
  * local or otherwise non-Atlas targets before connecting.
  */
 import mongoose from "mongoose";
-import "./load-local-env";
 import { IgdbSearchProvider } from "@/server/search/igdb-provider";
 import {
   asAtlasSeedProvider,
   classifyMongoUri,
   runAtlasSeed,
 } from "@/server/seeds/atlas-seed";
+import { isDirectExecution } from "./lib/db-target-guard";
+import {
+  parseSeedAtlasArgs,
+  resolveSeedAtlasTarget,
+} from "./lib/operational-cli";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -45,28 +49,29 @@ function maskEmail(email: string): string {
 }
 
 async function main(): Promise<void> {
+  await import("./load-local-env");
   const uri = required("MONGODB_URI");
+  const args = parseSeedAtlasArgs(process.argv.slice(2));
+  const target = resolveSeedAtlasTarget(args, process.env, uri);
   const kind = classifyMongoUri(uri);
-  if (kind !== "atlas") {
-    console.error(
-      `refusing to proceed: target is not Atlas (classified as ${kind}). ` +
-        "This script only seeds the remote Save State database.",
-    );
-    process.exit(2);
+  if (kind !== "atlas" || target.safeWrite.target !== "atlas") {
+    throw new Error("refusing non-Atlas target");
   }
+  // connectDatabase() reads this validated value and does not use a URI
+  // default. Do this before loading credentials/provider or opening sockets.
+  process.env.MONGODB_DB_NAME = target.dbName;
   const email = required("MOCK_EMAIL");
   const password = required("MOCK_PASSWORD");
-  console.log("target: Atlas save-state database (connection string verified as Atlas)");
+  console.log(`target: Atlas; database: ${target.dbName}`);
   console.log(`account: ${maskEmail(email)} (reused when present, never re-passworded)`);
   console.log("mode: idempotent seed (no destructive step)");
 
   const provider = asAtlasSeedProvider(new IgdbSearchProvider());
   try {
     await provider.searchGames({ q: "__connectivity_probe__", page: 1, limit: 1 });
-  } catch (error) {
+  } catch {
     console.log(
-      `provider note: catalog lookup unavailable (${error instanceof Error ? error.message : error}); ` +
-        "titles will fall back to minimal records and be reported as incomplete.",
+      "provider note: catalog lookup unavailable; titles will fall back to minimal records and be reported as incomplete.",
     );
   }
 
@@ -83,7 +88,7 @@ async function main(): Promise<void> {
     }
     if (summary.failures.length > 0) {
       for (const failure of summary.failures) {
-        console.log(`failed: ${failure.slug} — ${failure.reason}`);
+        console.log(`failed: ${failure.slug} — details omitted`);
       }
       process.exitCode = 1;
     }
@@ -92,7 +97,13 @@ async function main(): Promise<void> {
   }
 }
 
-void main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+if (isDirectExecution(import.meta.url, process.argv[1])) {
+  void main().catch((error) => {
+    console.error(
+      "Atlas seed refused or failed:",
+      error instanceof Error ? error.name : "unknown error",
+      "(details omitted to prevent credential or infrastructure disclosure)",
+    );
+    process.exitCode = 1;
+  });
+}

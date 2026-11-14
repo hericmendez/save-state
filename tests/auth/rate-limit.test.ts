@@ -9,6 +9,7 @@ import {
 import {
   TEST_USER,
   clearDatabase,
+  markTestUserVerified,
   postRequest,
   startTestDatabase,
   stopTestDatabase,
@@ -40,6 +41,7 @@ function loginRequest(ip: string) {
 describe("authentication rate limiting", () => {
   it("is bypassed in test environments", async () => {
     await register(postRequest("/api/auth/register", TEST_USER));
+    await markTestUserVerified(TEST_USER.email);
     for (let attempt = 0; attempt < AUTH_RATE_LIMIT.max + 5; attempt += 1) {
       const response = await login(loginRequest("10.0.0.1"));
       expect(response.status).toBe(200);

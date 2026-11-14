@@ -16,6 +16,7 @@ import {
   authedRequest,
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -100,6 +101,7 @@ afterEach(() => {
 
 async function tokenFor(email: string = TEST_USER.email, password: string = TEST_USER.password, name: string = TEST_USER.name): Promise<string> {
   await register(postRequest("/api/auth/register", { name, email, password }));
+  await markTestUserVerified(email);
   const response = await login(postRequest("/api/auth/login", { email, password }));
   const token = response.cookies.get("token")?.value;
   if (!token) throw new Error("login did not issue a token");

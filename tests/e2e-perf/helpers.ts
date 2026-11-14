@@ -5,9 +5,18 @@
  * - Sincronização por assertions web-first; sem sleeps arbitrários.
  * - Métricas coletadas via Performance API / PerformanceObserver.
  */
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { APIRequestContext, Browser, Page } from "@playwright/test";
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
+import mongoose from "mongoose";
 
 export const E2E_PASSWORD = "e2e-Password-123";
+export const E2E_AUTH_STORAGE_STATE = "tests/e2e-perf/.auth/user.json";
+
+/** Reuses the real auth.setup session for domain specs to avoid redundant logins. */
+export async function createAuthenticatedE2EContext(browser: Browser) {
+  return browser.newContext({ storageState: E2E_AUTH_STORAGE_STATE });
+}
 
 export function uniqueId(prefix: string): string {
   const rand = Math.random().toString(36).slice(2, 8);
@@ -23,17 +32,110 @@ export function uniqueUser(): { name: string; email: string; password: string } 
   };
 }
 
-/** Registra um usuário via API. Retorna o corpo `{ data: {...} }` ou `{...}`. */
-export async function registerUser(
-  request: APIRequestContext,
-  user: { name: string; email: string; password: string },
-  ): Promise<any> {
-  const res = await request.post("/api/auth/register", { data: user });
-  if (!res.ok()) {
-    const body = await res.text();
-    throw new Error(`register falhou (${res.status()}): ${body}`);
+function isolatedE2EDatabaseUri(): string {
+  const uri = process.env.E2E_MONGODB_URI;
+  if (process.env.E2E_DATABASE_EPHEMERAL !== "1" || process.env.E2E_ALLOW_FIXTURES !== "1" || !uri) {
+    throw new Error("E2E fixtures require explicit ephemeral database opt-in");
   }
-  return res.json();
+  const parsed = new URL(uri);
+  const dbName = parsed.pathname.replace(/^\//u, "");
+  if (
+    !/^mongodb(?:\+srv)?:$/u.test(parsed.protocol) ||
+    !["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) ||
+    dbName !== "save-state-e2e" ||
+    !parsed.searchParams.has("replicaSet")
+  ) {
+    throw new Error("E2E fixtures refuse non-local, non-test, or non-replica-set MongoDB URIs");
+  }
+  return uri;
+}
+
+async function connectE2EDatabase() {
+  const uri = isolatedE2EDatabaseUri();
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5_000 });
+  }
+  return mongoose.connection.db!;
+}
+
+/**
+ * Creates a verified user fixture in an opted-in ephemeral E2E replica set.
+ * Domain E2Es exercise login through the real HTTP API afterward.
+ */
+export async function createVerifiedUserFixture(
+  _request: APIRequestContext,
+  user: { name: string; email: string; password: string },
+): Promise<{ data: { id: string } }> {
+  const db = await connectE2EDatabase();
+  const _id = new mongoose.Types.ObjectId();
+  await db.collection("users").insertOne({
+    _id,
+    name: user.name,
+    email: user.email.toLowerCase(),
+    passwordHash: await bcrypt.hash(user.password, 10),
+    sessionVersion: 0,
+    emailVerifiedAt: new Date(),
+    top10: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  return { data: { id: _id.toString() } };
+}
+
+/** Create a pending account and a token consumed by the real verify endpoint. */
+export async function createPendingUser(
+  user: { name: string; email: string; password: string },
+): Promise<string> {
+  const db = await connectE2EDatabase();
+  const _id = new mongoose.Types.ObjectId();
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  await db.collection("users").insertOne({
+    _id,
+    name: user.name,
+    email: user.email.toLowerCase(),
+    passwordHash: await bcrypt.hash(user.password, 10),
+    sessionVersion: 0,
+    emailVerifiedAt: null,
+    top10: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  await db.collection("emailverificationtokens").insertOne({
+    tokenHash: crypto.createHash("sha256").update(rawToken).digest("hex"),
+    userId: _id,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  return rawToken;
+}
+
+export async function createPasswordResetToken(email: string): Promise<string> {
+  const db = await connectE2EDatabase();
+  const user = await db.collection("users").findOne({ email: email.toLowerCase() });
+  if (!user) throw new Error("E2E password-reset fixture user does not exist");
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  await db.collection("passwordresettokens").insertOne({
+    tokenHash: crypto.createHash("sha256").update(rawToken).digest("hex"),
+    userId: user._id,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    used: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  return rawToken;
+}
+
+export async function getE2EVerificationState(email: string): Promise<{
+  exists: boolean;
+  verified: boolean;
+}> {
+  const db = await connectE2EDatabase();
+  const user = await db.collection("users").findOne(
+    { email: email.toLowerCase() },
+    { projection: { _id: 1, emailVerifiedAt: 1 } },
+  );
+  return { exists: user !== null, verified: user?.emailVerifiedAt instanceof Date };
 }
 
 /** Login via API (estabelece o cookie httpOnly `token` no contexto). */

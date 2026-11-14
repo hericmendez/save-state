@@ -5,16 +5,16 @@
 import { test as setup, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
-import { uniqueUser, registerUser } from "./helpers";
+import { uniqueUser, createVerifiedUserFixture } from "./helpers";
 
 const AUTH_FILE = "tests/e2e-perf/.auth/user.json";
 
-setup("auth.setup: registra e autentica usuário de auditoria", async ({
+setup("auth.setup: prepara fixture verificada e autentica usuário de auditoria", async ({
   page,
   request,
 }) => {
   const user = uniqueUser();
-  await registerUser(request, user);
+  await createVerifiedUserFixture(request, user);
 
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(user.email);

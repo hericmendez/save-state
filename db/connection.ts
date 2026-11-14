@@ -1,11 +1,21 @@
 import "server-only";
 import mongoose from "mongoose";
+import {
+  mongoConnectionIdentity,
+  MONGOOSE_CONNECTION_OPTIONS,
+  resolveMongoDbName,
+} from "@/db/mongo-config";
 import { loadServerEnv } from "@/lib/env";
 import { logger } from "@/server/shared/logger";
+import {
+  verifyEnforcedModelIndexes,
+  type IndexModelLike,
+} from "@/db/index-management";
 
 interface ConnectionCache {
   connection?: typeof mongoose;
   promise?: Promise<typeof mongoose>;
+  identity?: string;
 }
 
 declare global {
@@ -23,28 +33,55 @@ declare global {
  * - Fail-closed index readiness: no request is served until the declared
  *   indexes are confirmed (see prepareIndexes/verifyIndexes below).
  */
-export async function connectDatabase(): Promise<typeof mongoose> {
+export async function connectDatabase(
+  options: { readOnlyIndexes?: boolean } = {},
+): Promise<typeof mongoose> {
   const cached: ConnectionCache =
     globalThis.__saveStateMongooseCache ?? (globalThis.__saveStateMongooseCache = {});
 
-  if (cached.connection) return cached.connection;
+  const { MONGODB_URI, MONGODB_DB_NAME } = loadServerEnv();
+  const dbName = resolveMongoDbName(process.env, MONGODB_DB_NAME);
+  const identity = mongoConnectionIdentity(MONGODB_URI, dbName);
+
+  if (cached.identity && cached.identity !== identity) {
+    throw new Error(
+      "MongoDB connection is already initialized for a different URI/database in this process",
+    );
+  }
+
+  if (cached.connection) {
+    const readyState = cached.connection.connection?.readyState;
+    if (readyState === undefined || readyState === 1) return cached.connection;
+    if (readyState !== 0) {
+      throw new Error("MongoDB connection is not in a reusable connected state");
+    }
+    // Mongoose reported a disconnected connection; let the next call retry.
+    cached.connection = undefined;
+    cached.promise = undefined;
+    cached.identity = undefined;
+  }
 
   if (!cached.promise) {
-    const { MONGODB_URI } = loadServerEnv();
     mongoose.set("strictQuery", true);
-    // The Atlas URI carries no database path (mongodb+srv form), while the
-    // local URI already points at /save-state. Pin the database explicitly
-    // so both resolve to the Save State database instead of the driver
-    // default ("test") when the path is absent.
-    cached.promise = mongoose.connect(MONGODB_URI, { dbName: "save-state" }).then(async (instance) => {
+    cached.identity = identity;
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      dbName,
+      ...MONGOOSE_CONNECTION_OPTIONS,
+    }).catch(() => {
+      throw new Error(
+        "MongoDB connection failed; verify the configured URI and network settings (credentials redacted)",
+      );
+    }).then(async (instance) => {
       try {
         // Development and tests may build the declared indexes on demand.
         // Hosted environments (NODE_ENV=production) run with least
         // privilege and must never issue createIndex at runtime: indexes
         // are provisioned beforehand by scripts/verify-indexes.ts and only
         // verified here, read-only.
-        if (process.env.NODE_ENV === "production") {
-          await verifyIndexes(instance);
+        if (process.env.NODE_ENV === "production" || options.readOnlyIndexes) {
+          await verifyEnforcedModelIndexes(
+            Object.values(instance.models) as unknown as IndexModelLike[],
+          );
         } else {
           await Promise.all(
             Object.values(instance.models).map((model) => model.ensureIndexes()),
@@ -53,7 +90,7 @@ export async function connectDatabase(): Promise<typeof mongoose> {
       } catch (error) {
         logger.error("Refusing database use: index readiness check failed", {
           name: error instanceof Error ? error.name : typeof error,
-          message: error instanceof Error ? error.message : undefined,
+          message: "index readiness check failed; details omitted to prevent URI or credential disclosure",
         });
         throw error;
       }
@@ -64,80 +101,11 @@ export async function connectDatabase(): Promise<typeof mongoose> {
     cached.promise.catch(() => {
       cached.promise = undefined;
       cached.connection = undefined;
+      if (mongoose.connection.readyState === 0) cached.identity = undefined;
     });
   }
 
   return cached.promise;
-}
-
-type IndexSpec = {
-  fields: Record<string, unknown>;
-  options: Record<string, unknown>;
-};
-
-function indexIdentity(spec: IndexSpec): string {
-  return JSON.stringify(spec.fields);
-}
-
-/**
- * Integrity-relevant index options. Only these dimensions gate readiness:
- * uniqueness/sparseness/partial filters/TTL define correctness invariants.
- * Anything else (names, background builds) is ignored.
- */
-function enforcedOptions(options: Record<string, unknown>): Record<string, unknown> {
-  return {
-    unique: options.unique === true,
-    sparse: options.sparse === true,
-    partialFilterExpression: (options.partialFilterExpression ?? null) as unknown,
-    expireAfterSeconds: (options.expireAfterSeconds ?? null) as unknown,
-  };
-}
-
-function isEnforced(options: Record<string, unknown>): boolean {
-  const normalized = enforcedOptions(options);
-  return (
-    normalized.unique === true ||
-    typeof normalized.expireAfterSeconds === "number"
-  );
-}
-
-/**
- * Read-only verification of the declared indexes: every index declared by
- * a registered model that carries integrity semantics (unique, sparse,
- * partial, TTL) must exist with identical enforced options. Pure metadata
- * reads (`listIndexes`); never creates, drops, or rebuilds anything, so
- * the runtime database user needs no index-management privileges.
- */
-async function verifyIndexes(instance: typeof mongoose): Promise<void> {
-  for (const [name, model] of Object.entries(instance.models)) {
-    const declared = (model.schema.indexes() as unknown as Array<
-      [Record<string, unknown>, Record<string, unknown>?]
-    >);
-    if (declared.length === 0) continue;
-    const existing = (await model.collection.listIndexes().toArray()) as unknown as Array<
-      Record<string, unknown>
-    >;
-    for (const [fields, rawOptions = {}] of declared) {
-      const expected: IndexSpec = { fields, options: rawOptions };
-      if (!isEnforced(expected.options)) continue;
-      const match = existing.find(
-        (index) =>
-          JSON.stringify(index.key ?? {}) === indexIdentity(expected),
-      );
-      if (!match) {
-        throw new Error(
-          `missing enforced index on model "${name}": ${indexIdentity(expected)}`,
-        );
-      }
-      const actual = enforcedOptions(match as Record<string, unknown>);
-      const wanted = enforcedOptions(expected.options);
-      if (JSON.stringify(actual) !== JSON.stringify(wanted)) {
-        throw new Error(
-          `incompatible enforced index on model "${name}": ${indexIdentity(expected)}`,
-        );
-      }
-    }
-  }
 }
 
 /** Test-only hook: clear the connection cache between test cases. */

@@ -6,6 +6,7 @@ import { POST as changePassword } from "@/app/api/auth/change-password/route";
 import { POST as forgotPassword } from "@/app/api/auth/forgot-password/route";
 import { POST as resetPassword } from "@/app/api/auth/reset-password/route";
 import { emailService } from "@/server/auth/email";
+import { User } from "@/db/models/user";
 import { PasswordResetToken } from "@/db/models/password-reset-token";
 import {
   TEST_USER,
@@ -32,8 +33,10 @@ async function loginToken(password: string = TEST_USER.password): Promise<string
 }
 
 describe("POST /api/auth/change-password", () => {
-  it("changes the password and invalidates the previous session", async () => {
+  it("changes the password without Resend, even for an unverified account", async () => {
     const oldToken = await loginToken();
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
+    const send = vi.spyOn(emailService, "send");
     const response = await changePassword(
       authedRequest("/api/auth/change-password", oldToken, {
         method: "POST",
@@ -41,9 +44,12 @@ describe("POST /api/auth/change-password", () => {
       }),
     );
     expect(response.status).toBe(200);
+    expect(send).not.toHaveBeenCalled();
+    send.mockRestore();
     expect(await response.json()).toEqual({
       data: { message: "Password changed successfully" },
     });
+    expect(response.cookies.get("token")?.value).toBe("");
 
     // Old session is dead.
     expect((await me(authedRequest("/api/auth/me", oldToken))).status).toBe(401);
@@ -61,13 +67,15 @@ describe("POST /api/auth/change-password", () => {
   });
 
   it("rejects a wrong current password with INVALID_PASSWORD", async () => {
+    const token = await loginToken();
     const response = await changePassword(
-      authedRequest("/api/auth/change-password", await loginToken(), {
+      authedRequest("/api/auth/change-password", token, {
         method: "POST",
         body: { currentPassword: "wrong-12345", newPassword: "new-password-123" },
       }),
     );
     expect(response.status).toBe(400);
+    expect(response.cookies.get("token")).toBeUndefined();
     expect(await response.json()).toEqual({
       error: { code: "INVALID_PASSWORD", message: "Current password is incorrect" },
     });

@@ -11,6 +11,7 @@ import { NextRequest } from "next/server";
 import { __resetConnectionCache, connectDatabase } from "@/db/connection";
 import { __resetServerEnvCache } from "@/lib/env";
 import { __resetRateLimitBuckets } from "@/server/auth/rate-limit";
+import { User } from "@/db/models/user";
 
 let mongoServer: MongoMemoryReplSet | undefined;
 
@@ -40,6 +41,15 @@ export async function clearDatabase(): Promise<void> {
     await collection.deleteMany({});
   }
   __resetRateLimitBuckets();
+}
+
+/** Explicit fixture setup for tests whose subject is unrelated to verification. */
+export async function markTestUserVerified(email: string): Promise<void> {
+  const user = await User.findOneAndUpdate(
+    { email: email.toLowerCase() },
+    { $set: { emailVerifiedAt: new Date() } },
+  );
+  if (!user) throw new Error(`Cannot verify missing test user: ${email}`);
 }
 
 export function postRequest(path: string, body: unknown): NextRequest {

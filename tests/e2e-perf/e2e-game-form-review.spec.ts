@@ -6,15 +6,10 @@
  * atualização de prévia entre guias, cancelamento e payload sem review.
  */
 import { test, expect } from "@playwright/test";
-import { uniqueUser, registerUser, loginUser, createGame } from "./helpers";
+import { createAuthenticatedE2EContext, createGame } from "./helpers";
 
 async function freshUserContext(browser: any) {
-  const context = await browser.newContext({
-    storageState: { cookies: [], origins: [] },
-  });
-  const user = uniqueUser();
-  await registerUser(context.request, user);
-  await loginUser(context.request, user.email, user.password);
+  const context = await createAuthenticatedE2EContext(browser);
   const page = await context.newPage();
   return { context, page };
 }

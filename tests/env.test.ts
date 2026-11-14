@@ -19,6 +19,14 @@ describe("loadServerEnv", () => {
     });
   });
 
+  it("supports an explicit database name while preserving the default when absent", () => {
+    expect(loadServerEnv({ ...VALID }).MONGODB_DB_NAME).toBeUndefined();
+    expect(
+      loadServerEnv({ ...VALID, MONGODB_DB_NAME: "save-state-e2e" })
+        .MONGODB_DB_NAME,
+    ).toBe("save-state-e2e");
+  });
+
   it("rejects a missing MONGODB_URI", () => {
     expect(() => loadServerEnv({ ...VALID, MONGODB_URI: undefined })).toThrow(
       /MONGODB_URI/,

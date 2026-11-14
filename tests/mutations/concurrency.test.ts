@@ -127,7 +127,7 @@ describe("concurrent creation races", () => {
     expect(indexes.some((ix) => JSON.stringify(ix.key) === JSON.stringify({ userId: 1, gameId: 1 }))).toBe(true);
   });
 
-  it("concurrent registration yields one user and one 400 duplicate", async () => {
+  it("concurrent registration yields one user and a uniform public response", async () => {
     const payload = {
       name: "Race User",
       email: "race-user@test.com",
@@ -137,11 +137,19 @@ describe("concurrent creation races", () => {
       register(postRequest("/api/auth/register", payload)),
       register(postRequest("/api/auth/register", payload)),
     ]);
-    expect([first.status, second.status].sort()).toEqual([201, 400]);
-
-    const failed = first.status === 400 ? first : second;
-    expect((await failed.json()).error.code).toBe("EMAIL_ALREADY_IN_USE");
+    const bodies = await Promise.all([first.json(), second.json()]);
+    expect([first.status, second.status]).toEqual([201, 201]);
+    expect(bodies[0]).toEqual(bodies[1]);
     expect(await User.countDocuments({ email: payload.email })).toBe(1);
+    const user = await User.findOne({ email: payload.email }).lean();
+    expect(user?.emailVerifiedAt).toBeNull();
+
+    const loginResponse = await login(postRequest("/api/auth/login", {
+      email: payload.email,
+      password: payload.password,
+    }));
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.cookies.get("token")?.value).toBeTruthy();
   });
 
   it("accepts production traffic once declared indexes exist", async () => {

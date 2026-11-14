@@ -4,164 +4,221 @@
 // tsx on any OS — no NODE_OPTIONS shell prefix required (Windows-safe).
 import "./register-server-only-stub.mjs";
 /**
- * Save State index verifier (readiness gate for deploy).
+ * Schema-driven MongoDB index verifier and create-only provisioner.
  *
- * Compares the unique indexes declared by the Mongoose schemas with the
- * indexes actually present in the target database and reports:
- * missing, incompatible (same key, different options), and duplicate
- * documents that would block unique index creation.
- *
- * VERIFY-ONLY by default: never creates, drops, or rebuilds anything,
- * never deletes or modifies documents. With BOTH `--create-missing`
- * and `--yes`, it creates the missing declared indexes (create-only)
- * after printing the plan. Destructive operations do not exist here.
+ * Verify-only by default. Index creation requires BOTH --create-missing and
+ * --yes, plus an explicit --db-name confirmed by --confirm-db-name.
+ * Existing indexes are never removed, replaced, or synchronized.
  *
  * Usage:
- *   pnpm db:indexes               # verify only (add script entry)
- *   pnpm db:indexes -- --create-missing --yes
+ *   pnpm db:indexes
+ *   pnpm db:indexes -- --db-name save-state-dev
+ *   pnpm db:indexes -- --db-name save-state-dev --confirm-db-name save-state-dev --create-missing --yes
  *
- * Requires MONGODB_URI (any target; prints only the host, never secrets).
+ * Database selection for verify-only: --db-name, then MONGODB_DB_NAME;
+ * outside Vercel, the development fallback is "save-state". Writes require
+ * an explicit --db-name and matching --confirm-db-name; Atlas development
+ * writes are restricted to save-state-dev. The selected database is printed
+ * before any operation, never its hostname or URI. An explicit dbName is
+ * passed to Mongoose; a URI pathname does not override it.
  */
-import mongoose from "mongoose";
-import "./load-local-env";
-import { GlobalGame } from "@/db/models/global-game";
-import { UserGame } from "@/db/models/user-game";
-import { GameReview } from "@/db/models/game-review";
-import { GameCollection } from "@/db/models/game-collection";
-import { User } from "@/db/models/user";
-import { PasswordResetToken } from "@/db/models/password-reset-token";
+import mongoose from 'mongoose';
+import { formatTargetSummary, isDirectExecution } from './lib/db-target-guard';
+import { indexAuditConnectionOptions } from './lib/index-audit-options';
+import {
+  parseVerifyIndexesArgs,
+  resolveVerifyIndexesTarget,
+} from './lib/operational-cli';
+import {
+  inspectModelIndexes,
+  provisionMissingIndexes,
+  type IndexInspection,
+  type IndexModelLike,
+} from '@/db/index-management';
 
-interface ExpectedIndex {
-  collection: string;
-  model: string;
-  key: Record<string, number>;
-  options: Record<string, unknown>;
-  critical: boolean;
-  reason: string;
+async function loadModels(): Promise<IndexModelLike[]> {
+  // Connect options must be applied before model compilation/Model.init().
+  const [
+    { Activity },
+    { GameCollection },
+    { GameReview },
+    { GlobalGame },
+    { PasswordResetToken },
+    { EmailVerificationToken },
+    { User },
+    { UserGameNote },
+    { UserGame },
+  ] = await Promise.all([
+    import('@/db/models/activity'),
+    import('@/db/models/game-collection'),
+    import('@/db/models/game-review'),
+    import('@/db/models/global-game'),
+    import('@/db/models/password-reset-token'),
+    import('@/db/models/email-verification-token'),
+    import('@/db/models/user'),
+    import('@/db/models/user-game-note'),
+    import('@/db/models/user-game'),
+  ]);
+
+  return [
+    User,
+    GlobalGame,
+    UserGame,
+    GameReview,
+    GameCollection,
+    PasswordResetToken,
+    EmailVerificationToken,
+    Activity,
+    UserGameNote,
+  ] as unknown as IndexModelLike[];
 }
 
-/** Critical = uniqueness/integrity invariants enforced via E11000. */
-const EXPECTED: ExpectedIndex[] = [
-  { collection: "users", model: "User", key: { email: 1 }, options: { unique: true }, critical: true, reason: "duplicate email registration" },
-  { collection: "globalgames", model: "GlobalGame", key: { slug: 1 }, options: { unique: true }, critical: true, reason: "canonical game identity" },
-  { collection: "globalgames", model: "GlobalGame", key: { name: 1 }, options: { unique: true, partialFilterExpression: { source: "manual" } }, critical: true, reason: "manual game dedup under concurrency" },
-  { collection: "globalgames", model: "GlobalGame", key: { atpDomainId: 1 }, options: { unique: true, sparse: true }, critical: true, reason: "ATP canonical identity" },
-  { collection: "globalgames", model: "GlobalGame", key: { igdbId: 1 }, options: { unique: true, sparse: true }, critical: true, reason: "IGDB canonical identity" },
-  { collection: "usergames", model: "UserGame", key: { userId: 1, gameId: 1 }, options: { unique: true }, critical: true, reason: "one library entry per user+game" },
-  { collection: "gamereviews", model: "GameReview", key: { userGameId: 1 }, options: { unique: true }, critical: true, reason: "optional 1:1 review per library entry" },
-  { collection: "gamecollections", model: "GameCollection", key: { userId: 1, name: 1 }, options: { unique: true }, critical: true, reason: "one list name per user" },
-  { collection: "passwordresettokens", model: "PasswordResetToken", key: { token: 1 }, options: { unique: true }, critical: false, reason: "single-use reset tokens" },
-];
-
-function sameKey(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+function formatIndex(item: IndexInspection): string {
+  return `${item.model} ${JSON.stringify(item.fields)}`;
 }
 
-function mask(value: unknown): string {
-  const s = String(value ?? "");
-  if (s.includes("@")) {
-    const at = s.indexOf("@");
-    return `${s[0]}***${s.slice(at)}`;
+async function findDuplicateValues(
+  model: IndexModelLike,
+  item: IndexInspection,
+): Promise<Array<{ _id?: unknown; n?: number }>> {
+  const collection = model.collection as unknown as {
+    aggregate(pipeline: unknown[]): {
+      toArray(): Promise<Array<{ _id?: unknown; n?: number }>>;
+    };
+  };
+  const matchParts: Record<string, unknown>[] = [];
+  const partial = item.options.partialFilterExpression;
+  if (partial && typeof partial === 'object') {
+    matchParts.push(partial as Record<string, unknown>);
   }
-  return s.length > 24 ? `${s.slice(0, 12)}…(${s.length})` : s;
+  if (item.options.sparse === true) {
+    matchParts.push({
+      $or: Object.keys(item.fields).map((field) => ({
+        [field]: { $exists: true },
+      })),
+    });
+  }
+
+  const groupId = Object.fromEntries(
+    Object.keys(item.fields).map((field) => [field, `$${field}`]),
+  );
+  const pipeline: unknown[] = [];
+  if (matchParts.length === 1) pipeline.push({ $match: matchParts[0] });
+  else if (matchParts.length > 1) pipeline.push({ $match: { $and: matchParts } });
+  pipeline.push(
+    { $group: { _id: groupId, n: { $sum: 1 } } },
+    { $match: { n: { $gt: 1 } } },
+    { $limit: 5 },
+  );
+  return collection.aggregate(pipeline).toArray();
 }
 
 async function main(): Promise<void> {
+  await import('./load-local-env');
   const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error("refusing to proceed: MONGODB_URI is required");
-    process.exit(2);
-  }
-  let host = "(unparseable)";
+  if (!uri) throw new Error('MONGODB_URI is required; refusing to proceed');
+
+  const args = parseVerifyIndexesArgs(process.argv.slice(2));
+  const target = resolveVerifyIndexesTarget(args, process.env, uri);
+  const { dbName, createMissing } = target;
+
+  console.log(formatTargetSummary(uri, dbName));
+  console.log(`mode: ${createMissing ? 'create missing only (--yes confirmed)' : 'verify-only'}`);
+
   try {
-    host = new URL(uri.replace(/^mongodb\+srv:\/\//, "https://")).host;
+    await mongoose.connect(uri, {
+      ...indexAuditConnectionOptions(dbName),
+    });
   } catch {
-    host = "(unparseable)";
-  }
-  const args = new Set(process.argv.slice(2));
-  const createMissing = args.has("--create-missing") && args.has("--yes");
-  if (args.has("--create-missing") && !args.has("--yes")) {
-    console.error("refusing to create: --create-missing requires explicit --yes");
-    process.exit(2);
+    throw new Error(
+      'MongoDB connection failed; verify the configured URI and network settings (credentials redacted)',
+    );
   }
 
-  console.log(`target host: ${host}`);
-  await mongoose.connect(uri, { dbName: "save-state", serverSelectionTimeoutMS: 10000 });
-  const collectionOf: Record<string, string> = {
-    User: User.collection.name,
-    GlobalGame: GlobalGame.collection.name,
-    UserGame: UserGame.collection.name,
-    GameReview: GameReview.collection.name,
-    GameCollection: GameCollection.collection.name,
-    PasswordResetToken: PasswordResetToken.collection.name,
-  };
   try {
-    let problems = 0;
-    for (const exp of EXPECTED) {
-      const coll = mongoose.connection.collection(collectionOf[exp.model] ?? exp.collection);
-      const existing = (await coll.listIndexes().toArray()) as unknown as Array<
-        Record<string, unknown>
-      >;
-      const match = existing.find((ix) => sameKey((ix.key ?? {}) as Record<string, unknown>, exp.key));
-      if (!match) {
-        problems += 1;
-        console.log(`MISSING [${exp.critical ? "critical" : "non-critical"}] ${exp.model} ${JSON.stringify(exp.key)} (${exp.reason})`);
-        if (createMissing) {
-          await coll.createIndex(
-            exp.key as Record<string, 1 | -1>,
-            exp.options as Parameters<typeof coll.createIndex>[1],
-          );
-          console.log(`  created (create-only, no drops)`);
+    const MODELS = await loadModels();
+    const initial = await Promise.all(MODELS.map(inspectModelIndexes));
+    const inspections = initial.flat();
+    const missing = inspections.filter((item) => item.status === 'missing');
+    const incompatible = inspections.filter((item) => item.status === 'incompatible');
+
+    for (const item of missing) {
+      console.log(`MISSING ${formatIndex(item)} options=${JSON.stringify(item.options)}`);
+    }
+    for (const item of incompatible) {
+      console.error(
+        `INCOMPATIBLE ${formatIndex(item)} expected=${JSON.stringify(item.options)} actual=${JSON.stringify(item.actualOptions)}`,
+      );
+    }
+
+    if (incompatible.length > 0) {
+      throw new Error(
+        `${incompatible.length} incompatible index(es); resolve manually. No indexes were created.`,
+      );
+    }
+
+    if (createMissing && missing.length > 0) {
+      // Check unique-index conflicts before making any index changes. An
+      // empty/missing collection has no indexes; skip its aggregation.
+      const duplicateProblems: string[] = [];
+      for (const model of MODELS) {
+        const modelMissing = missing.filter(
+          (item) => item.model === model.modelName && item.options.unique === true,
+        );
+        if (modelMissing.length === 0) continue;
+        const currentIndexes = await model.collection.listIndexes().toArray().catch((error: unknown) => {
+          if (
+            typeof error === 'object' &&
+            error !== null &&
+            (error as { code?: unknown }).code === 26
+          ) return [];
+          throw error;
+        });
+        if (currentIndexes.length === 0) continue;
+        for (const item of modelMissing) {
+          const duplicates = await findDuplicateValues(model, item);
+          if (duplicates.length > 0) {
+            duplicateProblems.push(
+              `${formatIndex(item)} duplicate_groups=${duplicates.length}`,
+            );
+          }
         }
-        continue;
       }
-      const opts = match as Record<string, unknown>;
-      const wantUnique = exp.options.unique === true;
-      const wantSparse = exp.options.sparse === true;
-      const wantPartial = JSON.stringify((exp.options as { partialFilterExpression?: unknown }).partialFilterExpression ?? null);
-      const gotPartial = JSON.stringify((opts.partialFilterExpression as unknown) ?? null);
-      if (!!opts.unique !== wantUnique || !!opts.sparse !== wantSparse || gotPartial !== wantPartial) {
-        problems += 1;
-        console.log(
-          `INCOMPATIBLE [${exp.critical ? "critical" : "non-critical"}] ${exp.model} ${JSON.stringify(exp.key)} ` +
-            `(db unique=${!!opts.unique} sparse=${!!opts.sparse} partial=${gotPartial}) — resolve manually, never auto-dropped`,
+      if (duplicateProblems.length > 0) {
+        throw new Error(
+          `duplicate documents prevent unique index creation; no indexes were created: ${duplicateProblems.join('; ')}`,
         );
       }
-    }
-    // Duplicate scan for plain (non-partial, non-sparse) unique keys.
-    for (const exp of EXPECTED.filter((e) => e.options.unique === true && !e.options.sparse && !(e.options as { partialFilterExpression?: unknown }).partialFilterExpression)) {
-      const fields = Object.keys(exp.key);
-      const groupId: Record<string, string> = {};
-      for (const f of fields) groupId[f] = `$${f}`;
-      const dupes = (await mongoose.connection
-        .collection(collectionOf[exp.model] ?? exp.collection)
-        .aggregate([
-          { $group: { _id: groupId, n: { $sum: 1 } } },
-          { $match: { n: { $gt: 1 } } },
-          { $limit: 5 },
-        ])
-        .toArray()) as unknown as Array<{ _id?: unknown; n?: number }>;
-      if (dupes.length > 0) {
-        problems += 1;
-        console.log(
-          `DUPLICATES [${exp.critical ? "critical" : "non-critical"}] ${exp.model} ${JSON.stringify(exp.key)}: ` +
-            `${dupes.length}+ shown (max 5): ` +
-            dupes.map((d) => JSON.stringify(d._id, (_, v) => (typeof v === "string" ? mask(v) : v))).join("; "),
+
+      console.log(`provisioning ${missing.length} missing schema index(es)`);
+      const finalState = await provisionMissingIndexes(MODELS);
+      const remaining = finalState.filter((item) => item.status !== 'present');
+      if (remaining.length > 0) {
+        throw new Error(
+          `post-provision verification failed: ${remaining.map((item) => `${item.status} ${formatIndex(item)}`).join('; ')}`,
         );
       }
+      console.log(`OK: all ${finalState.length} schema indexes present and compatible`);
+      return;
     }
-    if (problems === 0) {
-      console.log("OK: all declared unique indexes present and compatible; no blocking duplicates sampled");
-    } else {
-      console.log(`FOUND ${problems} problem(s) above; writes relying on missing guarantees will be refused at runtime until resolved`);
-      process.exitCode = 1;
+
+    if (missing.length > 0) {
+      throw new Error(`${missing.length} declared index(es) are missing; no writes performed`);
     }
+
+    console.log(`OK: all ${inspections.length} schema indexes present and compatible`);
   } finally {
     await mongoose.disconnect();
   }
 }
 
-main().catch((error) => {
-  console.error("index verification failed:", error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (isDirectExecution(import.meta.url, process.argv[1])) {
+  main().catch((error: unknown) => {
+    console.error(
+      'index verification/provisioning failed:',
+      error instanceof Error ? error.name : 'unknown error',
+      '(details omitted to prevent URI or infrastructure disclosure)',
+    );
+    process.exitCode = 1;
+  });
+}

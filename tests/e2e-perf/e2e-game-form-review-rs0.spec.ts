@@ -11,18 +11,18 @@
  * está coberta no nível de API+schema; o E2E exigiria provider externo.
  */
 import { test, expect } from "@playwright/test";
-import { uniqueUser, registerUser, loginUser } from "./helpers";
+import {
+  createAuthenticatedE2EContext,
+  uniqueUser,
+  createVerifiedUserFixture,
+  loginUser,
+} from "./helpers";
 
 let REPLSET_OK = false;
 
 test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext({
-    storageState: { cookies: [], origins: [] },
-  });
+  const context = await createAuthenticatedE2EContext(browser);
   try {
-    const user = uniqueUser();
-    await registerUser(context.request, user);
-    await loginUser(context.request, user.email, user.password);
     const res = await context.request.post("/api/games", {
       data: {
         game: { name: `P3probe ${Date.now()}` },
@@ -40,13 +40,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 async function freshUserContext(browser: any) {
-  const context = await browser.newContext({
-    storageState: { cookies: [], origins: [] },
-  });
-  const user = uniqueUser();
-  await registerUser(context.request, user);
-  await loginUser(context.request, user.email, user.password);
-  return context;
+  return createAuthenticatedE2EContext(browser);
 }
 
 test.describe("fase 3 transacional — newgame com review", () => {
@@ -227,7 +221,7 @@ test.describe("fase 3 transacional — editgame", () => {
     const gameId = await createGameWithReview(context.request, `Isolada ${Date.now()}`);
     const other = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const user2 = uniqueUser();
-    await registerUser(other.request, user2);
+    await createVerifiedUserFixture(other.request, user2);
     await loginUser(other.request, user2.email, user2.password);
     const forbidden = await other.request.get(`/api/games/${gameId}/review`);
     expect(forbidden.status()).toBe(404);

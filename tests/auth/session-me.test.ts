@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as register } from "@/app/api/auth/register/route";
 import { POST as login } from "@/app/api/auth/login/route";
 import { GET as me, PATCH as patchMe } from "@/app/api/auth/me/route";
+import { User } from "@/db/models/user";
 import {
   TEST_USER,
   authedRequest,
@@ -100,6 +101,23 @@ describe("GET /api/auth/me", () => {
     const response = await me(authedRequest("/api/auth/me", token));
     expect(response.status).toBe(401);
     expect((await response.json()).error.code).toBe("UNAUTHENTICATED");
+  });
+
+  it("keeps a valid JWT when emailVerifiedAt is null", async () => {
+    const token = await loginToken();
+    expect((await User.findOne({ email: TEST_USER.email }))?.emailVerifiedAt).toBeNull();
+    const response = await me(authedRequest("/api/auth/me", token));
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects a valid JWT after sessionVersion is revoked", async () => {
+    const token = await loginToken();
+    await User.updateOne(
+      { email: TEST_USER.email },
+      { $inc: { sessionVersion: 1 } },
+    );
+    const response = await me(authedRequest("/api/auth/me", token));
+    expect(response.status).toBe(401);
   });
 });
 

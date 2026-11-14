@@ -15,7 +15,7 @@
  * `e2e-review-homolog-replset.spec.ts` e só executa contra replica set.
  */
 import { test, expect } from "@playwright/test";
-import { uniqueUser, registerUser, loginUser } from "./helpers";
+import { createAuthenticatedE2EContext } from "./helpers";
 
 const LONG_MD = `# Crônica de uma campanha longa
 
@@ -84,12 +84,7 @@ Uma nota[^1] de rodapé.
 <div class="aviso">bloco html</div>`;
 
 async function freshUserContext(browser: any) {
-  const context = await browser.newContext({
-    storageState: { cookies: [], origins: [] },
-  });
-  const user = uniqueUser();
-  await registerUser(context.request, user);
-  await loginUser(context.request, user.email, user.password);
+  const context = await createAuthenticatedE2EContext(browser);
   const page = await context.newPage();
   return { context, page };
 }

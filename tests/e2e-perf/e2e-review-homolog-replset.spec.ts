@@ -9,18 +9,18 @@
  * fluxo completo e valida que o MongoDB não é alterado pela Fase 2.
  */
 import { test, expect } from "@playwright/test";
-import { uniqueUser, registerUser, loginUser } from "./helpers";
+import {
+  createAuthenticatedE2EContext,
+  uniqueUser,
+  createVerifiedUserFixture,
+  loginUser,
+} from "./helpers";
 
 let REPLSET_OK = false;
 
 test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext({
-    storageState: { cookies: [], origins: [] },
-  });
+  const context = await createAuthenticatedE2EContext(browser);
   try {
-    const user = uniqueUser();
-    await registerUser(context.request, user);
-    await loginUser(context.request, user.email, user.password);
     const res = await context.request.post("/api/games", {
       data: {
         game: { name: `H7 Probe ${Date.now()}` },
@@ -50,7 +50,7 @@ test.describe("H7 — userGameId com review persistida", () => {
       storageState: { cookies: [], origins: [] },
     });
     const user = uniqueUser();
-    await registerUser(context.request, user);
+    await createVerifiedUserFixture(context.request, user);
     await loginUser(context.request, user.email, user.password);
 
     const marker = `H7 Review ${Date.now()}`;
@@ -98,7 +98,7 @@ test.describe("H7 — userGameId com review persistida", () => {
       storageState: { cookies: [], origins: [] },
     });
     const user2 = uniqueUser();
-    await registerUser(other.request, user2);
+    await createVerifiedUserFixture(other.request, user2);
     await loginUser(other.request, user2.email, user2.password);
     const forbidden = await other.request.get(`/api/games/${gameId}/review`);
     expect(forbidden.status()).toBe(404);

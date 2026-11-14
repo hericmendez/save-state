@@ -36,6 +36,7 @@ import {
   authedRequest,
   clearDatabase,
   postRequest,
+  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -265,6 +266,7 @@ describe("GET /api/search carries coverUrl for a 20-result page", () => {
 
   async function tokenFor(): Promise<string> {
     await register(postRequest("/api/auth/register", TEST_USER));
+    await markTestUserVerified(TEST_USER.email);
     const response = await login(
       postRequest("/api/auth/login", {
         email: TEST_USER.email,

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
+import PasswordInput from "@/components/RPGUI/PasswordInput";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -26,14 +27,15 @@ export function RegisterForm() {
     setIsLoading(true);
     try {
       await api.register(name, email, password);
-      // Registration does not establish a session; sign in afterwards.
-      await api.login(email, password);
-      router.refresh();
-      router.push("/home");
+      router.push("/login?registered=1");
     } catch (err) {
-      setError(
-        err instanceof ApiRequestError ? err.message : "Registration failed",
-      );
+      if (!(err instanceof ApiRequestError) || err.status >= 500) {
+        setError(
+          "Não foi possível confirmar o resultado do cadastro. Se ele foi concluído, tente entrar com seu e-mail e senha.",
+        );
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -62,14 +64,15 @@ export function RegisterForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
+          maxLength={254}
           autoComplete="email"
+          onBlur={(event) => setEmail(event.target.value.trim().toLowerCase())}
         />
       </label>
       <label>
         Senha
-        <RPGUInput
+        <PasswordInput
           className="w-full"
-          type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -80,9 +83,8 @@ export function RegisterForm() {
       </label>
       <label>
         Confirmar senha
-        <RPGUInput
+        <PasswordInput
           className="w-full"
-          type="password"
           value={passwordConfirm}
           onChange={(event) => setPasswordConfirm(event.target.value)}
           required
@@ -94,6 +96,10 @@ export function RegisterForm() {
         title={isLoading ? "Criando…" : "Criar conta"}
         disabled={isLoading}
       />
+      <p className="text-center">
+        A confirmação de e-mail é opcional.{" "}
+        <Link href="/check-email">Confirmar e-mail</Link>
+      </p>
       <p className="text-center">
         Já tem conta? <Link href="/login">Entrar</Link>
       </p>

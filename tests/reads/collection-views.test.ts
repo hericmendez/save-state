@@ -38,6 +38,7 @@ async function seedListView(): Promise<void> {
     name: "List Viewer",
     email: "list-viewer@test.com",
     passwordHash: "hash",
+    emailVerifiedAt: new Date(),
   });
   userId = String(user._id);
 

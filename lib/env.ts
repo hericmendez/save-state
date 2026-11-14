@@ -3,9 +3,29 @@ import { z } from "zod";
 
 const serverEnvSchema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
+  // Optional here to retain local development compatibility; db/mongo-config
+  // requires it in Vercel deployment contexts and validates the name.
+  MONGODB_DB_NAME: z.string().trim().min(1).optional(),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  APP_URL: z.string().min(1, "APP_URL is required"),
+  APP_URL: z.string().url().transform((value, ctx) => {
+    const url = new URL(value);
+    if (url.username || url.password || url.search || url.hash) {
+      ctx.addIssue({ code: "custom", message: "APP_URL must be a clean application origin" });
+      return z.NEVER;
+    }
+    if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
+      ctx.addIssue({ code: "custom", message: "APP_URL must use HTTPS in production" });
+      return z.NEVER;
+    }
+    if (url.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && url.protocol === "http:" && ["localhost", "127.0.0.1", "test.local"].includes(url.hostname))) {
+      ctx.addIssue({ code: "custom", message: "APP_URL protocol is not allowed" });
+      return z.NEVER;
+    }
+    return url.origin;
+  }),
+  RESEND_API_KEY: z.string().trim().min(1).optional(),
+  EMAIL_FROM: z.string().trim().min(3).optional(),
   // Reserved for Phase 9 ATP BFF integration. Optional until then.
   ATP_BASE_URL: z.string().optional(),
   // Etapa 2 — engine-agnostic search. IGDB is the default provider;
@@ -35,9 +55,12 @@ export function loadServerEnv(
   if (cachedEnv && source === process.env) return cachedEnv;
   const parsed = serverEnvSchema.safeParse({
     MONGODB_URI: source.MONGODB_URI,
+    MONGODB_DB_NAME: source.MONGODB_DB_NAME,
     JWT_SECRET: source.JWT_SECRET,
     JWT_EXPIRES_IN: source.JWT_EXPIRES_IN,
     APP_URL: source.APP_URL,
+    RESEND_API_KEY: source.RESEND_API_KEY,
+    EMAIL_FROM: source.EMAIL_FROM,
     ATP_BASE_URL: source.ATP_BASE_URL,
     SEARCH_METHOD: source.SEARCH_METHOD,
     TWITCH_CLIENT_ID: source.TWITCH_CLIENT_ID,
