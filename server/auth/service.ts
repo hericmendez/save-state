@@ -13,7 +13,11 @@ import { connectDatabase } from "@/db/connection";
 import { User, type UserDocument } from "@/db/models/user";
 import { PasswordResetToken } from "@/db/models/password-reset-token";
 import { EmailVerificationToken } from "@/db/models/email-verification-token";
-import { emailService } from "@/server/auth/email";
+import {
+  emailFailureLogFields,
+  emailService,
+  isTransactionalEmailConfigured,
+} from "@/server/auth/email";
 import { withAuthTransaction } from "@/server/auth/transaction";
 import { logger } from "@/server/shared/logger";
 
@@ -45,11 +49,19 @@ export interface VerificationEmailJob {
   rawToken: string;
 }
 
+/**
+ * Public signup is self-contained: no verification token and no e-mail are
+ * produced, so account creation does not depend on the transactional provider.
+ * Verification remains available later through the dedicated resend endpoint.
+ *
+ * Returns the created user, or `null` when the address already belongs to an
+ * account. The caller must keep the public response identical in both cases.
+ */
 export async function registerUserForPublicSignup(input: {
   name: string;
   email: string;
   password: string;
-}): Promise<VerificationEmailJob | null> {
+}): Promise<UserDocument | null> {
   await connectDatabase();
   const email = input.email.trim().toLowerCase();
   // Keep valid existing-account requests on the same dominant CPU path as a
@@ -58,14 +70,18 @@ export async function registerUserForPublicSignup(input: {
   const existing = await User.findOne({ email });
   if (existing) return null;
 
-  let user: UserDocument;
   try {
-    user = await User.create({
+    // A single document is written, so no multi-document transaction is
+    // needed. `emailVerifiedAt` stays null: signing up does not prove mailbox
+    // ownership and must not be represented as verification.
+    const user = new User({
       name: input.name,
       email,
       passwordHash,
       emailVerifiedAt: null,
     });
+    await user.save();
+    return user;
   } catch (error) {
     // Concurrent double-register raced past the existence check above.
     // The unique email index resolves the winner. Do not classify unrelated
@@ -73,7 +89,6 @@ export async function registerUserForPublicSignup(input: {
     if (isDuplicateEmailError(error)) return null;
     throw error;
   }
-  return createVerificationEmailJob(user);
 }
 
 /** Legacy internal service entry point used by seed tooling and service tests. */
@@ -82,21 +97,10 @@ export async function registerUser(input: {
   email: string;
   password: string;
 }): Promise<UserDocument> {
-  const job = await registerUserForPublicSignup(input);
-  if (!job) {
+  const user = await registerUserForPublicSignup(input);
+  if (!user) {
     throw new ApiError("EMAIL_ALREADY_IN_USE", "Email is already in use", 400);
   }
-  const user = await User.findOne({ email: input.email.trim().toLowerCase() });
-  if (!user) throw new Error("Registered user could not be reloaded");
-  const { APP_URL } = loadServerEnv();
-  const url = new URL("/verify-email", APP_URL);
-  url.searchParams.set("token", job.rawToken);
-  await emailService.send({
-    to: job.to,
-    subject: "Confirme seu e-mail — Save State",
-    text: `Confirme seu e-mail: ${url.toString()}\nEste link expira em 24 horas.`,
-    html: `<p>Confirme seu e-mail no Save State.</p><p><a href="${url.toString()}">Confirmar e-mail</a></p><p>Este link expira em 24 horas.</p>`,
-  });
   return user;
 }
 
@@ -122,7 +126,8 @@ async function createVerificationEmailJob(
 ): Promise<VerificationEmailJob> {
   const raw = crypto.randomBytes(32).toString("hex");
   await EmailVerificationToken.create({
-    tokenHash: hashToken(raw), userId: user._id,
+    tokenHash: hashToken(raw),
+    userId: user._id,
     expiresAt: new Date(Date.now() + VERIFICATION_EXPIRY_MS),
   });
   return { to: user.email, rawToken: raw };
@@ -156,6 +161,18 @@ export async function verifyEmail(token: string): Promise<void> {
 export async function resendVerification(
   email: string,
 ): Promise<VerificationEmailJob | null> {
+  // No token is created when delivery is impossible; the public response stays
+  // the same as for an unknown or already-verified address.
+  if (!isTransactionalEmailConfigured()) {
+    try {
+      logger.error("Verification resend unavailable", {
+        category: "EMAIL_NOT_CONFIGURED",
+      });
+    } catch {
+      // Logging must never change the public response.
+    }
+    return null;
+  }
   await connectDatabase();
   const user = await User.findOne({ email: email.toLowerCase(), emailVerifiedAt: null });
   if (!user) return null;
@@ -172,7 +189,10 @@ export async function loginUser(input: {
     user !== null &&
     (await bcrypt.compare(input.password, user.passwordHash));
 
-  if (!user || !passwordMatches || !user.emailVerifiedAt) {
+  // E-mail confirmation is optional in the MVP: valid credentials are enough.
+  // `emailVerifiedAt` remains null until the address is actually confirmed and
+  // is never inferred from a successful login.
+  if (!user || !passwordMatches) {
     throw new ApiError("UNAUTHENTICATED", "Invalid credentials", 401);
   }
 
@@ -247,6 +267,19 @@ function hashToken(token: string): string {
 }
 
 export async function forgotPassword(email: string): Promise<void> {
+  // Uniform external behavior: when mail is unavailable, existing and unknown
+  // addresses take the same path (no token, no provider call, generic 200).
+  if (!isTransactionalEmailConfigured()) {
+    try {
+      logger.error("Password reset email unavailable", {
+        category: "EMAIL_NOT_CONFIGURED",
+      });
+    } catch {
+      // Logging must never change the public response.
+    }
+    return;
+  }
+
   await connectDatabase();
   const user = await User.findOne({ email: email.toLowerCase() });
 
@@ -264,12 +297,21 @@ export async function forgotPassword(email: string): Promise<void> {
     const { APP_URL } = loadServerEnv();
     const resetUrl = new URL("/reset-password", APP_URL);
     resetUrl.searchParams.set("token", rawToken);
-    await emailService.send({
-      to: user.email,
-      subject: "Password Reset Request",
-      text: `You requested a password reset. Reset your password here: ${resetUrl.toString()}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`,
-      html: `<p>You requested a password reset.</p><p><a href="${resetUrl.toString()}">Reset your password</a></p><p>This link expires in 1 hour.</p><p>If you did not request this, ignore this email.</p>`,
-    });
+    try {
+      await emailService.send({
+        to: user.email,
+        subject: "Password Reset Request",
+        text: `You requested a password reset. Reset your password here: ${resetUrl.toString()}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`,
+        html: `<p>You requested a password reset.</p><p><a href="${resetUrl.toString()}">Reset your password</a></p><p>This link expires in 1 hour.</p><p>If you did not request this, ignore this email.</p>`,
+      });
+    } catch (error) {
+      // Provider failures must not distinguish existing accounts via HTTP 500.
+      try {
+        logger.error("Password reset email delivery failed", emailFailureLogFields(error));
+      } catch {
+        // Logging must never change the public response.
+      }
+    }
   }
 }
 
@@ -337,9 +379,10 @@ export async function resetPassword(
     });
   } catch (error) {
     try {
-      logger.error("Password reset committed but notification failed", {
-        name: error instanceof Error ? error.name : typeof error,
-      });
+      logger.error(
+        "Password reset committed but notification failed",
+        emailFailureLogFields(error),
+      );
     } catch {
       // A notification/logging failure cannot undo or falsify a committed reset.
     }

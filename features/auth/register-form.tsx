@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ApiRequestError, api } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
+import PasswordInput from "@/components/RPGUI/PasswordInput";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -26,11 +27,11 @@ export function RegisterForm() {
     setIsLoading(true);
     try {
       await api.register(name, email, password);
-      router.push("/check-email");
+      router.push("/login?registered=1");
     } catch (err) {
       if (!(err instanceof ApiRequestError) || err.status >= 500) {
         setError(
-          "Não foi possível confirmar o resultado do cadastro. Se ele foi concluído, você ainda pode solicitar um novo link de confirmação.",
+          "Não foi possível confirmar o resultado do cadastro. Se ele foi concluído, tente entrar com seu e-mail e senha.",
         );
       } else {
         setError(err.message);
@@ -70,9 +71,8 @@ export function RegisterForm() {
       </label>
       <label>
         Senha
-        <RPGUInput
+        <PasswordInput
           className="w-full"
-          type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -83,9 +83,8 @@ export function RegisterForm() {
       </label>
       <label>
         Confirmar senha
-        <RPGUInput
+        <PasswordInput
           className="w-full"
-          type="password"
           value={passwordConfirm}
           onChange={(event) => setPasswordConfirm(event.target.value)}
           required
@@ -98,8 +97,8 @@ export function RegisterForm() {
         disabled={isLoading}
       />
       <p className="text-center">
-        Já se cadastrou ou não recebeu a confirmação?{" "}
-        <Link href="/check-email">Solicitar outro link</Link>
+        A confirmação de e-mail é opcional.{" "}
+        <Link href="/check-email">Confirmar e-mail</Link>
       </p>
       <p className="text-center">
         Já tem conta? <Link href="/login">Entrar</Link>

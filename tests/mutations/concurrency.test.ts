@@ -7,14 +7,12 @@ import { POST as createList } from "@/app/api/game-collections/route";
 import { GlobalGame } from "@/db/models/global-game";
 import { GameCollection } from "@/db/models/game-collection";
 import { User } from "@/db/models/user";
-import { EmailVerificationToken } from "@/db/models/email-verification-token";
 import { UserGame } from "@/db/models/user-game";
 import { __resetConnectionCache, connectDatabase } from "@/db/connection";
 import {
   TEST_USER,
   clearDatabase,
   postRequest,
-  markTestUserVerified,
   startTestDatabase,
   stopTestDatabase,
 } from "../auth/helpers";
@@ -26,7 +24,6 @@ beforeEach(clearDatabase);
 
 async function tokenFor(): Promise<string> {
   await register(postRequest("/api/auth/register", TEST_USER));
-  await markTestUserVerified(TEST_USER.email);
   const response = await login(postRequest("/api/auth/login", {
     email: TEST_USER.email,
     password: TEST_USER.password,
@@ -145,9 +142,14 @@ describe("concurrent creation races", () => {
     expect(bodies[0]).toEqual(bodies[1]);
     expect(await User.countDocuments({ email: payload.email })).toBe(1);
     const user = await User.findOne({ email: payload.email }).lean();
-    const tokens = await EmailVerificationToken.find({}).lean();
-    expect(tokens).toHaveLength(1);
-    expect(String(tokens[0].userId)).toBe(String(user?._id));
+    expect(user?.emailVerifiedAt).toBeNull();
+
+    const loginResponse = await login(postRequest("/api/auth/login", {
+      email: payload.email,
+      password: payload.password,
+    }));
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.cookies.get("token")?.value).toBeTruthy();
   });
 
   it("accepts production traffic once declared indexes exist", async () => {

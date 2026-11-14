@@ -233,11 +233,13 @@ html[data-layout-mode="pixel-perfect"] .layout-zoom {
 textarea.rpgui-input {
   box-sizing: border-box;
   color: white;
-  text-shadow:
-    -2px 0 black,
-    0 2px black,
-    2px 0 black,
-    0 -2px black;
+  /*
+   * Intentionally NO text-shadow. The theme outline (four black offsets)
+   * only reads well on the dark input background; when the browser paints
+   * its own autofill background and text color, the outline shows up as a
+   * blurred duplicate. Inputs keep `color` and the dark background, while
+   * headings, body copy and RPGUI buttons preserve their shadows.
+   */
   font-size: 0.9em;
   line-height: 32px;
   background: #4e4a4e;

@@ -29,8 +29,9 @@ export function CheckEmail() {
   return (
     <form onSubmit={resend} className="flex flex-col gap-3">
       <p>
-        Se o cadastro foi concluído, informe o endereço usado para solicitar
-        outro link. A conta continuará pendente até a confirmação do e-mail.
+        A confirmação de e-mail é opcional e não é exigida para entrar. Se
+        quiser confirmar o endereço da sua conta, informe-o abaixo para
+        solicitar um link. A solicitação não confirma a entrega da mensagem.
       </p>
       <label>
         E-mail
