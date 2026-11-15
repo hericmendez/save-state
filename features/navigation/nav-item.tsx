@@ -141,7 +141,7 @@ function NavItemGroup({
                       openCollectionModal();
                     }}
                     title={
-                      <p className="text-sm text-white text-bold hover:text-amber-300 hover:text-underline">
+                      <p className="text-sm text-white text-bold font-display hover:text-amber-300 hover:text-underline">
                         {child.title}
                       </p>
                     }
@@ -156,7 +156,7 @@ function NavItemGroup({
                     href={child.path ?? "#"}
                     onClick={onNavigate}
                     title={
-                      <p className="text-sm text-white text-bold hover:text-amber-300 hover:text-underline">
+                      <p className="text-sm text-white text-bold font-display hover:text-amber-300 hover:text-underline">
                         {child.title}
                       </p>
                     }
