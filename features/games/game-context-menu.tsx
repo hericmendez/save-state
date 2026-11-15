@@ -5,6 +5,8 @@ import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import type { Game, GameCollection } from "@/features/shared/types";
 import { CustomContextMenu, type ContextMenuItem } from "./context-menu";
 import { notifyCollectionsChanged } from "@/features/collections/collections-signal";
+import { GAME_STATUSES } from "@/schemas/games";
+import { getStatusLabel } from "./status-labels";
 
 async function addGameToCollection(gameId: string, collectionId: string): Promise<void> {
   await apiRequest<void>(`/api/games/${gameId}/collections/${collectionId}`, {
@@ -25,6 +27,7 @@ export function GameContextMenu({
   onEdit,
   onDelete,
   onCollectionChanged,
+  onStatusChange,
   onError,
   children,
 }: {
@@ -34,6 +37,7 @@ export function GameContextMenu({
   onEdit?: () => void;
   onDelete?: () => void;
   onCollectionChanged?: () => void;
+  onStatusChange?: (status: string) => () => void;
   onError?: (message: string) => void;
   children: React.ReactNode;
 }) {
@@ -43,6 +47,8 @@ export function GameContextMenu({
   // details modal favorited the same game). No parallel favorite state.
   const [favorite, setFavorite] = useState(game.favorite ?? false);
   const [favPending, setFavPending] = useState(false);
+  const [status, setStatus] = useState(game.status);
+  const [statusPending, setStatusPending] = useState(false);
 
   useEffect(() => {
     if (!favPending) setFavorite(game.favorite ?? false);
@@ -97,6 +103,27 @@ export function GameContextMenu({
     }
   }
 
+  async function handleStatusChange(nextStatus: string) {
+    if (statusPending || nextStatus === status) return;
+    const previous = status;
+    setStatus(nextStatus);
+    const rollbackList = onStatusChange?.(nextStatus);
+    setStatusPending(true);
+    try {
+      await apiRequest(`/api/games/${game._id}`, {
+        method: "PATCH",
+        body: { status: nextStatus },
+      });
+      onCollectionChanged?.();
+    } catch (err) {
+      setStatus(previous);
+      rollbackList?.();
+      reportError(err, "Falha ao alterar status");
+    } finally {
+      setStatusPending(false);
+    }
+  }
+
   const currentCollections = useMemo(
     () => collections.filter((collection) => localCollectionIds.includes(collection._id)),
     [collections, localCollectionIds],
@@ -117,6 +144,16 @@ export function GameContextMenu({
     ...(onEdit ? [{ key: "edit", label: "Editar", onClick: onEdit }] : []),
     ...(onDelete ? [{ key: "delete", label: "Excluir", onClick: onDelete }] : []),
     { key: "sep", separator: true },
+    {
+      key: "status",
+      label: statusPending ? "Atualizando status…" : "Trocar status",
+      disabled: statusPending,
+      children: GAME_STATUSES.map((value) => ({
+        key: `status-${value}`,
+        label: `${value === status ? "✓ " : ""}${getStatusLabel(value)}`,
+        onClick: () => handleStatusChange(value),
+      })),
+    },
     {
       key: "add",
       label: "Adicionar a…",

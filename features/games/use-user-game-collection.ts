@@ -20,6 +20,7 @@ import {
   toFilterDraft,
   type LibraryFilterDraft,
 } from "./user-game-filters";
+import { optimisticStatusPage } from "./status-optimistic";
 
 export interface CollectionScope {
   favorite?: boolean;
@@ -206,6 +207,65 @@ export function useUserGameCollection({
     setReloadKey((key) => key + 1);
   }, []);
 
+  const optimisticallySetStatus = useCallback(
+    (gameId: string, status: string) => {
+      const querySnapshot = serializeCollectionQuery(queryRef.current);
+      const previousGames = games;
+      const previousPagination = pagination;
+      const next = optimisticStatusPage({
+        games,
+        pagination,
+        gameId,
+        status,
+        activeStatus: queryRef.current.status,
+        currentPage: queryRef.current.page,
+      });
+      setGames(next.games);
+      setPagination(next.pagination);
+      if (next.pageChanged && next.pagination) {
+        updateQuery({ page: next.pagination.page }, false);
+      }
+
+      return () => {
+        if (
+          serializeCollectionQuery(queryRef.current) !== querySnapshot
+        ) {
+          return;
+        }
+        setGames(previousGames);
+        if (previousPagination) setPagination(previousPagination);
+      };
+    },
+    [games, pagination, updateQuery],
+  );
+
+  const removeGameLocally = useCallback(
+    (gameId: string): boolean => {
+      const exists = games.some((game) => game._id === gameId);
+      if (!exists) return false;
+      setGames((current) => current.filter((game) => game._id !== gameId));
+      if (!pagination) return false;
+
+      const total = Math.max(0, pagination.total - 1);
+      const totalPages = Math.max(1, Math.ceil(total / queryRef.current.limit));
+      const nextPage = Math.min(queryRef.current.page, totalPages);
+      setPagination({
+        ...pagination,
+        page: nextPage,
+        total,
+        totalPages,
+        hasPreviousPage: nextPage > 1,
+        hasNextPage: nextPage < totalPages,
+      });
+      if (nextPage !== queryRef.current.page) {
+        updateQuery({ page: nextPage }, false);
+        return true;
+      }
+      return false;
+    },
+    [games, pagination, updateQuery],
+  );
+
   return {
     query,
     searchInput,
@@ -219,5 +279,7 @@ export function useUserGameCollection({
     error,
     refresh,
     retry,
+    optimisticallySetStatus,
+    removeGameLocally,
   };
 }

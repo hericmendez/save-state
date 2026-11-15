@@ -77,26 +77,32 @@ export function Collection<T>({
         <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
       </div>
       {listHeader}
-      {isLoading ? (
+      {isLoading && items.length > 0 ? (
+        <p className="text-xs" role="status" aria-live="polite">Atualizando jogos…</p>
+      ) : null}
+      {isLoading && items.length === 0 ? (
         <div className="rpgui-container framed-grey p-4 text-center">
           <p className="font-display text-sm" aria-live="polite">
             [ Carregando... ]
           </p>
         </div>
-      ) : error ? (
+      ) : error && items.length === 0 ? (
         <div className="rpgui-container framed-grey p-4">
           <p role="alert">{error}</p>
           <RPGUIButton type="button" title="Tentar novamente" onClick={onRetry} />
         </div>
       ) : items.length === 0 ? (
         <p>{emptyMessage}</p>
-      ) : viewMode === "grid" ? (
+      ) : (
+        <>
+          {error ? <p role="alert">{error}</p> : null}
+          {viewMode === "grid" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {items.map((item) => (
             <div key={getItemKey(item)}>{renderGridItem(item)}</div>
           ))}
         </div>
-      ) : renderListTable ? (
+          ) : renderListTable ? (
         <DataTable
           label={tableLabel}
           minWidthClass={tableMinWidthClass}
@@ -108,12 +114,14 @@ export function Collection<T>({
             </Fragment>
           ))}
         </DataTable>
-      ) : (
+          ) : (
         <div className="flex flex-col gap-2">
           {items.map((item) => (
             <div key={getItemKey(item)}>{renderListItem(item)}</div>
           ))}
         </div>
+          )}
+        </>
       )}
       {pagination && (
         <CollectionPagination

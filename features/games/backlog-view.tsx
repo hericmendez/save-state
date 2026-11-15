@@ -63,6 +63,8 @@ export function BacklogView({
     error,
     refresh,
     retry,
+    optimisticallySetStatus,
+    removeGameLocally,
   } = useUserGameCollection({
     initialQuery,
     initialGames,
@@ -86,7 +88,8 @@ export function BacklogView({
       setDeleteTarget(null);
       if (selectedGame?._id === target._id) setSelectedGame(null);
       notifyCollectionsChanged();
-      refresh();
+      const pageChanged = removeGameLocally(target._id);
+      if (!pageChanged) refresh();
     } catch (err) {
       setBanner(
         err instanceof ApiRequestError ? err.message : "Falha ao excluir",
@@ -123,6 +126,9 @@ export function BacklogView({
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
             onCollectionChanged={() => refresh()}
+            onStatusChange={(status) =>
+              optimisticallySetStatus(game._id, status)
+            }
             onError={setBanner}
           />
         )}
@@ -134,6 +140,9 @@ export function BacklogView({
             onEdit={() => router.push(`/backlog/${game._id}/edit`)}
             onDelete={() => setDeleteTarget(game)}
             onCollectionChanged={() => refresh()}
+            onStatusChange={(status) =>
+              optimisticallySetStatus(game._id, status)
+            }
             onError={setBanner}
           />
         )}
@@ -156,6 +165,9 @@ export function BacklogView({
               onEdit={() => router.push(`/backlog/${game._id}/edit`)}
               onDelete={() => setDeleteTarget(game)}
               onCollectionChanged={() => refresh()}
+              onStatusChange={(status) =>
+                optimisticallySetStatus(game._id, status)
+              }
               onError={setBanner}
             >
               <BacklogTableRow

@@ -8,11 +8,10 @@ import {
   listEditorialPlatforms,
   paginatePlatforms,
   parsePlatformsQuery,
-  resolvePlatformThumb,
   serializePlatformsQuery,
   type PlatformAssetManifest,
 } from "@/features/catalog/editorial-platforms";
-import { PlatformCard } from "@/features/catalog/platform-card";
+import { PlatformsSearch } from "@/features/catalog/platforms/platforms-search";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUISelect from "@/components/RPGUI/Select";
 
@@ -86,17 +85,7 @@ export default async function PlatformsPage({
       {platforms.length === 0 ? (
         <p>Nenhuma plataforma disponível.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-          {items.map((platform) => (
-            <PlatformCard
-              key={platform.id}
-              editorial={{
-                ...platform,
-                thumb: resolvePlatformThumb(platform, manifest),
-              }}
-            />
-          ))}
-        </div>
+        <PlatformsSearch platforms={platforms} initialItems={items} manifest={manifest} />
       )}
 
       {totalPages > 1 && (

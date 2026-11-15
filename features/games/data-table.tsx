@@ -64,7 +64,7 @@ export function DataTableHeaderCell({
   return (
     <div
       role="columnheader"
-      className={`font-display min-w-0 text-xs ${className}`}
+      className={`min-w-0 text-sm ${className}`}
     >
       {children}
     </div>
@@ -119,7 +119,7 @@ export function DataTableCell({
   children: ReactNode;
 }) {
   return (
-    <div role="cell" title={title} className={`min-w-0 text-xs ${className}`}>
+    <div role="cell" title={title} className={`min-w-0 text-sm leading-snug ${className}`}>
       {children}
     </div>
   );

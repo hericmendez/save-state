@@ -12,6 +12,7 @@ export function GameCollectionItem({
   onEdit,
   onDelete,
   onCollectionChanged,
+  onStatusChange,
   onError,
 }: {
   game: Game;
@@ -20,6 +21,7 @@ export function GameCollectionItem({
   onEdit?: () => void;
   onDelete?: () => void;
   onCollectionChanged?: () => void;
+  onStatusChange?: (status: string) => () => void;
   onError?: (message: string) => void;
 }) {
   return (
@@ -30,6 +32,7 @@ export function GameCollectionItem({
       onEdit={onEdit}
       onDelete={onDelete}
       onCollectionChanged={onCollectionChanged}
+      onStatusChange={onStatusChange}
       onError={onError}
     >
       <article className="rpgui-container framed-golden grid grid-cols-[1fr_auto] items-center gap-3 p-3">

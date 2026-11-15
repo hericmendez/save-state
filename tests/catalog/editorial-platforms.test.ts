@@ -17,8 +17,18 @@ import {
   resolvePlatformThumb,
   serializePlatformsQuery,
 } from "@/features/catalog/editorial-platforms";
+import { filterEditorialPlatforms } from "@/features/catalog/platforms/platforms-search";
 
 describe("editorial platform directory", () => {
+  it("filters platform names case-insensitively and without diacritics", () => {
+    const sample = [
+      { id: "a", name: "Plátform Á", company: "", releaseYear: null, type: "", thumb: { logo: null, image: null } },
+      { id: "b", name: "Console", company: "", releaseYear: null, type: "", thumb: { logo: null, image: null } },
+    ];
+    expect(filterEditorialPlatforms(sample, "PLATFORM")).toEqual([sample[0]]);
+    expect(filterEditorialPlatforms(sample, " console ")).toEqual([sample[1]]);
+    expect(filterEditorialPlatforms(sample, "missing")).toEqual([]);
+  });
   it("renders every JSON entry in editorial order", () => {
     const platforms = listEditorialPlatforms();
     expect(platforms).toHaveLength((raw as unknown[]).length);
@@ -329,12 +339,16 @@ describe("platforms listing pagination (source contract)", () => {
     "app/(app)/catalog/platforms/page.tsx",
     "utf8",
   );
+  const search = readFileSync(
+    "features/catalog/platforms/platforms-search.tsx",
+    "utf8",
+  );
 
   it("reads page/limit from searchParams and slices locally (no IGDB)", () => {
     expect(page).toContain("parsePlatformsQuery(await searchParams)");
     expect(page).toContain("paginatePlatforms(platforms, query)");
-    expect(page).toContain("items.map((platform)");
-    expect(page).not.toContain("platforms.map((platform)");
+    expect(page).toContain("<PlatformsSearch");
+    expect(search).toContain("initialItems");
     expect(page).not.toContain("getCatalogPlatform");
   });
 
@@ -355,7 +369,7 @@ describe("platforms listing pagination (source contract)", () => {
   });
 
   it("resolves card images local-first with remote fallback", () => {
-    expect(page).toContain("resolvePlatformThumb(platform, manifest)");
+    expect(search).toContain("resolvePlatformThumb(platform, manifest)");
     expect(page).toContain("loadPlatformAssetManifest");
     expect(page).toContain("public");
     expect(page).toContain("manifest.json");

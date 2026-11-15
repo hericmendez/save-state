@@ -12,6 +12,7 @@ export function GameCard({
   onEdit,
   onDelete,
   onCollectionChanged,
+  onStatusChange,
   onError,
 }: {
   game: Game;
@@ -20,6 +21,7 @@ export function GameCard({
   onEdit?: () => void;
   onDelete?: () => void;
   onCollectionChanged?: () => void;
+  onStatusChange?: (status: string) => () => void;
   onError?: (message: string) => void;
 }) {
   const presentation = toCardModelFromGame(game);
@@ -31,6 +33,7 @@ export function GameCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onCollectionChanged={onCollectionChanged}
+      onStatusChange={onStatusChange}
       onError={onError}
     >
       <GameCardFrame presentation={presentation} onDetails={onDetails} />

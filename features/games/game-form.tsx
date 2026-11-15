@@ -138,6 +138,9 @@ export function GameForm({
   review,
   onReviewChange,
   onOpenReviewEditor,
+  collections,
+  selectedCollectionId,
+  onCollectionChange,
 }: {
   form: GameFormState;
   isEditing: boolean;
@@ -161,6 +164,9 @@ export function GameForm({
   };
   onReviewChange: (value: ReviewFormValue) => void;
   onOpenReviewEditor: (request: OpenEditorRequest) => void;
+  collections: { _id: string; name: string }[];
+  selectedCollectionId: string;
+  onCollectionChange: (collectionId: string) => void;
 }) {
   function field(label: string, node: React.ReactNode) {
     return (
@@ -404,6 +410,25 @@ export function GameForm({
 
        
       </div>
+      <label className="flex flex-col gap-1">
+        Adicionar à coleção
+        <RPGUISelect
+          value={selectedCollectionId}
+          onChange={(event) => onCollectionChange(event.target.value)}
+          disabled={isSubmitting || collections.length === 0}
+          aria-label="Adicionar à coleção"
+        >
+          <option value="">Sem associação</option>
+          {collections.map((collection) => (
+            <option key={collection._id} value={collection._id}>
+              {collection.name}
+            </option>
+          ))}
+        </RPGUISelect>
+        {collections.length === 0 ? (
+          <span className="text-xs">Nenhuma coleção disponível.</span>
+        ) : null}
+      </label>
       <ReviewFormSection
         mode={review.mode}
         userId={review.userId}

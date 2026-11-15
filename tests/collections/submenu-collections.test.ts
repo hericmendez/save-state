@@ -13,6 +13,7 @@ import { POST as createGame } from "@/app/api/games/route";
 import { GET as library } from "@/app/api/games/route";
 import { GlobalGame } from "@/db/models/global-game";
 import { UserGame } from "@/db/models/user-game";
+import { Activity } from "@/db/models/activity";
 import {
   TEST_USER,
   authedRequest,
@@ -97,6 +98,36 @@ describe("Etapa 5.1 — submenu collection integrity", () => {
       { params: Promise.resolve({ collectionId }) },
     );
     expect(dup.status).toBe(400);
+  });
+
+  it("concurrent and repeated attachment creates one membership and one event", async () => {
+    const token = await tokenFor();
+    const collectionId = await createCollection(token, "Concorrente");
+    const gameId = await createManualGame(token, "Jogo Concorrente");
+    const membershipRoute = await import(
+      "@/app/api/games/[gameId]/collections/[collectionId]/route"
+    );
+    const request = () =>
+      authedRequest(`/api/games/${gameId}/collections/${collectionId}`, token, {
+        method: "POST",
+      });
+    const context = { params: Promise.resolve({ gameId, collectionId }) };
+
+    const [first, second] = await Promise.all([
+      membershipRoute.POST(request(), context),
+      membershipRoute.POST(request(), context),
+    ]);
+    expect([first.status, second.status]).toEqual([204, 204]);
+    await membershipRoute.POST(request(), context);
+
+    const stored = await UserGame.findById(gameId).lean();
+    expect(stored?.collectionIds.map(String)).toEqual([collectionId]);
+    expect(
+      await Activity.countDocuments({
+        type: "game.added_to_collection",
+        userGameId: gameId,
+      }),
+    ).toBe(1);
   });
 
   it("delete preserves games, cleans collectionIds, keeps favorites, surfaces withoutCollection", async () => {

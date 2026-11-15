@@ -11,6 +11,7 @@ import {
 } from "@/app/api/games/[gameId]/route";
 import { GlobalGame } from "@/db/models/global-game";
 import { UserGame } from "@/db/models/user-game";
+import { createGameCollection, addCollectionToGame } from "@/server/collections/service";
 import {
   TEST_USER,
   clearDatabase,
@@ -145,6 +146,41 @@ describe("POST /api/games", () => {
 });
 
 describe("PATCH /api/games/:gameId", () => {
+  it("changes only status and preserves counters, ratings and collection memberships", async () => {
+    const token = await tokenFor();
+    const createdResponse = await createGame(
+      authed("/api/games", token, {
+        method: "POST",
+        body: { ...MANUAL_GAME, timesFinished: 2, rating: 8 },
+      }),
+    );
+    const created = (await createdResponse.json()).data;
+    const gameId = created._id as string;
+    const collection = await createGameCollection(
+      String(created.userId),
+      { name: "Keep membership" },
+    );
+    await addCollectionToGame(String(created.userId), gameId, String(collection._id));
+
+    const response = await patchGame(
+      authed(`/api/games/${gameId}`, token, {
+        method: "PATCH",
+        body: { status: "dropped" },
+      }),
+      { params: Promise.resolve({ gameId }) },
+    );
+    expect(response.status).toBe(200);
+    const stored = await UserGame.findById(gameId).lean();
+    expect(stored).toMatchObject({
+      status: "dropped",
+      hoursPlayed: 12,
+      timesFinished: 2,
+      rating: 8,
+      finished: true,
+    });
+    expect(stored?.collectionIds.map(String)).toEqual([String(collection._id)]);
+  });
+
   it("updates personal fields without touching shared metadata", async () => {
     const token = await tokenFor();
     const created = await (

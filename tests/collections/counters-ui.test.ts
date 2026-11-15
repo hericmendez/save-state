@@ -30,8 +30,13 @@ describe("sidebar counter rendering", () => {
     expect(content).toContain("shrink-0");
   });
 
-  it("keeps the name truncating independently", () => {
-    expect(content).toContain("min-w-0 flex-1 truncate");
+  it("preserves normal word breaks and only breaks long tokens when needed", () => {
+    expect(content).toContain(
+      "min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere]",
+    );
+    expect(content).toContain("name.split(/(_)/g)");
+    expect(content).toContain("<wbr />");
+    expect(content).not.toContain("break-all");
   });
 });
 
@@ -76,7 +81,7 @@ describe("signal emission on membership changes", () => {
 
   it("form notifies after attach in both create branches", () => {
     const form = contentOf("features/games/game-form-container.tsx");
-    expect(occurrences(form, "notifyCollectionsChanged()")).toBe(2);
+    expect(occurrences(form, "notifyCollectionsChanged()")).toBe(3);
   });
 
   it("backlog delete notifies once on success", () => {
@@ -84,9 +89,14 @@ describe("signal emission on membership changes", () => {
     expect(occurrences(view, "notifyCollectionsChanged()")).toBe(1);
   });
 
-  it("catalog toggle notifies only on removal", () => {
+  it("catalog add and removal notify after their successful mutations", () => {
     const catalog = contentOf("features/atp/catalog-search.tsx");
-    expect(occurrences(catalog, "notifyCollectionsChanged()")).toBe(1);
+    expect(occurrences(catalog, "notifyCollectionsChanged()")).toBe(2);
+    const collectionAdd = catalog.slice(
+      catalog.indexOf("async function handleAddToCollection"),
+      catalog.indexOf("async function handleEditAndAdd"),
+    );
+    expect(occurrences(collectionAdd, "notifyCollectionsChanged()")).toBe(1);
     const toggle = catalog.slice(
       catalog.indexOf("async function handleToggleBacklog"),
     );

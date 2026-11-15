@@ -31,7 +31,7 @@ import {
   CatalogTableHeader,
   CatalogTableRow,
 } from "./catalog-table-row";
-import type { Game } from "@/features/shared/types";
+import type { Game, GameCollection } from "@/features/shared/types";
 import {
   igdbDetailEndpoint,
   libraryByExternalEndpoint,
@@ -106,6 +106,9 @@ function CatalogGridCard({
   onImport,
   onToggle,
   onEditAndAdd,
+  collections,
+  collectionsLoadFailed,
+  onAddToCollection,
   busy,
   importing,
   editBusy,
@@ -118,6 +121,9 @@ function CatalogGridCard({
   busy: boolean;
   importing: boolean;
   editBusy: boolean;
+  collections: GameCollection[];
+  collectionsLoadFailed: boolean;
+  onAddToCollection: (collectionId: string) => void;
 }) {
   const coverUrl = useAtpCover(card.atpId, card.coverUrl);
   const presentation = toCardModelFromAtp(card, coverUrl);
@@ -127,6 +133,9 @@ function CatalogGridCard({
       onDetails={onDetails}
       onToggleBacklog={onToggle}
       onEditAndAdd={onEditAndAdd}
+      collections={collections}
+      collectionsLoadFailed={collectionsLoadFailed}
+      onAddToCollection={onAddToCollection}
       busy={busy}
       editBusy={editBusy}
     >
@@ -235,6 +244,9 @@ export function CatalogSearch({
   const [importingId, setImportingId] = useState<string | null>(null);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [collections, setCollections] = useState<GameCollection[]>([]);
+  const [collectionsLoadFailed, setCollectionsLoadFailed] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const queryRef = useRef(query);
   queryRef.current = query;
@@ -244,7 +256,22 @@ export function CatalogSearch({
   // stale responses (and their loading state) from ever landing. The
   // requestId check below stays as the complementary guard.
   const abortRef = useRef<AbortController | null>(null);
+  const importingRef = useRef<string | null>(null);
   const firstLoad = useRef(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<{ data: GameCollection[] }>("/api/game-collections?limit=100")
+      .then((response) => {
+        if (!cancelled) setCollections(response.data);
+      })
+      .catch(() => {
+        if (!cancelled) setCollectionsLoadFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const debouncedFilterDraft = useDebouncedValue(
     JSON.stringify({
@@ -525,6 +552,8 @@ export function CatalogSearch({
   }
 
   async function handleImport(atpId: string) {
+    if (importingRef.current !== null) return;
+    importingRef.current = atpId;
     setImportingId(atpId);
     setError(null);
     try {
@@ -561,6 +590,92 @@ export function CatalogSearch({
         // The import error above is already reported; ignore refresh noise.
       }
     } finally {
+      importingRef.current = null;
+      setImportingId(null);
+    }
+  }
+
+  async function findOrImportLibraryGame(externalId: string): Promise<Game> {
+    try {
+      return await apiRequest<Game>(libraryByExternalEndpoint(externalId));
+    } catch (lookupError) {
+      if (!(lookupError instanceof ApiRequestError) || lookupError.status !== 404) {
+        throw lookupError;
+      }
+    }
+
+    try {
+      return await apiRequest<Game>(searchImportEndpoint(), {
+        method: "POST",
+        body: { externalId },
+      });
+    } catch (importError) {
+      // A concurrent import, or a lost successful response, is recovered
+      // through the same neutral external identity endpoint. No second
+      // import path or title-based matching is introduced.
+      try {
+        return await apiRequest<Game>(libraryByExternalEndpoint(externalId));
+      } catch {
+        throw importError;
+      }
+    }
+  }
+
+  async function handleAddToCollection(
+    card: AtpSearchCard,
+    collectionId: string,
+  ) {
+    if (importingRef.current !== null) return;
+    importingRef.current = card.atpId;
+    setImportingId(card.atpId);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const game = await findOrImportLibraryGame(card.atpId);
+      // Keep catalog ownership accurate even when the following association
+      // fails: a retry will resolve this same UserGame, not import again.
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.map((item) =>
+                item.atpId === card.atpId ? { ...item, owned: true } : item,
+              ),
+            }
+          : current,
+      );
+      setPreview((current) =>
+        current && current.atpId === card.atpId
+          ? { ...current, owned: true }
+          : current,
+      );
+      try {
+        await apiRequest<void>(
+          `/api/games/${game._id}/collections/${collectionId}`,
+          { method: "POST" },
+        );
+      } catch (associationError) {
+        const collection = collections.find((item) => item._id === collectionId);
+        setError({
+          message:
+            `O jogo está no Backlog, mas não foi possível confirmar a associação` +
+            `${collection ? ` à coleção “${collection.name}”` : ""}. ` +
+            "Você pode tentar novamente pelo menu.",
+          status:
+            associationError instanceof ApiRequestError
+              ? associationError.status
+              : null,
+        });
+        return;
+      }
+      notifyCollectionsChanged();
+      setSuccessMessage(
+        `“${card.name}” adicionado à coleção “${collections.find((item) => item._id === collectionId)?.name ?? "selecionada"}”.`,
+      );
+    } catch (err) {
+      setError(toAtpError(err));
+    } finally {
+      importingRef.current = null;
       setImportingId(null);
     }
   }
@@ -583,6 +698,8 @@ export function CatalogSearch({
   }
 
   async function handleToggleBacklog(card: AtpSearchCard) {    if (importingId) return;
+    if (importingRef.current !== null) return;
+    importingRef.current = card.atpId;
     setImportingId(card.atpId);
     setError(null);
     try {
@@ -649,6 +766,7 @@ export function CatalogSearch({
         // ignore refresh noise
       }
     } finally {
+      importingRef.current = null;
       setImportingId(null);
     }
   }
@@ -822,6 +940,16 @@ export function CatalogSearch({
             : error.message}
         </p>
       )}
+      {successMessage ? (
+        <p role="status" className="rpgui-container framed-grey p-3">
+          {successMessage}
+        </p>
+      ) : null}
+      {collectionsLoadFailed ? (
+        <p role="status" className="text-xs">
+          Não foi possível carregar suas coleções; tente novamente mais tarde.
+        </p>
+      ) : null}
       {isPreviewLoading && (
         <p className="rpgui-container framed-grey p-3 font-display text-xs" aria-live="polite">
           [ Carregando detalhes... ]
@@ -844,6 +972,11 @@ export function CatalogSearch({
               onImport={() => void handleImport(item.atpId)}
               onToggle={() => void handleToggleBacklog(item)}
               onEditAndAdd={() => void handleEditAndAdd(item)}
+              collections={collections}
+              collectionsLoadFailed={collectionsLoadFailed}
+              onAddToCollection={(collectionId) =>
+                void handleAddToCollection(item, collectionId)
+              }
               busy={importingId === item.atpId}
               importing={importingId === item.atpId}
               editBusy={editLoadingId === item.atpId}
@@ -855,6 +988,11 @@ export function CatalogSearch({
               onDetails={() => void handleDetails(item)}
               onToggleBacklog={() => void handleToggleBacklog(item)}
               onEditAndAdd={() => void handleEditAndAdd(item)}
+              collections={collections}
+              collectionsLoadFailed={collectionsLoadFailed}
+              onAddToCollection={(collectionId) =>
+                void handleAddToCollection(item, collectionId)
+              }
               busy={importingId === item.atpId}
               editBusy={editLoadingId === item.atpId}
             >
@@ -898,6 +1036,11 @@ export function CatalogSearch({
                 onDetails={() => void handleDetails(item)}
                 onToggleBacklog={() => void handleToggleBacklog(item)}
                 onEditAndAdd={() => void handleEditAndAdd(item)}
+                collections={collections}
+                collectionsLoadFailed={collectionsLoadFailed}
+                onAddToCollection={(collectionId) =>
+                  void handleAddToCollection(item, collectionId)
+                }
                 busy={importingId === item.atpId}
                 editBusy={editLoadingId === item.atpId}
               >

@@ -311,14 +311,20 @@ export async function addCollectionToGame(
   const collection = await findOwnedCollectionOrThrow(userId, collectionId);
   const userGame = await findOwnedUserGameOrThrow(userId, gameId);
 
-  // Idempotent: an existing membership is a no-op, not an error.
+  // Conditional $addToSet makes duplicate and concurrent requests safe:
+  // only the request that actually changes membership emits an event.
   const objectId = new Types.ObjectId(collectionId);
-  if (userGame.collectionIds.some((id) => id.equals(objectId))) {
+  const updated = await UserGame.updateOne(
+    {
+      _id: userGame._id,
+      userId: new Types.ObjectId(userId),
+      collectionIds: { $ne: objectId },
+    },
+    { $addToSet: { collectionIds: objectId } },
+  );
+  if (updated.modifiedCount === 0) {
     return;
   }
-
-  userGame.collectionIds.push(objectId);
-  await userGame.save();
 
   // Activity Feed (best effort): only effective membership changes.
   const globalGame = await GlobalGame.findById(userGame.gameId);

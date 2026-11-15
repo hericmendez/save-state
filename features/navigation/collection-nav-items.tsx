@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import { ConfirmDialog } from "@/features/games/confirm-dialog";
@@ -18,6 +18,19 @@ interface CollectionNavEntry {
   _id: string;
   name: string;
   gameCount?: number;
+}
+
+function renderCollectionName(name: string) {
+  return name.split(/(_)/g).map((part, index) =>
+    part === "_" ? (
+      <Fragment key={index}>
+        _
+        <wbr />
+      </Fragment>
+    ) : (
+      part
+    ),
+  );
 }
 
 /**
@@ -173,7 +186,7 @@ export function CollectionNavItems({
                 </span>
               ) : null}
               <Link
-                className="block min-w-0 flex-1 truncate px-2 py-1 text-sm text-white font-display hover:text-amber-300 hover:underline"
+                className="block min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] px-2 py-1 text-sm text-white hover:text-amber-300 hover:underline"
                 href={`/backlog/lists/${encodeURIComponent(collection._id)}`}
                 onClick={onNavigate}
                 aria-label={
@@ -182,14 +195,14 @@ export function CollectionNavItems({
                     : collection.name
                 }
               >
-                {collection.name}
+                {renderCollectionName(collection.name)}
               </Link>
               <button
                 type="button"
                 aria-label={`Opções de ${collection.name}`}
                 aria-haspopup="menu"
                 aria-expanded={menuFor?._id === collection._id}
-                className="shrink-0 px-3 py-2 text-white/70 font-display hover:text-amber-300"
+                className="shrink-0 px-3 py-2 text-white/70 hover:text-amber-300"
                 onClick={(event) => openMenu(event, collection)}
               >
                 ⋯

@@ -114,6 +114,27 @@ describe("form personal → import personal contract", () => {
 });
 
 describe("edit-and-add wiring patterns", () => {
+  it("offers collection association from neutral catalog results", () => {
+    const menu = readFileSync("features/atp/catalog-context-menu.tsx", "utf8");
+    const search = readFileSync("features/atp/catalog-search.tsx", "utf8");
+    expect(menu).toContain('"Adicionar a…"');
+    expect(menu).toContain("collections.map");
+    expect(search).toContain("libraryByExternalEndpoint(externalId)");
+    expect(search).toContain("findOrImportLibraryGame");
+    expect(search).toContain("/collections/${collectionId}");
+    expect(search).toContain("collectionsLoadFailed");
+  });
+
+  it("retains the created UserGame id and updates it on association retry", () => {
+    const form = readFileSync("features/games/game-form-container.tsx", "utf8");
+    expect(form).toContain("const [createdUserGameId, setCreatedUserGameId]");
+    expect(form).toContain("let userGameId = createdUserGameId");
+    expect(form).toContain("if (!userGameId)");
+    expect(form).toContain("setCreatedUserGameId(userGameId)");
+    expect(form).toContain("Jogo salvo, mas a associação à coleção falhou");
+    expect(form).toContain('method: "PUT"');
+  });
+
   it("menu offers the action without touching existing items", () => {
     const p = "features/atp/catalog-context-menu.tsx";
     expect(

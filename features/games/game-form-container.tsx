@@ -148,6 +148,24 @@ export function GameFormContainer({
   const [createdUserGameId, setCreatedUserGameId] = useState<string | null>(
     null,
   );
+  const [collections, setCollections] = useState<{ _id: string; name: string }[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<{ data: { _id: string; name: string }[] }>(
+      "/api/game-collections?limit=100",
+    )
+      .then((result) => {
+        if (!cancelled) setCollections(result.data);
+      })
+      .catch(() => {
+        if (!cancelled) setCollections([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ---- Phase 3: review section state ------------------------------------
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
@@ -450,6 +468,20 @@ export function GameFormContainer({
           method: "PUT",
           body: payload,
         });
+        if (selectedCollectionId) {
+          try {
+            await apiRequest(
+              `/api/games/${editingId}/collections/${selectedCollectionId}`,
+              { method: "POST" },
+            );
+          } catch {
+            setError(
+              "Jogo salvo, mas a associação à coleção falhou. Salve novamente para tentar concluir a associação.",
+            );
+            return;
+          }
+          notifyCollectionsChanged();
+        }
         await finalizeDraftAfterCommit(resolved);
         clearReviewBinding();
         router.push("/backlog");
@@ -489,13 +521,28 @@ export function GameFormContainer({
             );
             return;
           }
+        } else {
+          const { game: _omitted, ...personal } = formToPayload(form);
+          await apiRequest(`/api/games/${userGameId}`, {
+            method: "PUT",
+            body: { ...personal, ...resolved.payload },
+          });
         }
-        if (attachCollectionId) {
+        const collectionIds = [
+          ...new Set(
+            [attachCollectionId, selectedCollectionId].filter(
+              (id): id is string => Boolean(id),
+            ),
+          ),
+        ];
+        if (collectionIds.length > 0) {
           try {
+            for (const collectionId of collectionIds) {
             await apiRequest(
-              `/api/games/${userGameId}/collections/${attachCollectionId}`,
+              `/api/games/${userGameId}/collections/${collectionId}`,
               { method: "POST" },
             );
+            }
             notifyCollectionsChanged();
           } catch {
             setError(
@@ -508,23 +555,51 @@ export function GameFormContainer({
         clearReviewBinding();
         router.push("/backlog");
       } else {
-        const created = await apiRequest<Game>("/api/games", {
-          method: "POST",
-          body: { ...formToPayload(form), ...resolved.payload },
-        });
-        const plain = toPlainGame(created);
-        await finalizeDraftAfterCommit(resolved);
-        clearReviewBinding();
-        if (attachCollectionId) {
-          await apiRequest(
-            `/api/games/${plain._id}/collections/${attachCollectionId}`,
-            { method: "POST" },
-          );
+        let userGameId = createdUserGameId;
+        const payload = { ...formToPayload(form), ...resolved.payload };
+        if (!userGameId) {
+          const created = await apiRequest<Game>("/api/games", {
+            method: "POST",
+            body: payload,
+          });
+          userGameId = toPlainGame(created)._id;
+          setCreatedUserGameId(userGameId);
+        } else {
+          // A previous create succeeded but attaching its collection failed.
+          // Retrying updates this same UserGame instead of issuing another
+          // create request; the collection POST itself is idempotent.
+          await apiRequest(`/api/games/${userGameId}`, {
+            method: "PUT",
+            body: payload,
+          });
+        }
+        const collectionIds = [
+          ...new Set(
+            [attachCollectionId, selectedCollectionId].filter(
+              (id): id is string => Boolean(id),
+            ),
+          ),
+        ];
+        if (collectionIds.length > 0) {
+          try {
+            for (const collectionId of collectionIds) {
+              await apiRequest(
+                `/api/games/${userGameId}/collections/${collectionId}`,
+                { method: "POST" },
+              );
+            }
+          } catch {
+            setError(
+              "Jogo salvo, mas a associação à coleção falhou. Salve novamente para tentar concluir a associação.",
+            );
+            return;
+          }
           notifyCollectionsChanged();
         }
+        await finalizeDraftAfterCommit(resolved);
+        clearReviewBinding();
         router.push("/backlog");
       }
-      router.refresh();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Falha ao salvar");
     } finally {
@@ -580,6 +655,9 @@ export function GameFormContainer({
         }}
         onReviewChange={handleReviewChange}
         onOpenReviewEditor={handleOpenReviewEditor}
+        collections={collections}
+        selectedCollectionId={selectedCollectionId}
+        onCollectionChange={setSelectedCollectionId}
       />
     </div>
   );

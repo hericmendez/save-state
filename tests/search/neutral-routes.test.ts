@@ -5,6 +5,10 @@ import { POST as login } from "@/app/api/auth/login/route";
 import { GET as neutralSearch } from "@/app/api/search/route";
 import { GET as neutralDetail } from "@/app/api/search/games/[id]/route";
 import { POST as neutralImport } from "@/app/api/search/import/route";
+import { POST as createCollection } from "@/app/api/game-collections/route";
+import { POST as attachCollection } from "@/app/api/games/[gameId]/collections/[collectionId]/route";
+import { GET as byExternal } from "@/app/api/games/by-external/[externalId]/route";
+import { UserGame } from "@/db/models/user-game";
 import { GET as neutralPlatforms } from "@/app/api/search/platforms/route";
 import { __resetServerEnvCache } from "@/lib/env";
 import { __resetTwitchTokenCache } from "@/server/search/twitch-token";
@@ -167,6 +171,13 @@ describe("neutral /api/search/* with SEARCH_METHOD=ATP", () => {
   it("imports through the neutral namespace preserving the ATP origin", async () => {
     const token = await tokenFor();
     stubAtpFetch();
+    const collectionResponse = await createCollection(
+      authedRequest("/api/game-collections", token, {
+        method: "POST",
+        body: { name: "ATP collection" },
+      }),
+    );
+    const collectionId = (await collectionResponse.json()).data._id as string;
     const response = await neutralImport(
       authedRequest("/api/search/import", token, {
         method: "POST",
@@ -177,10 +188,70 @@ describe("neutral /api/search/* with SEARCH_METHOD=ATP", () => {
     const body = await response.json();
     expect(body.data.game.source).toBe("atp");
     expect(body.data.game.atpDomainId).toBe(ATP_GAME_FIXTURE.id);
+    const externalLookup = await byExternal(
+      authedRequest(`/api/games/by-external/${ATP_GAME_FIXTURE.id}`, token),
+      { params: Promise.resolve({ externalId: ATP_GAME_FIXTURE.id }) },
+    );
+    expect(externalLookup.status).toBe(200);
+    const gameId = (await externalLookup.json()).data._id as string;
+    const attachContext = {
+      params: Promise.resolve({ gameId, collectionId }),
+    };
+    const attachRequest = () =>
+      authedRequest(
+        `/api/games/${gameId}/collections/${collectionId}`,
+        token,
+        { method: "POST" },
+      );
+    await Promise.all([
+      attachCollection(attachRequest(), attachContext),
+      attachCollection(attachRequest(), attachContext),
+    ]);
+    expect((await UserGame.findById(gameId).lean())?.collectionIds.map(String))
+      .toEqual([collectionId]);
   });
 });
 
 describe("neutral /api/search/* with SEARCH_METHOD=IGDB", () => {
+  it("imports, resolves and attaches an IGDB identity without duplicate membership", async () => {
+    const token = await tokenFor();
+    stubIgdbFetch();
+    const collectionResponse = await createCollection(
+      authedRequest("/api/game-collections", token, {
+        method: "POST",
+        body: { name: "IGDB collection" },
+      }),
+    );
+    const collectionId = (await collectionResponse.json()).data._id as string;
+    const imported = await neutralImport(
+      authedRequest("/api/search/import", token, {
+        method: "POST",
+        body: { externalId: "1234" },
+      }),
+    );
+    expect(imported.status).toBe(201);
+    const lookup = await byExternal(
+      authedRequest("/api/games/by-external/1234", token),
+      { params: Promise.resolve({ externalId: "1234" }) },
+    );
+    expect(lookup.status).toBe(200);
+    const gameId = (await lookup.json()).data._id as string;
+    const context = { params: Promise.resolve({ gameId, collectionId }) };
+    const attachRequest = () =>
+      authedRequest(
+        `/api/games/${gameId}/collections/${collectionId}`,
+        token,
+        { method: "POST" },
+      );
+    await Promise.all([
+      attachCollection(attachRequest(), context),
+      attachCollection(attachRequest(), context),
+    ]);
+    const stored = await UserGame.findById(gameId).lean();
+    expect(stored?.collectionIds.map(String)).toEqual([collectionId]);
+    expect(await UserGame.countDocuments()).toBe(1);
+  });
+
   it("serves search from IGDB through the same contract", async () => {
     const token = await tokenFor();
     stubIgdbFetch();
