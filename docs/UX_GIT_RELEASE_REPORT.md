@@ -61,7 +61,8 @@ Excluídos do staging:
 1. `e1b4be7d80a1262aef6fda08fa77b2c07c8fae4a` — `feat(ux): improve game interactions, collections and catalog navigation`
    - 27 arquivos; 1.298 inserções e 56 remoções.
    - Inclui as melhorias das Fases 1–3 e seus relatórios.
-2. Este relatório será registrado em commit separado, sem incluir outras alterações da worktree.
+2. `50a9708b9e2096dadc30460e15a8670bf2b1aaa8` — `docs: record UX release and push block`
+   - Commit separado, contendo somente este relatório.
 
 ## 6. Resultado do push
 
@@ -69,9 +70,7 @@ Push **não realizado**. Após o commit da UX, `main` estava 4 commits à frente
 
 ## 7. Estado final da worktree
 
-O commit de UX foi criado localmente em `main`. O relatório foi preparado como commit separado. Alterações preexistentes não staged e o arquivo IGDB não relacionado foram preservados. O upstream continua `origin/main`; não houve troca de branch.
-
-O estado/hashes finais devem ser considerados conforme a verificação Git imediatamente após o commit deste relatório.
+Os dois commits foram criados localmente em `main`. Após o commit do relatório, a branch estava 5 commits à frente e 5 atrás de `origin/main`; o índice estava vazio. Alterações preexistentes não staged e o arquivo IGDB não relacionado foram preservados. O upstream continua `origin/main`; não houve troca de branch.
 
 ## 8. Riscos e pendências
 
