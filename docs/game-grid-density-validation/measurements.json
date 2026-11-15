@@ -1,0 +1,556 @@
+{
+  "generatedAt": "2026-11-15T21:13:13.684Z",
+  "browser": "Chromium via Playwright",
+  "baseURL": "http://localhost:3108/grid-density-preview",
+  "rows": [
+    {
+      "label": "desktop-1280-density-6",
+      "requestedDensity": 6,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "densityAttribute": "6",
+      "columns": 6,
+      "firstRowCards": 6,
+      "cardWidth": 159.328125,
+      "cardWidthFirst": 159.328125,
+      "frameWidth": 159.328125,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1016,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 131,
+        "clientWidth": 131,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1280-density-8",
+      "requestedDensity": 8,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "densityAttribute": "8",
+      "columns": 8,
+      "firstRowCards": 8,
+      "cardWidth": 116.5,
+      "cardWidthFirst": 116.5,
+      "frameWidth": 116.5,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1016,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 89,
+        "clientWidth": 89,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1280-density-10",
+      "requestedDensity": 10,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "densityAttribute": "10",
+      "columns": 8,
+      "firstRowCards": 8,
+      "cardWidth": 116.5,
+      "cardWidthFirst": 116.5,
+      "frameWidth": 116.5,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1016,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 89,
+        "clientWidth": 89,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1280-density-12",
+      "requestedDensity": 12,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "densityAttribute": "12",
+      "columns": 8,
+      "firstRowCards": 8,
+      "cardWidth": 116.5,
+      "cardWidthFirst": 116.5,
+      "frameWidth": 116.5,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1016,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 89,
+        "clientWidth": 89,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1920-density-6",
+      "requestedDensity": 6,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "densityAttribute": "6",
+      "columns": 6,
+      "firstRowCards": 6,
+      "cardWidth": 266,
+      "cardWidthFirst": 266,
+      "frameWidth": 266,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1656,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 238,
+        "clientWidth": 238,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1920-density-8",
+      "requestedDensity": 8,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "densityAttribute": "8",
+      "columns": 8,
+      "firstRowCards": 8,
+      "cardWidth": 196.5,
+      "cardWidthFirst": 196.5,
+      "frameWidth": 196.5,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1656,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 169,
+        "clientWidth": 169,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1920-density-10",
+      "requestedDensity": 10,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "densityAttribute": "10",
+      "columns": 10,
+      "firstRowCards": 10,
+      "cardWidth": 154.796875,
+      "cardWidthFirst": 154.796875,
+      "frameWidth": 154.796875,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1656,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 127,
+        "clientWidth": 127,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1920-density-12",
+      "requestedDensity": 12,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "densityAttribute": "12",
+      "columns": 12,
+      "firstRowCards": 12,
+      "cardWidth": 127,
+      "cardWidthFirst": 127,
+      "frameWidth": 127,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 1656,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 99,
+        "clientWidth": 99,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "intermediate-1024-density-12",
+      "requestedDensity": 12,
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "densityAttribute": "12",
+      "columns": 6,
+      "firstRowCards": 6,
+      "cardWidth": 116.65625,
+      "cardWidthFirst": 116.65625,
+      "frameWidth": 116.65625,
+      "actionTargets": {
+        "details": {
+          "width": 36,
+          "height": 36
+        },
+        "favorite": {
+          "width": 36,
+          "height": 36
+        }
+      },
+      "gridWidth": 760,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 89,
+        "clientWidth": 89,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "mobile-320-desktop-pref-10",
+      "requestedDensity": null,
+      "viewport": {
+        "width": 320,
+        "height": 844
+      },
+      "densityAttribute": "10",
+      "columns": 2,
+      "firstRowCards": 2,
+      "cardWidth": 142,
+      "cardWidthFirst": 142,
+      "frameWidth": 142,
+      "actionTargets": {
+        "details": {
+          "width": 40,
+          "height": 40
+        },
+        "favorite": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "gridWidth": 296,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 114,
+        "clientWidth": 114,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "mobile-360-desktop-pref-10",
+      "requestedDensity": null,
+      "viewport": {
+        "width": 360,
+        "height": 844
+      },
+      "densityAttribute": "10",
+      "columns": 2,
+      "firstRowCards": 2,
+      "cardWidth": 162,
+      "cardWidthFirst": 162,
+      "frameWidth": 162,
+      "actionTargets": {
+        "details": {
+          "width": 40,
+          "height": 40
+        },
+        "favorite": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "gridWidth": 336,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 134,
+        "clientWidth": 134,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "mobile-390-desktop-pref-10",
+      "requestedDensity": null,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "densityAttribute": "10",
+      "columns": 2,
+      "firstRowCards": 2,
+      "cardWidth": 177,
+      "cardWidthFirst": 177,
+      "frameWidth": 177,
+      "actionTargets": {
+        "details": {
+          "width": 40,
+          "height": 40
+        },
+        "favorite": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "gridWidth": 366,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 149,
+        "clientWidth": 149,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "mobile-430-desktop-pref-10",
+      "requestedDensity": null,
+      "viewport": {
+        "width": 430,
+        "height": 844
+      },
+      "densityAttribute": "10",
+      "columns": 2,
+      "firstRowCards": 2,
+      "cardWidth": 197,
+      "cardWidthFirst": 197,
+      "frameWidth": 197,
+      "actionTargets": {
+        "details": {
+          "width": 40,
+          "height": 40
+        },
+        "favorite": {
+          "width": 40,
+          "height": 40
+        }
+      },
+      "gridWidth": 406,
+      "horizontalOverflow": {
+        "document": false,
+        "body": false,
+        "content": false
+      },
+      "frameOverflow": false,
+      "titlePresent": true,
+      "titleWrap": {
+        "scrollWidth": 169,
+        "clientWidth": 169,
+        "lineHeight": "15.125px"
+      },
+      "actionWithinFrame": true,
+      "detailsButton": true,
+      "favoriteButton": true,
+      "ownedBadgePresent": true
+    },
+    {
+      "label": "desktop-1280-density-10-pixel-perfect-zoom",
+      "requestedDensity": 10,
+      "viewportWidth": 1280,
+      "columns": 10,
+      "firstRowCards": 10,
+      "documentOverflow": false,
+      "zoom": "0.8"
+    }
+  ],
+  "interactions": {
+    "detailsButton": "passed",
+    "gridTableToggle": "passed; semantic table retained",
+    "persistenceAcrossReload": "passed",
+    "mobileKeepsDesktopPreference": "passed"
+  },
+  "consoleErrors": []
+}

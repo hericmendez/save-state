@@ -12,14 +12,19 @@ import {
   applyLayoutModeAttribute,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
+  DEFAULT_GRID_DENSITY,
   DEFAULT_LAYOUT_MODE,
+  GRID_DENSITIES,
   isNarrowViewport,
   LAYOUT_INIT_SCRIPT,
   LAYOUT_STORAGE_KEY,
   parseFontBody,
   parseFontDisplay,
+  parseGridDensity,
   parseLayoutMode,
+  resolveInitialGridDensity,
   readStoredLayoutMode,
+  applyGridDensityAttribute,
   resolveInitialFontBody,
   resolveInitialFontDisplay,
   resolveInitialLayoutMode,
@@ -106,6 +111,28 @@ describe("resolveInitialLayoutMode", () => {
     stubBrowser({ innerWidth: 1280, stored: "throw" });
     expect(resolveInitialLayoutMode()).toBe("fullscreen");
   });
+
+  it("preserves the six-column default and accepts only 6, 8, 10, or 12", () => {
+    expect(DEFAULT_GRID_DENSITY).toBe(6);
+    expect(GRID_DENSITIES).toEqual([6, 8, 10, 12]);
+    for (const value of GRID_DENSITIES) expect(parseGridDensity(value)).toBe(value);
+    for (const value of ["6", 4, 14, null, undefined]) {
+      expect(parseGridDensity(value)).toBeNull();
+    }
+  });
+
+  it("restores a valid saved grid density and defaults for invalid storage", () => {
+    stubBrowser({
+      innerWidth: 1280,
+      stored: JSON.stringify({ state: { gridDensity: 10 } }),
+    });
+    expect(resolveInitialGridDensity()).toBe(10);
+    stubBrowser({
+      innerWidth: 1280,
+      stored: JSON.stringify({ state: { gridDensity: 7 } }),
+    });
+    expect(resolveInitialGridDensity()).toBe(6);
+  });
 });
 
 describe("applyLayoutModeAttribute", () => {
@@ -124,6 +151,15 @@ describe("applyLayoutModeAttribute", () => {
   });
 });
 
+describe("applyGridDensityAttribute", () => {
+  it("writes the persisted density to the root CSS attribute", () => {
+    const setAttribute = vi.fn();
+    vi.stubGlobal("document", { documentElement: { setAttribute } });
+    applyGridDensityAttribute(12);
+    expect(setAttribute).toHaveBeenCalledWith("data-grid-density", "12");
+  });
+});
+
 describe("no-flash wiring (source level)", () => {
   it("shares the storage key with the persist middleware", () => {
     expect(LAYOUT_STORAGE_KEY).toBe("save-state-ui");
@@ -139,10 +175,30 @@ describe("no-flash wiring (source level)", () => {
   it("inlines a parser-blocking init script in the root layout", () => {
     expect(LAYOUT_INIT_SCRIPT).toContain("save-state-ui");
     expect(LAYOUT_INIT_SCRIPT).toContain("data-layout-mode");
+    expect(LAYOUT_INIT_SCRIPT).toContain("data-grid-density");
+    for (const density of ["6", "8", "10", "12"]) {
+      expect(LAYOUT_INIT_SCRIPT).toContain(`s.gridDensity===${density}`);
+    }
     expect(LAYOUT_INIT_SCRIPT).toContain("fullscreen");
     const layout = readFileSync("app/layout.tsx", "utf8");
     expect(layout).toContain("LAYOUT_INIT_SCRIPT");
     expect(layout).toContain("<head>");
+  });
+
+  it("uses container width and the root preference to size the shared game grid", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toContain("container: game-grid / inline-size");
+    expect(css).toContain(".game-card-grid");
+    expect(css).toContain("@media (max-width: 767px)");
+    expect(css).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(css).toContain('html[data-grid-density="12"] .game-card-grid');
+    for (const threshold of [360, 484, 608, 732, 856, 980, 1104, 1228, 1352, 1476]) {
+      expect(css).toContain(`@container game-grid (min-width: ${threshold}px)`);
+    }
+    const collection = readFileSync("features/games/collection.tsx", "utf8");
+    expect(collection).toContain("game-grid-container");
+    expect(collection).toContain("GridDensitySelect");
+    expect(collection).toContain('viewMode === "grid"');
   });
 
   it("drives frame geometry from the attribute in CSS", () => {
@@ -352,6 +408,34 @@ describe("font preferences — store persistence (same system)", () => {
     const store = await freshStore();
     expect(store.getState().fontDisplay).toBe("press-start-2p");
     expect(store.getState().fontBody).toBe("jetbrains-mono");
+  });
+
+  it("restores, validates, and persists grid density in the existing UI record", async () => {
+    const storage = stubUiStorage(
+      JSON.stringify({
+        state: {
+          layoutMode: "fullscreen",
+          fontDisplay: "roboto",
+          gridDensity: 10,
+        },
+      }),
+    );
+    const store = await freshStore();
+    expect(store.getState().gridDensity).toBe(10);
+    store.getState().setGridDensity(12);
+    expect(store.getState().gridDensity).toBe(12);
+    expect(store.getState().fontDisplay).toBe("roboto");
+    const saved = JSON.parse(storage.getItem(LAYOUT_STORAGE_KEY) ?? "{}") as {
+      state?: Record<string, unknown>;
+    };
+    expect(saved.state?.gridDensity).toBe(12);
+
+    const invalid = stubUiStorage(
+      JSON.stringify({ state: { gridDensity: 9 } }),
+    );
+    const fallbackStore = await freshStore();
+    expect(fallbackStore.getState().gridDensity).toBe(6);
+    expect(invalid.getItem(LAYOUT_STORAGE_KEY)).toContain('"gridDensity":9');
   });
 });
 

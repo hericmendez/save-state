@@ -7,28 +7,35 @@ import {
   applyLayoutModeAttribute,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
+  DEFAULT_GRID_DENSITY,
   LAYOUT_STORAGE_KEY,
+  applyGridDensityAttribute,
   parseFontBody,
   parseFontDisplay,
+  parseGridDensity,
   resolveInitialFontBody,
   resolveInitialFontDisplay,
+  resolveInitialGridDensity,
   resolveInitialLayoutMode,
   type FontBody,
   type FontDisplay,
+  type GridDensity,
   type LayoutMode,
 } from "./layout-mode";
 
-export type { FontBody, FontDisplay, LayoutMode };
+export type { FontBody, FontDisplay, GridDensity, LayoutMode };
 
 interface UiState {
   layoutMode: LayoutMode;
   fontDisplay: FontDisplay;
   fontBody: FontBody;
+  gridDensity: GridDensity;
   isLoading: boolean;
   setLayoutMode: (mode: LayoutMode) => void;
   toggleLayoutMode: () => void;
   setFontDisplay: (font: FontDisplay) => void;
   setFontBody: (font: FontBody) => void;
+  setGridDensity: (density: GridDensity) => void;
   showLoading: () => void;
   hideLoading: () => void;
 }
@@ -56,6 +63,7 @@ export const useUiStore = create<UiState>()(
       layoutMode: resolveInitialLayoutMode(),
       fontDisplay: resolveInitialFontDisplay(),
       fontBody: resolveInitialFontBody(),
+      gridDensity: resolveInitialGridDensity(),
       isLoading: false,
       setLayoutMode: (mode) => {
         const next = isMobileDevice() ? "fullscreen" : mode;
@@ -77,6 +85,10 @@ export const useUiStore = create<UiState>()(
         applyFontAttributes(get().fontDisplay, font);
         set({ fontBody: font });
       },
+      setGridDensity: (density) => {
+        applyGridDensityAttribute(density);
+        set({ gridDensity: density });
+      },
       showLoading: () => set({ isLoading: true }),
       hideLoading: () => set({ isLoading: false }),
     }),
@@ -86,11 +98,13 @@ export const useUiStore = create<UiState>()(
         layoutMode: state.layoutMode,
         fontDisplay: state.fontDisplay,
         fontBody: state.fontBody,
+        gridDensity: state.gridDensity,
       }),
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as {
           fontDisplay?: unknown;
           fontBody?: unknown;
+          gridDensity?: unknown;
         };
         return {
           ...current,
@@ -99,6 +113,8 @@ export const useUiStore = create<UiState>()(
           fontDisplay:
             parseFontDisplay(saved.fontDisplay) ?? DEFAULT_FONT_DISPLAY,
           fontBody: parseFontBody(saved.fontBody) ?? DEFAULT_FONT_BODY,
+          gridDensity:
+            parseGridDensity(saved.gridDensity) ?? DEFAULT_GRID_DENSITY,
         };
       },
     },

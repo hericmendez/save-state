@@ -4,11 +4,13 @@
  *
  * This module also owns the two font preferences (title font and body
  * font): same storage key, same zustand `persist` contract, same
- * parser-blocking init script — one preference system, not two.
+ * parser-blocking init script — one preference system, not two. Game-grid
+ * density is additive to that same preference record.
  *
  * Client-safe (no React, no side effects on import): `app/layout.tsx`
  * inlines `LAYOUT_INIT_SCRIPT` as a parser-blocking head script, so the
- * `data-layout-mode`, `data-font-display` and `data-font-body`
+ * `data-layout-mode`, `data-font-display`, `data-font-body` and
+ * `data-grid-density`
  * attributes exist before first paint and the CSS in `app/globals.css`
  * renders the correct frame and fonts immediately — no flash,
  * no late switch, no `useEffect` involved. The zustand store
@@ -53,6 +55,7 @@ function readStoredState(): {
   layoutMode?: unknown;
   fontDisplay?: unknown;
   fontBody?: unknown;
+  gridDensity?: unknown;
 } | null {
   try {
     if (typeof window === "undefined" || !("localStorage" in window)) {
@@ -68,6 +71,7 @@ function readStoredState(): {
       layoutMode?: unknown;
       fontDisplay?: unknown;
       fontBody?: unknown;
+      gridDensity?: unknown;
     };
   } catch {
     // Unavailable storage, denied access, or corrupt JSON → defaults.
@@ -86,6 +90,30 @@ export function resolveInitialLayoutMode(): LayoutMode {
   return readStoredLayoutMode() ?? DEFAULT_LAYOUT_MODE;
 }
 
+export type GridDensity = 6 | 8 | 10 | 12;
+
+export const GRID_DENSITIES: readonly GridDensity[] = [6, 8, 10, 12];
+export const DEFAULT_GRID_DENSITY: GridDensity = 6;
+
+export function parseGridDensity(value: unknown): GridDensity | null {
+  return GRID_DENSITIES.find((density) => density === value) ?? null;
+}
+
+/** Missing/corrupt preferences retain the six-column desktop default. */
+export function resolveInitialGridDensity(): GridDensity {
+  return parseGridDensity(readStoredState()?.gridDensity) ?? DEFAULT_GRID_DENSITY;
+}
+
+/** Keeps the grid's CSS selector in sync before React's next paint. */
+export function applyGridDensityAttribute(density: GridDensity): void {
+  try {
+    if (typeof document === "undefined") return;
+    document.documentElement.setAttribute("data-grid-density", String(density));
+  } catch {
+    // DOM unavailable (SSR) — CSS falls back to the six-column default.
+  }
+}
+
 /** Keeps the pre-paint attribute in sync after manual mode changes. */
 export function applyLayoutModeAttribute(mode: LayoutMode): void {
   try {
@@ -102,7 +130,7 @@ export function applyLayoutModeAttribute(mode: LayoutMode): void {
  * so no FOUC and no hydration mismatch (the markup itself is neutral;
  * only these attributes plus CSS decide frame geometry and fonts).
  */
-export const LAYOUT_INIT_SCRIPT = `(function(){try{var narrow=window.matchMedia?window.matchMedia("(max-width: 767px)").matches:window.innerWidth<768;var stored=null;var fd="press-start-2p";var fb="jetbrains-mono";try{var raw=window.localStorage.getItem("save-state-ui");if(raw){var p=JSON.parse(raw);var s=p&&p.state;if(s){var v=s.layoutMode;if(v==="pixel-perfect"||v==="fullscreen"){stored=v;}if(s.fontDisplay==="press-start-2p"||s.fontDisplay==="jetbrains-mono"||s.fontDisplay==="roboto"){fd=s.fontDisplay;}if(s.fontBody==="jetbrains-mono"||s.fontBody==="roboto"){fb=s.fontBody;}}}}catch(e){}var de=document.documentElement;de.setAttribute("data-layout-mode",narrow?"fullscreen":(stored||"fullscreen"));de.setAttribute("data-font-display",fd);de.setAttribute("data-font-body",fb);}catch(e){}})();`;
+export const LAYOUT_INIT_SCRIPT = `(function(){try{var narrow=window.matchMedia?window.matchMedia("(max-width: 767px)").matches:window.innerWidth<768;var stored=null;var fd="press-start-2p";var fb="jetbrains-mono";var gd=6;try{var raw=window.localStorage.getItem("save-state-ui");if(raw){var p=JSON.parse(raw);var s=p&&p.state;if(s){var v=s.layoutMode;if(v==="pixel-perfect"||v==="fullscreen"){stored=v;}if(s.fontDisplay==="press-start-2p"||s.fontDisplay==="jetbrains-mono"||s.fontDisplay==="roboto"){fd=s.fontDisplay;}if(s.fontBody==="jetbrains-mono"||s.fontBody==="roboto"){fb=s.fontBody;}if(s.gridDensity===6||s.gridDensity===8||s.gridDensity===10||s.gridDensity===12){gd=s.gridDensity;}}}}catch(e){}var de=document.documentElement;de.setAttribute("data-layout-mode",narrow?"fullscreen":(stored||"fullscreen"));de.setAttribute("data-font-display",fd);de.setAttribute("data-font-body",fb);de.setAttribute("data-grid-density",String(gd));}catch(e){}})();`;
 
 /* ---- Preferências tipográficas (mesmo sistema, ver cabeçalho) ---- */
 

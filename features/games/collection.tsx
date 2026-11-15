@@ -4,7 +4,10 @@ import { Fragment, type ReactNode } from "react";
 import type { Pagination } from "@/features/shared/types";
 import { CollectionPagination } from "./collection-pagination";
 import RPGUIButton from "@/components/RPGUI/Button";
-import { ViewModeToggle } from "@/features/collection/view-mode-toggle";
+import {
+  GridDensitySelect,
+  ViewModeToggle,
+} from "@/features/collection/view-mode-toggle";
 import type { CollectionViewMode } from "@/features/collection/collection-query";
 import RPGUInput from "@/components/RPGUI/Input";
 import { DataTable } from "./data-table";
@@ -68,13 +71,16 @@ export function Collection<T>({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <RPGUInput
-
+          className="min-w-[12rem] flex-1"
           type="search"
           value={search}
           placeholder={searchPlaceholder}
           onChange={(event) => onSearchChange(event.target.value)}
         />
-        <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
+        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+          <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
+          {viewMode === "grid" ? <GridDensitySelect /> : null}
+        </div>
       </div>
       {listHeader}
       {isLoading && items.length > 0 ? (
@@ -97,11 +103,15 @@ export function Collection<T>({
         <>
           {error ? <p role="alert">{error}</p> : null}
           {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-          {items.map((item) => (
-            <div key={getItemKey(item)}>{renderGridItem(item)}</div>
-          ))}
-        </div>
+            <div className="game-grid-container">
+              <div className="game-card-grid">
+                {items.map((item) => (
+                  <div className="min-w-0" key={getItemKey(item)}>
+                    {renderGridItem(item)}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : renderListTable ? (
         <DataTable
           label={tableLabel}
