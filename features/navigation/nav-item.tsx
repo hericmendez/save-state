@@ -117,7 +117,7 @@ function NavItemGroup({
         title={entry.title}
         
         onClick={() => setIsOpen((previous) => !previous)}
-        className={`w-full whitespace-nowrap !text-xs ${hasActiveChild ? "down" : ""}`}
+        className={`w-full whitespace-nowrap !text-sm ${hasActiveChild ? "down" : ""}`}
         style={{ minWidth: 0, paddingLeft: "12px", paddingRight: "12px" }}
       >
         {isOpen ? "⌃" : "⌄"}
@@ -141,7 +141,7 @@ function NavItemGroup({
                       openCollectionModal();
                     }}
                     title={
-                      <p className="text-sm text-white text-bold hover:text-amber-300 hover:text-underline">
+                      <p className="text-lg text-white text-bold hover:text-amber-300 hover:text-underline">
                         {child.title}
                       </p>
                     }
@@ -156,7 +156,7 @@ function NavItemGroup({
                     href={child.path ?? "#"}
                     onClick={onNavigate}
                     title={
-                      <p className="text-sm text-white text-bold hover:text-amber-300 hover:text-underline">
+                      <p className="text-lg text-white text-bold hover:text-amber-300 hover:text-underline">
                         {child.title}
                       </p>
                     }

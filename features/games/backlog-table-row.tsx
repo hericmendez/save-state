@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import RPGUIButton from "@/components/RPGUI/Button";
 import {
   DataTableCell,
+  DataTableHeader,
   DataTableHeaderCell,
-  DataTableHeaderRow,
   DataTableRow,
 } from "./data-table";
 import { getStatusLabel } from "./status-labels";
@@ -14,44 +13,63 @@ import type { Game } from "@/features/shared/types";
 
 /**
  * Backlog table layout (list-mode upgrade).
- * Mobile shows Jogo + Status + Favorito + Ações; the remaining columns
- * join at md inside the same horizontal-scroll table (rows never become
- * cards). The header and every row share these templates so columns stay
- * aligned.
+ * Mobile shows Jogo + Status + Favorito; the remaining columns join at md.
+ * Real `<th>`/`<td>` cells plus a single `<colgroup>` mean the browser's
+ * table algorithm owns every width, so header and rows cannot drift apart.
+ *
+ * There is intentionally no "Ações" column: the row itself is the trigger
+ * for the details modal (click, Enter and Space), so a "Detalhes" button
+ * would only duplicate it. Context actions stay in the row context menu.
  */
-export const BACKLOG_TABLE_GRID =
-  "grid-cols-[minmax(0,1fr)_auto_auto_auto] md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto_auto_auto_auto]";
-
-export const BACKLOG_TABLE_MIN_WIDTH = "min-w-[520px] md:min-w-[820px]";
+export const BACKLOG_TABLE_MIN_WIDTH = "min-w-[340px] md:min-w-[760px]";
 
 export function BacklogTableHeader() {
   return (
-    <DataTableHeaderRow gridClass={BACKLOG_TABLE_GRID}>
-      <DataTableHeaderCell>Jogo</DataTableHeaderCell>
-      <DataTableHeaderCell>Plataforma</DataTableHeaderCell>
-      <DataTableHeaderCell>Status</DataTableHeaderCell>
-      <DataTableHeaderCell className="hidden md:block">
-        Horas
-      </DataTableHeaderCell>
-      <DataTableHeaderCell className="hidden md:block">Nota</DataTableHeaderCell>
-      <DataTableHeaderCell>Favorito</DataTableHeaderCell>
-      <DataTableHeaderCell>Ações</DataTableHeaderCell>
-    </DataTableHeaderRow>
+    <>
+      <colgroup>
+        <col className="w-[44%] md:w-[32%]" />
+        <col className="hidden md:table-column md:w-[20%]" />
+        <col className="w-[26%] md:w-[15%]" />
+        <col className="hidden md:table-column md:w-[10%]" />
+        <col className="hidden md:table-column md:w-[10%]" />
+        <col className="w-[30%] md:w-[13%]" />
+      </colgroup>
+      <DataTableHeader>
+        <DataTableHeaderCell>Jogo</DataTableHeaderCell>
+        <DataTableHeaderCell className="hidden md:table-cell">
+          Plataforma
+        </DataTableHeaderCell>
+        <DataTableHeaderCell>Status</DataTableHeaderCell>
+        <DataTableHeaderCell className="hidden md:table-cell">
+          Horas
+        </DataTableHeaderCell>
+        <DataTableHeaderCell className="hidden md:table-cell">
+          Nota
+        </DataTableHeaderCell>
+        <DataTableHeaderCell>Favorito</DataTableHeaderCell>
+      </DataTableHeader>
+    </>
   );
 }
 
 export function BacklogTableRow({
   game,
   onDetails,
+  onContextMenu,
 }: {
   game: Game;
   onDetails: () => void;
+  onContextMenu?: React.MouseEventHandler<HTMLTableRowElement>;
 }) {
   const name = game.game?.name ?? "Jogo";
   const platforms = (game.game?.platforms ?? []).slice(0, 2).join(", ");
 
   return (
-    <DataTableRow gridClass={BACKLOG_TABLE_GRID} label={name} onActivate={onDetails}>
+    <DataTableRow
+      label={name}
+      onActivate={onDetails}
+      onContextMenu={onContextMenu}
+    >
       <DataTableCell title={name}>
         <span className="flex min-w-0 items-center gap-2">
           <Image
@@ -63,39 +81,29 @@ export function BacklogTableRow({
             className="h-10 w-8 shrink-0 object-cover"
             loading="lazy"
           />
-          <span className="truncate font-bold text-white">
+          <span className="min-w-0 font-bold text-white">
             {game.favorite ? "★ " : ""}
             {name}
             {game.finished ? ` · Zerado ${game.timesFinished ?? 0}×` : ""}
           </span>
         </span>
       </DataTableCell>
-      <DataTableCell title={platforms} className="hidden md:block">
-        <span className="truncate">{platforms || "—"}</span>
+      <DataTableCell title={platforms} className="hidden md:table-cell">
+        {platforms || "—"}
       </DataTableCell>
       <DataTableCell>
         {game.status ? getStatusLabel(game.status) : "—"}
       </DataTableCell>
-      <DataTableCell className="hidden md:block">
+      <DataTableCell className="hidden md:table-cell">
         {typeof game.hoursPlayed === "number" ? `${game.hoursPlayed}h` : "—"}
       </DataTableCell>
-      <DataTableCell className="hidden md:block">
+      <DataTableCell className="hidden md:table-cell">
         {typeof game.rating === "number" ? `★ ${game.rating}` : "—"}
       </DataTableCell>
       <DataTableCell>
         <span aria-label={game.favorite ? "Favorito" : "Não favoritado"}>
           {game.favorite ? "★" : "—"}
         </span>
-      </DataTableCell>
-      <DataTableCell>
-        <RPGUIButton
-          type="button"
-          title="Detalhes"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDetails();
-          }}
-        />
       </DataTableCell>
     </DataTableRow>
   );

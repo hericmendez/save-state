@@ -1,15 +1,19 @@
 "use client";
 
-import type { KeyboardEvent, ReactNode } from "react";
+import type { KeyboardEvent, MouseEventHandler, ReactNode } from "react";
 
 /**
- * Shared RPGUI data table (list-mode upgrade).
+ * Shared RPGUI data table.
  *
- * Div-based with explicit ARIA table roles: a native `<table>` is not
- * compatible with the row-level context-menu wrappers (a `div` cannot sit
- * between `table` and `tr`), while role-less wrapper divs are pruned from
- * the accessibility tree so `table > row > cell` stays intact.
- * Each data row uses `rpgui-container framed-grey` per the design brief.
+ * Real HTML table semantics (`table > thead/tbody > tr > th/td`). Column
+ * widths are resolved once by the browser's table layout algorithm, so the
+ * header and every row always share the same geometry — no per-row grid
+ * templates and no `role="table"` impersonation.
+ *
+ * Visual treatment lives in `app/globals.css` (`.rpgui-data-table*`):
+ * golden framed header cells and grey framed body cells, reusing the
+ * vendored RPGUI artwork without inserting invalid wrappers inside the
+ * table.
  */
 export function DataTable({
   label,
@@ -24,33 +28,26 @@ export function DataTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <div
-        role="table"
+      <table
         aria-label={label}
-        className={`flex flex-col gap-1 ${minWidthClass}`}
+        className={`rpgui-data-table w-full ${minWidthClass}`}
       >
         {header}
-        {children}
-      </div>
+        <tbody>{children}</tbody>
+      </table>
     </div>
   );
 }
 
-export function DataTableHeaderRow({
-  gridClass,
-  children,
-}: {
-  gridClass: string;
-  children: ReactNode;
-}) {
+/**
+ * Header group. Rendered as a fragment by callers so a sibling
+ * `<colgroup>` can define the shared column proportions.
+ */
+export function DataTableHeader({ children }: { children: ReactNode }) {
   return (
-    <div
-      role="row"
-      aria-hidden="true"
-      className={`rpgui-container framed-golden grid items-center gap-2 px-3 py-2 ${gridClass}`}
-    >
-      {children}
-    </div>
+    <thead>
+      <tr className="rpgui-data-table-head-row">{children}</tr>
+    </thead>
   );
 }
 
@@ -62,30 +59,27 @@ export function DataTableHeaderCell({
   children: ReactNode;
 }) {
   return (
-    <div
-      role="columnheader"
-      className={`min-w-0 text-sm ${className}`}
-    >
+    <th scope="col" className={`rpgui-data-table-th ${className}`}>
       {children}
-    </div>
+    </th>
   );
 }
 
 export function DataTableRow({
-  gridClass,
   label,
   onActivate,
+  onContextMenu,
   children,
 }: {
-  gridClass: string;
   label: string;
   onActivate?: () => void;
+  onContextMenu?: MouseEventHandler<HTMLTableRowElement>;
   children: ReactNode;
 }) {
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLTableRowElement>) {
     if (event.key !== "Enter" && event.key !== " ") return;
     // Interactive descendants (action buttons, links, inputs) keep their
-    // own keyboard behavior; the row activates only from row background.
+    // own keyboard behavior; the row activates only from the row background.
     if (
       (event.target as HTMLElement).closest("button,a,input,select,textarea")
     ) {
@@ -96,16 +90,18 @@ export function DataTableRow({
   }
 
   return (
-    <div
-      role="row"
+    <tr
       aria-label={label}
       tabIndex={onActivate ? 0 : undefined}
       onClick={onActivate}
       onKeyDown={handleKeyDown}
-      className={`rpgui-container framed-grey grid cursor-pointer items-center gap-2 px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-1 ${gridClass}`}
+      onContextMenu={onContextMenu}
+      className={`rpgui-data-table-row ${
+        onActivate ? "cursor-pointer" : ""
+      }`}
     >
       {children}
-    </div>
+    </tr>
   );
 }
 
@@ -119,8 +115,8 @@ export function DataTableCell({
   children: ReactNode;
 }) {
   return (
-    <div role="cell" title={title} className={`min-w-0 text-sm leading-snug ${className}`}>
+    <td title={title} className={`rpgui-data-table-td ${className}`}>
       {children}
-    </div>
+    </td>
   );
 }

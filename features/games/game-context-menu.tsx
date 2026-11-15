@@ -30,6 +30,7 @@ export function GameContextMenu({
   onStatusChange,
   onError,
   children,
+  asChild = false,
 }: {
   game: Game;
   collections: GameCollection[];
@@ -40,6 +41,7 @@ export function GameContextMenu({
   onStatusChange?: (status: string) => () => void;
   onError?: (message: string) => void;
   children: React.ReactNode;
+  asChild?: boolean;
 }) {
   const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(game.collectionIds ?? []);
   // Favorite label follows the real UserGame state: updated by our own
@@ -180,5 +182,9 @@ export function GameContextMenu({
     },
   ];
 
-  return <CustomContextMenu items={items}>{children}</CustomContextMenu>;
+  return (
+    <CustomContextMenu items={items} asChild={asChild}>
+      {children}
+    </CustomContextMenu>
+  );
 }

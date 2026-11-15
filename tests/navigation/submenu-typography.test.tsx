@@ -55,7 +55,7 @@ import { CollectionNavItems } from "@/features/navigation/collection-nav-items";
 import { NavItem } from "@/features/navigation/nav-item";
 
 const SUBMENU_LABEL_CLASSES = [
-  "text-sm",
+  "text-lg",
   "text-white",
   "text-bold",
   "hover:text-amber-300",
@@ -112,6 +112,17 @@ describe("submenu typography", () => {
     }
   });
 
+  it("uses a larger body-font size for submenu labels", () => {
+    render(<NavItem entry={groupEntry} pathname="/catalogo/filho" />);
+
+    for (const label of ["Filho link", "Nova coleção"]) {
+      const element = screen.getByText(label);
+      expect(element.className).toContain("text-lg");
+      // RC03.1: body text stays on the body font — never the title font.
+      expect(element.className).not.toContain("font-display");
+    }
+  });
+
   it("keeps the group opener on the button skin (title font via CSS)", () => {
     render(<NavItem entry={groupEntry} pathname="/catalogo/filho" />);
 
@@ -124,6 +135,8 @@ describe("submenu typography", () => {
     // O abridor de grupo não é um item interno de submenu: ele mantém o
     // skin `.rpgui-button`, que aplica a fonte de títulos pelo CSS.
     expect(opener?.className).not.toContain("framed-grey");
+    // Legibilidade sem tirar a distinção de título/grupo.
+    expect(opener?.className).toContain("!text-sm");
   });
 
   it("keeps collection names on the body font with underscore wrapping", async () => {
@@ -142,7 +155,7 @@ describe("submenu typography", () => {
     expect(link.className).not.toContain("font-display");
     expect(link.className).toContain("whitespace-normal");
     expect(link.className).toContain("[overflow-wrap:anywhere]");
-    expect(link.className).toContain("text-sm");
+    expect(link.className).toContain("text-base");
     expect(link.textContent).toBe("Minha_Coleção");
     expect(link.querySelectorAll("wbr")).toHaveLength(1);
 

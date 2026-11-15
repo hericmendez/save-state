@@ -1043,6 +1043,7 @@ export function CatalogSearch({
                 }
                 busy={importingId === item.atpId}
                 editBusy={editLoadingId === item.atpId}
+                asChild
               >
                 <CatalogTableRow
                   card={item}

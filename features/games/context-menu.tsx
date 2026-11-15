@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  MouseEventHandler,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { placeMenu, placeSubmenu } from "./menu-position";
 import RPGUIButton from "@/components/RPGUI/Button";
@@ -146,9 +152,16 @@ export function MenuList({ items, onClose }: { items: ContextMenuItem[]; onClose
 export function CustomContextMenu({
   items,
   children,
+  asChild = false,
 }: {
   items: ContextMenuItem[];
-  children: React.ReactNode;
+  children: ReactNode;
+  /**
+   * Attach the context-menu handler to the single child element instead of
+   * wrapping it in a `<div>`. Required for table rows: `<tbody>` may only
+   * contain `<tr>`, so a wrapper div would be invalid HTML.
+   */
+  asChild?: boolean;
 }) {
   // Anchor (viewport coords, where the user invoked the menu) is the stable
   // input; the placed position is derived by measuring the rendered menu.
@@ -234,16 +247,29 @@ export function CustomContextMenu({
     };
   }, [anchor]);
 
+  function handleContextMenu(event: ReactMouseEvent<HTMLElement>) {
+    event.preventDefault();
+    setAnchor({ x: event.clientX, y: event.clientY });
+  }
+
+  const trigger = asChild ? (
+    isValidElement(children) ? (
+      cloneElement(
+        children as ReactElement<{
+          onContextMenu?: MouseEventHandler<HTMLElement>;
+        }>,
+        { onContextMenu: handleContextMenu },
+      )
+    ) : (
+      children
+    )
+  ) : (
+    <div onContextMenu={handleContextMenu}>{children}</div>
+  );
+
   return (
     <>
-      <div
-        onContextMenu={(event) => {
-          event.preventDefault();
-          setAnchor({ x: event.clientX, y: event.clientY });
-        }}
-      >
-        {children}
-      </div>
+      {trigger}
       {anchor &&
         createPortal(
           <div

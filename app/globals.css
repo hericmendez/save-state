@@ -199,6 +199,78 @@ html[data-layout-mode="pixel-perfect"] .layout-zoom {
   font-family: var(--font-display-name) !important;
 }
 
+/*
+ * Semantic data table.
+ *
+ * Real `<table>` layout means the browser resolves one set of column
+ * widths for the header and every row, so they cannot drift apart. The
+ * RPGUI artwork is reproduced directly on `<th>`/`<td>`: the vendored
+ * golden frame on header cells and the grey background/border on body
+ * cells. No `rpgui-container` div is inserted inside the table, and no
+ * CSS grid/flex is used for the table structure.
+ */
+.rpgui-data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+
+.rpgui-data-table th,
+.rpgui-data-table td {
+  box-sizing: border-box;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Compact cells on phones so short headers (Status, Favorito, Lançamento)
+ * keep whole words instead of breaking mid-token. */
+@media (max-width: 767px) {
+  .rpgui-data-table th,
+  .rpgui-data-table td {
+    padding: 6px 8px;
+  }
+}
+
+.rpgui-data-table th {
+  color: #fff;
+  font-weight: 700;
+  background: url("../styles/vendor/rpgui/img/background-image-golden.png") repeat;
+  border-style: solid;
+  border-width: 4px;
+  border-image-source: url("../styles/vendor/rpgui/img/border-image-golden.png");
+  border-image-slice: 4;
+  border-image-width: 4px;
+  border-image-repeat: repeat;
+}
+
+.rpgui-data-table td {
+  background: url("../styles/vendor/rpgui/img/background-image-grey.png") repeat;
+  border-bottom: 4px solid #4a464a;
+}
+
+.rpgui-data-table td:first-child {
+  border-left: 4px solid #4a464a;
+}
+
+.rpgui-data-table td:last-child {
+  border-right: 4px solid #4a464a;
+}
+
+.rpgui-data-table tbody tr:hover td {
+  filter: brightness(1.15);
+}
+
+.rpgui-data-table tbody tr:focus-visible {
+  outline: none;
+}
+
+.rpgui-data-table tbody tr:focus-visible td {
+  box-shadow: inset 0 0 0 2px #fbbf24;
+}
+
 /* Pixel-art rendering foundation (mirrors the legacy global rules). */
 .rpgui-content {
   -ms-interpolation-mode: nearest-neighbor;

@@ -4,8 +4,8 @@ import Image from "next/image";
 import RPGUIButton from "@/components/RPGUI/Button";
 import {
   DataTableCell,
+  DataTableHeader,
   DataTableHeaderCell,
-  DataTableHeaderRow,
   DataTableRow,
 } from "@/features/games/data-table";
 import { sizedIgdbImageUrl } from "@/features/games/game-card-model";
@@ -15,30 +15,37 @@ import { useAtpCover } from "./use-atp-cover";
 /**
  * Catalog table layout (list-mode upgrade).
  * Mobile shows Jogo + Lançamento + Ação; Plataformas/Gêneros join at md.
- * The header and every row share these templates so columns stay aligned.
+ * Real `<th>`/`<td>` cells plus one `<colgroup>` keep every width under the
+ * browser's table algorithm, so header and rows share the same geometry.
  */
-export const CATALOG_TABLE_GRID =
-  "grid-cols-[minmax(0,1fr)_auto_auto] md:grid-cols-[minmax(0,2.2fr)_minmax(0,0.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto]";
-
-export const CATALOG_TABLE_MIN_WIDTH = "min-w-[540px] md:min-w-[760px]";
+export const CATALOG_TABLE_MIN_WIDTH = "min-w-[600px] md:min-w-[760px]";
 
 export function CatalogTableHeader() {
   return (
-    <DataTableHeaderRow gridClass={CATALOG_TABLE_GRID}>
-      <DataTableHeaderCell>Jogo</DataTableHeaderCell>
-      <DataTableHeaderCell>Lançamento</DataTableHeaderCell>
-      <DataTableHeaderCell className="hidden md:block">
-        Plataformas
-      </DataTableHeaderCell>
-      <DataTableHeaderCell className="hidden md:block">
-        Gêneros
-      </DataTableHeaderCell>
-      <DataTableHeaderCell>Ação</DataTableHeaderCell>
-    </DataTableHeaderRow>
+    <>
+      <colgroup>
+        <col className="md:w-[32%]" />
+        <col className="w-[8rem] md:w-[13%]" />
+        <col className="hidden md:table-column md:w-[21%]" />
+        <col className="hidden md:table-column md:w-[21%]" />
+        <col className="w-[16rem] md:w-[12rem]" />
+      </colgroup>
+      <DataTableHeader>
+        <DataTableHeaderCell>Jogo</DataTableHeaderCell>
+        <DataTableHeaderCell>Lançamento</DataTableHeaderCell>
+        <DataTableHeaderCell className="hidden md:table-cell">
+          Plataformas
+        </DataTableHeaderCell>
+        <DataTableHeaderCell className="hidden md:table-cell">
+          Gêneros
+        </DataTableHeaderCell>
+        <DataTableHeaderCell>Ação</DataTableHeaderCell>
+      </DataTableHeader>
+    </>
   );
 }
 
-function miniCover(coverUrl: string | null, name: string) {
+function miniCover(coverUrl: string | null) {
   // 32px thumbs fetch the small IGDB variant; every other source keeps
   // its own URL. Missing covers keep the local fallback.
   const src = sizedIgdbImageUrl(coverUrl, "t_cover_small") ?? "/yugioh.png";
@@ -60,11 +67,13 @@ export function CatalogTableRow({
   onDetails,
   onImport,
   importing,
+  onContextMenu,
 }: {
   card: AtpSearchCard;
   onDetails: () => void;
   onImport: () => void;
   importing: boolean;
+  onContextMenu?: React.MouseEventHandler<HTMLTableRowElement>;
 }) {
   const coverUrl = useAtpCover(card.atpId, card.coverUrl);
   const platforms = card.platforms.slice(0, 2).join(", ");
@@ -72,23 +81,23 @@ export function CatalogTableRow({
 
   return (
     <DataTableRow
-      gridClass={CATALOG_TABLE_GRID}
       label={card.name}
       onActivate={onDetails}
+      onContextMenu={onContextMenu}
     >
       <DataTableCell title={card.name}>
         <span className="flex min-w-0 items-center gap-2">
-          {miniCover(coverUrl, card.name)}
-          <span className="truncate font-bold text-white">{card.name}</span>
+          {miniCover(coverUrl)}
+          <span className="min-w-0 font-bold text-white">{card.name}</span>
           {card.owned && <span className="shrink-0 text-xs">✓</span>}
         </span>
       </DataTableCell>
       <DataTableCell>{card.year ?? "—"}</DataTableCell>
-      <DataTableCell title={platforms} className="hidden md:block">
-        <span className="truncate">{platforms || "—"}</span>
+      <DataTableCell title={platforms} className="hidden md:table-cell">
+        {platforms || "—"}
       </DataTableCell>
-      <DataTableCell title={genres} className="hidden md:block">
-        <span className="truncate">{genres || "—"}</span>
+      <DataTableCell title={genres} className="hidden md:table-cell">
+        {genres || "—"}
       </DataTableCell>
       <DataTableCell>
         {card.owned ? (
@@ -96,6 +105,7 @@ export function CatalogTableRow({
         ) : (
           <RPGUIButton
             type="button"
+            className="w-full"
             title={importing ? "Importando…" : "Adicionar"}
             onClick={(event) => {
               event.stopPropagation();

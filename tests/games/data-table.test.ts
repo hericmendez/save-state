@@ -1,10 +1,9 @@
 /**
- * List-mode Data Table RPGUI: structural contract tests (no DOM).
+ * Shared semantic data table — structural contracts.
  *
- * The repo's vitest setup cannot transform `.tsx` value imports
- * (`jsx: preserve` + vite import-analysis), so UI behavior is pinned
- * through file-content contracts (repo convention, e.g. loading-ux)
- * plus pure unit coverage where logic was extracted.
+ * Real `<table>` semantics replace the former div/grid impersonation.
+ * Source contracts pin the structure that the jsdom tests then exercise
+ * through the rendered DOM (`backlog-table-row.test.tsx`).
  */
 
 import { readFileSync } from "fs";
@@ -15,21 +14,48 @@ function hasPatterns(path: string, patterns: string[]): boolean {
   return patterns.every((pattern) => content.includes(pattern));
 }
 
+function contentOf(path: string): string {
+  return readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+}
+
+/** Strips comments so prose mentions of forbidden patterns do not count. */
+function codeOf(path: string): string {
+  return contentOf(path)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+}
+
 describe("shared DataTable structure", () => {
   const p = "features/games/data-table.tsx";
 
-  it("uses table semantics with RPGUI framed rows", () => {
+  it("renders native table elements", () => {
     expect(
       hasPatterns(p, [
-        'role="table"',
-        'role="row"',
-        'role="columnheader"',
-        'role="cell"',
-        "rpgui-container framed-grey",
-        "rpgui-container framed-golden",
+        "<table",
+        "<thead>",
+        "<tbody>",
+        "<tr",
+        "<th",
+        "scope=\"col\"",
+        "<td",
         "overflow-x-auto",
       ]),
     ).toBe(true);
+  });
+
+  it("does not impersonate table semantics with ARIA roles", () => {
+    const content = codeOf(p);
+    expect(content).not.toContain('role="table"');
+    expect(content).not.toContain('role="row"');
+    expect(content).not.toContain('role="cell"');
+    expect(content).not.toContain('role="columnheader"');
+  });
+
+  it("does not use CSS grid or flex for the table structure", () => {
+    const content = contentOf(p);
+    expect(content).not.toContain("grid-cols");
+    expect(content).not.toContain("display: flex");
+    expect(content).not.toContain("display: grid");
   });
 
   it("keeps rows keyboard-operable with guarded activation", () => {
@@ -38,18 +64,43 @@ describe("shared DataTable structure", () => {
         "tabIndex",
         "onKeyDown",
         'closest("button,a,input,select,textarea")',
-        "focus-visible:outline-2",
+      ]),
+    ).toBe(true);
+    // Visible focus is styled on the cell, not the row, because table
+    // rows do not paint outlines reliably across browsers.
+    expect(
+      hasPatterns("app/globals.css", [
+        ".rpgui-data-table tbody tr:focus-visible td",
       ]),
     ).toBe(true);
   });
 
   it("keeps row actions independent from the row click", () => {
-    for (const row of [
-      "features/atp/catalog-table-row.tsx",
-      "features/games/backlog-table-row.tsx",
-    ]) {
-      expect(hasPatterns(row, ["event.stopPropagation()"])).toBe(true);
-    }
+    // The catalog keeps a real import action inside the row; it must not
+    // trigger the details modal. The backlog row has no action column.
+    expect(
+      hasPatterns("features/atp/catalog-table-row.tsx", [
+        "event.stopPropagation()",
+      ]),
+    ).toBe(true);
+  });
+});
+
+describe("context menu adaptation", () => {
+  it("attaches the menu to the row instead of wrapping it in a div", () => {
+    expect(
+      hasPatterns("features/games/context-menu.tsx", [
+        "asChild",
+        "cloneElement",
+        "onContextMenu",
+      ]),
+    ).toBe(true);
+    expect(
+      hasPatterns("features/games/backlog-view.tsx", ["asChild"]),
+    ).toBe(true);
+    // Only the table usage opts into asChild; grid/list keep the wrapper.
+    const catalog = contentOf("features/atp/catalog-search.tsx");
+    expect(catalog.match(/asChild/g)).toHaveLength(1);
   });
 });
 
@@ -100,14 +151,18 @@ describe("catalog table columns", () => {
     ).toBe(true);
   });
 
-  it("shares one grid template between header and rows, responsive", () => {
+  it("uses the shared semantic table with responsive columns", () => {
     expect(
       hasPatterns(p, [
-        "CATALOG_TABLE_GRID",
+        "DataTableHeader",
+        "DataTableHeaderCell",
+        "DataTableCell",
         "CATALOG_TABLE_MIN_WIDTH",
-        "hidden md:block",
+        "colgroup",
+        "hidden md:table-cell",
       ]),
     ).toBe(true);
+    expect(contentOf(p)).not.toContain("CATALOG_TABLE_GRID");
   });
 
   it("documents the developer-column constraint (no card-level data)", () => {
@@ -149,8 +204,9 @@ describe("catalog table columns", () => {
 
 describe("backlog table columns", () => {
   const p = "features/games/backlog-table-row.tsx";
+  const content = contentOf(p);
 
-  it("renders Jogo + Plataforma + Status + Horas + Nota + Favorito + Ações", () => {
+  it("renders Jogo + Plataforma + Status + Horas + Nota + Favorito", () => {
     expect(
       hasPatterns(p, [
         "Plataforma",
@@ -158,22 +214,31 @@ describe("backlog table columns", () => {
         "Horas",
         "Nota",
         "Favorito",
-        "Ações",
         "getStatusLabel",
         "hoursPlayed",
         "game.rating",
         "game.favorite",
-        "Detalhes",
       ]),
     ).toBe(true);
   });
 
-  it("shares one grid template between header and rows, tabular on mobile", () => {
-    const content = readFileSync(p, "utf8");
-    expect(content).toContain("BACKLOG_TABLE_GRID");
+  it("removes the redundant Ações/Detalhes column globally", () => {
+    // Backlog and collection screens share this row; neither renders an
+    // action column or a "Detalhes" button anymore.
+    expect(content).not.toContain(">Ações<");
+    expect(content).not.toContain('title="Detalhes"');
+    expect(content).not.toContain("<RPGUIButton");
+    // The row itself still opens the details modal.
+    expect(content).toContain("onActivate={onDetails}");
+    expect(content).toContain("onDetails: () => void");
+  });
+
+  it("uses the shared semantic table with responsive columns", () => {
     expect(content).toContain("BACKLOG_TABLE_MIN_WIDTH");
-    // Mobile keeps columns (reduced set), never converts rows to cards.
-    expect(content).not.toContain("framed-golden grid grid-cols-[1fr_auto]");
+    expect(content).toContain("colgroup");
+    expect(content).toContain("hidden md:table-cell");
+    expect(content).not.toContain("BACKLOG_TABLE_GRID");
+    expect(content).not.toContain("grid-cols-");
   });
 
   it("keeps backlog wiring: menu, modal, edit and delete flows", () => {

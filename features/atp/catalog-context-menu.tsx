@@ -12,6 +12,7 @@ export function CatalogMenu({
   onAddToCollection,
   busy = false,
   editBusy = false,
+  asChild = false,
   children,
 }: {
   owned: boolean;
@@ -23,6 +24,7 @@ export function CatalogMenu({
   onAddToCollection: (collectionId: string) => void;
   busy?: boolean;
   editBusy?: boolean;
+  asChild?: boolean;
   children: React.ReactNode;
 }) {
   const items: ContextMenuItem[] = [
@@ -63,5 +65,9 @@ export function CatalogMenu({
     });
   }
 
-  return <CustomContextMenu items={items}>{children}</CustomContextMenu>;
+  return (
+    <CustomContextMenu items={items} asChild={asChild}>
+      {children}
+    </CustomContextMenu>
+  );
 }

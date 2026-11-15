@@ -169,6 +169,7 @@ export function BacklogView({
                 optimisticallySetStatus(game._id, status)
               }
               onError={setBanner}
+              asChild
             >
               <BacklogTableRow
                 game={game}

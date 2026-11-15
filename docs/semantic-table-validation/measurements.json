@@ -1,0 +1,598 @@
+{
+  "desktop": {
+    "backlog": {
+      "headerCount": 6,
+      "cellCount": 6,
+      "headerCells": [
+        {
+          "text": "Jogo",
+          "x": 152,
+          "width": 312.3125,
+          "visible": true
+        },
+        {
+          "text": "Plataforma",
+          "x": 464.3125,
+          "width": 195.1875,
+          "visible": true
+        },
+        {
+          "text": "Status",
+          "x": 659.5,
+          "width": 146.390625,
+          "visible": true
+        },
+        {
+          "text": "Horas",
+          "x": 805.890625,
+          "width": 97.59375,
+          "visible": true
+        },
+        {
+          "text": "Nota",
+          "x": 903.484375,
+          "width": 97.59375,
+          "visible": true
+        },
+        {
+          "text": "Favorito",
+          "x": 1001.078125,
+          "width": 126.921875,
+          "visible": true
+        }
+      ],
+      "rowCells": [
+        {
+          "x": 152,
+          "width": 312.3125,
+          "height": 92,
+          "visible": true
+        },
+        {
+          "x": 464.3125,
+          "width": 195.1875,
+          "height": 92,
+          "visible": true
+        },
+        {
+          "x": 659.5,
+          "width": 146.390625,
+          "height": 92,
+          "visible": true
+        },
+        {
+          "x": 805.890625,
+          "width": 97.59375,
+          "height": 92,
+          "visible": true
+        },
+        {
+          "x": 903.484375,
+          "width": 97.59375,
+          "height": 92,
+          "visible": true
+        },
+        {
+          "x": 1001.078125,
+          "width": 126.921875,
+          "height": 92,
+          "visible": true
+        }
+      ],
+      "align": [
+        {
+          "column": "Jogo",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Plataforma",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Status",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Horas",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Nota",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Favorito",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        }
+      ],
+      "wrap": [
+        {
+          "column": "Jogo",
+          "height": 92,
+          "visible": true
+        },
+        {
+          "column": "Plataforma",
+          "height": 92,
+          "visible": true
+        },
+        {
+          "column": "Status",
+          "height": 92,
+          "visible": true
+        },
+        {
+          "column": "Horas",
+          "height": 92,
+          "visible": true
+        },
+        {
+          "column": "Nota",
+          "height": 92,
+          "visible": true
+        },
+        {
+          "column": "Favorito",
+          "height": 92,
+          "visible": true
+        }
+      ],
+      "invalidDivs": 0,
+      "bodyRowCount": 2,
+      "hasActionsHeader": false,
+      "hasActionHeader": false,
+      "scroll": {
+        "clientWidth": 976,
+        "scrollWidth": 976,
+        "scrolls": false
+      }
+    },
+    "catalog": {
+      "headerCount": 5,
+      "cellCount": 5,
+      "headerCells": [
+        {
+          "text": "Jogo",
+          "x": 152,
+          "width": 298.015625,
+          "visible": true
+        },
+        {
+          "text": "Lançamento",
+          "x": 450.015625,
+          "width": 121.3125,
+          "visible": true
+        },
+        {
+          "text": "Plataformas",
+          "x": 571.328125,
+          "width": 194.3125,
+          "visible": true
+        },
+        {
+          "text": "Gêneros",
+          "x": 765.640625,
+          "width": 194.359375,
+          "visible": true
+        },
+        {
+          "text": "Ação",
+          "x": 960,
+          "width": 168,
+          "visible": true
+        }
+      ],
+      "rowCells": [
+        {
+          "x": 152,
+          "width": 298.015625,
+          "height": 80,
+          "visible": true
+        },
+        {
+          "x": 450.015625,
+          "width": 121.3125,
+          "height": 80,
+          "visible": true
+        },
+        {
+          "x": 571.328125,
+          "width": 194.3125,
+          "height": 80,
+          "visible": true
+        },
+        {
+          "x": 765.640625,
+          "width": 194.359375,
+          "height": 80,
+          "visible": true
+        },
+        {
+          "x": 960,
+          "width": 168,
+          "height": 80,
+          "visible": true
+        }
+      ],
+      "align": [
+        {
+          "column": "Jogo",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Lançamento",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Plataformas",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Gêneros",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Ação",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        }
+      ],
+      "wrap": [
+        {
+          "column": "Jogo",
+          "height": 80,
+          "visible": true
+        },
+        {
+          "column": "Lançamento",
+          "height": 80,
+          "visible": true
+        },
+        {
+          "column": "Plataformas",
+          "height": 80,
+          "visible": true
+        },
+        {
+          "column": "Gêneros",
+          "height": 80,
+          "visible": true
+        },
+        {
+          "column": "Ação",
+          "height": 80,
+          "visible": true
+        }
+      ],
+      "invalidDivs": 0,
+      "bodyRowCount": 2,
+      "hasActionsHeader": false,
+      "hasActionHeader": true,
+      "scroll": {
+        "clientWidth": 976,
+        "scrollWidth": 976,
+        "scrolls": false
+      }
+    },
+    "mouseDetails": "details:g1",
+    "enterDetails": "details:g1",
+    "spaceDetails": "details:g1",
+    "importStatus": "import:a1",
+    "menuVisible": true,
+    "menuText": "Ver detalhes "
+  },
+  "mobile": {
+    "backlog": {
+      "headerCount": 6,
+      "cellCount": 6,
+      "headerCells": [
+        {
+          "text": "Jogo",
+          "x": 24,
+          "width": 150.46875,
+          "visible": true
+        },
+        {
+          "text": "Plataforma",
+          "x": 0,
+          "width": 0,
+          "visible": false
+        },
+        {
+          "text": "Status",
+          "x": 174.46875,
+          "width": 88.90625,
+          "visible": true
+        },
+        {
+          "text": "Horas",
+          "x": 0,
+          "width": 0,
+          "visible": false
+        },
+        {
+          "text": "Nota",
+          "x": 0,
+          "width": 0,
+          "visible": false
+        },
+        {
+          "text": "Favorito",
+          "x": 263.375,
+          "width": 102.625,
+          "visible": true
+        }
+      ],
+      "rowCells": [
+        {
+          "x": 24,
+          "width": 150.46875,
+          "height": 136,
+          "visible": true
+        },
+        {
+          "x": 0,
+          "width": 0,
+          "height": 0,
+          "visible": false
+        },
+        {
+          "x": 174.46875,
+          "width": 88.90625,
+          "height": 136,
+          "visible": true
+        },
+        {
+          "x": 0,
+          "width": 0,
+          "height": 0,
+          "visible": false
+        },
+        {
+          "x": 0,
+          "width": 0,
+          "height": 0,
+          "visible": false
+        },
+        {
+          "x": 263.375,
+          "width": 102.625,
+          "height": 136,
+          "visible": true
+        }
+      ],
+      "align": [
+        {
+          "column": "Jogo",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Plataforma",
+          "skipped": true
+        },
+        {
+          "column": "Status",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Horas",
+          "skipped": true
+        },
+        {
+          "column": "Nota",
+          "skipped": true
+        },
+        {
+          "column": "Favorito",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        }
+      ],
+      "wrap": [
+        {
+          "column": "Jogo",
+          "height": 136,
+          "visible": true
+        },
+        {
+          "column": "Plataforma",
+          "height": 0,
+          "visible": false
+        },
+        {
+          "column": "Status",
+          "height": 136,
+          "visible": true
+        },
+        {
+          "column": "Horas",
+          "height": 0,
+          "visible": false
+        },
+        {
+          "column": "Nota",
+          "height": 0,
+          "visible": false
+        },
+        {
+          "column": "Favorito",
+          "height": 136,
+          "visible": true
+        }
+      ],
+      "invalidDivs": 0,
+      "bodyRowCount": 2,
+      "hasActionsHeader": false,
+      "hasActionHeader": false,
+      "scroll": {
+        "clientWidth": 342,
+        "scrollWidth": 342,
+        "scrolls": false
+      }
+    },
+    "catalog": {
+      "headerCount": 5,
+      "cellCount": 5,
+      "headerCells": [
+        {
+          "text": "Jogo",
+          "x": 24,
+          "width": 216,
+          "visible": true
+        },
+        {
+          "text": "Lançamento",
+          "x": 240,
+          "width": 128,
+          "visible": true
+        },
+        {
+          "text": "Plataformas",
+          "x": 0,
+          "width": 0,
+          "visible": false
+        },
+        {
+          "text": "Gêneros",
+          "x": 0,
+          "width": 0,
+          "visible": false
+        },
+        {
+          "text": "Ação",
+          "x": 368,
+          "width": 256,
+          "visible": true
+        }
+      ],
+      "rowCells": [
+        {
+          "x": 24,
+          "width": 216,
+          "height": 76,
+          "visible": true
+        },
+        {
+          "x": 240,
+          "width": 128,
+          "height": 76,
+          "visible": true
+        },
+        {
+          "x": 0,
+          "width": 0,
+          "height": 0,
+          "visible": false
+        },
+        {
+          "x": 0,
+          "width": 0,
+          "height": 0,
+          "visible": false
+        },
+        {
+          "x": 368,
+          "width": 256,
+          "height": 76,
+          "visible": true
+        }
+      ],
+      "align": [
+        {
+          "column": "Jogo",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Lançamento",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        },
+        {
+          "column": "Plataformas",
+          "skipped": true
+        },
+        {
+          "column": "Gêneros",
+          "skipped": true
+        },
+        {
+          "column": "Ação",
+          "dx": 0,
+          "dw": 0,
+          "ok": true
+        }
+      ],
+      "wrap": [
+        {
+          "column": "Jogo",
+          "height": 76,
+          "visible": true
+        },
+        {
+          "column": "Lançamento",
+          "height": 76,
+          "visible": true
+        },
+        {
+          "column": "Plataformas",
+          "height": 0,
+          "visible": false
+        },
+        {
+          "column": "Gêneros",
+          "height": 0,
+          "visible": false
+        },
+        {
+          "column": "Ação",
+          "height": 76,
+          "visible": true
+        }
+      ],
+      "invalidDivs": 0,
+      "bodyRowCount": 2,
+      "hasActionsHeader": false,
+      "hasActionHeader": true,
+      "scroll": {
+        "clientWidth": 342,
+        "scrollWidth": 600,
+        "scrolls": true
+      }
+    },
+    "mouseDetails": "details:g1",
+    "enterDetails": "details:g1",
+    "spaceDetails": "details:g1",
+    "importStatus": "import:a1",
+    "menuVisible": true,
+    "menuText": "Ver detalhes "
+  }
+}

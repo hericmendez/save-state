@@ -186,7 +186,7 @@ export function CollectionNavItems({
                 </span>
               ) : null}
               <Link
-                className="block min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] px-2 py-1 text-sm text-white hover:text-amber-300 hover:underline"
+                className="block min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] px-2 py-1 text-base text-white hover:text-amber-300 hover:underline"
                 href={`/backlog/lists/${encodeURIComponent(collection._id)}`}
                 onClick={onNavigate}
                 aria-label={
@@ -202,7 +202,7 @@ export function CollectionNavItems({
                 aria-label={`Opções de ${collection.name}`}
                 aria-haspopup="menu"
                 aria-expanded={menuFor?._id === collection._id}
-                className="shrink-0 px-3 py-2 text-white/70 hover:text-amber-300"
+                className="shrink-0 px-3 py-2 text-lg leading-none text-white/70 hover:text-amber-300"
                 onClick={(event) => openMenu(event, collection)}
               >
                 ⋯
