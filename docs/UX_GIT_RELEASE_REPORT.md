@@ -65,6 +65,8 @@ Excluídos do staging:
    - Commit separado, contendo somente este relatório.
 3. `089bcee3ea17837a9221d95ab2a4a2cb2383018a` — `docs: finalize UX release report details`
    - Ajusta o relatório para registrar o segundo commit e o estado confirmado após sua criação.
+4. `5c9105b130ce2cab9c0e86661ed0a807d1ef590c` — `docs: correct final UX release state`
+   - Atualiza a contagem de commits locais após a revisão do relatório.
 
 ## 6. Resultado do push
 
@@ -72,7 +74,7 @@ Push **não realizado**. Após o commit da UX, `main` estava 4 commits à frente
 
 ## 7. Estado final da worktree
 
-Os commits foram criados localmente em `main`. A verificação final após os commits de relatório encontrou a branch 6 commits à frente e 5 atrás de `origin/main`; o índice estava vazio. Alterações preexistentes não staged e o arquivo IGDB não relacionado foram preservados. O upstream continua `origin/main`; não houve troca de branch.
+Os commits foram criados localmente em `main`. A verificação após o terceiro commit listado encontrou a branch 7 commits à frente e 5 atrás de `origin/main`; o índice estava vazio. Alterações preexistentes não staged e o arquivo IGDB não relacionado foram preservados. O upstream continua `origin/main`; não houve troca de branch.
 
 ## 8. Riscos e pendências
 
