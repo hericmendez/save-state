@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
       searchCoverSearchQuerySchema,
       searchParamsToObject(request.nextUrl.searchParams),
     );
-    const candidates = await getSearchProvider().searchCovers(query);
+    const candidates = await getSearchProvider().searchCovers(
+      query,
+      undefined,
+      request.signal,
+    );
     // Same envelope as the legacy /api/atp/covers/search route:
     // ok(array) → { data: [...] }, not { data: { candidates } }.
     return ok(candidates);

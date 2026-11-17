@@ -15,7 +15,7 @@ export async function GET(
     await getSessionUser(request);
     const { id } = parseParams(searchIdParamSchema, await params);
     const cover = await getSearchProvider()
-      .getGameCover(id)
+      .getGameCover(id, undefined, request.signal)
       .catch(() => null);
     // Same envelope as the legacy /api/atp/games/:id/cover route
     // ({coverUrl, cover}) so existing card hooks keep working.

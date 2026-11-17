@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       searchParamsToObject(request.nextUrl.searchParams),
     );
     // Covers resolve lazily per card — never fanned out here.
-    const result = await searchCatalogPage(query, session.id);
+    const result = await searchCatalogPage(query, session.id, undefined, request.signal);
     return NextResponse.json(result, { status: 200 });
   });
 }

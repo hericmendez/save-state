@@ -127,6 +127,20 @@ function parseIgdbId(id: string): number | undefined {
   return Number.isSafeInteger(numeric) && numeric > 0 ? numeric : undefined;
 }
 
+function cancellationError(): Error {
+  const error = new Error("Request cancelled");
+  error.name = "AbortError";
+  return error;
+}
+
+/**
+ * Normalize caller cancellation. Degrading catches in this provider must
+ * rethrow it instead of treating a cancelled lookup as "no data".
+ */
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw cancellationError();
+}
+
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -186,6 +200,7 @@ interface CompanyRoles {
 async function fetchCompanyRoles(
   involvementIds: number[],
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<CompanyRoles> {
   const empty: CompanyRoles = { developers: [], publishers: [] };
   if (involvementIds.length === 0) return empty;
@@ -194,7 +209,7 @@ async function fetchCompanyRoles(
     const involvementsPayload = await igdbRequest(
       "/involved_companies",
       `where id = (${capped.join(",")}); fields company,developer,publisher; limit 500;`,
-      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /involved_companies" },
+      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /involved_companies", operation: "game_detail", signal },
       source,
     );
     const involvements = igdbInvolvementListSchema.parse(involvementsPayload);
@@ -212,7 +227,7 @@ async function fetchCompanyRoles(
     const companiesPayload = await igdbRequest(
       "/companies",
       `where id = (${[...rolesByCompany.keys()].join(",")}); fields name; limit 500;`,
-      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /companies" },
+      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /companies", operation: "game_detail", signal },
       source,
     );
     const companies = igdbCompanyListSchema.parse(companiesPayload);
@@ -230,6 +245,7 @@ async function fetchCompanyRoles(
       publishers: uniqueStrings(publishers),
     };
   } catch {
+    if (signal?.aborted) throw cancellationError();
     // Company data degrades to empty rather than failing the lookup.
     return empty;
   }
@@ -256,6 +272,7 @@ export function __resetIgdbFilterCaches(): void {
 async function resolveCompanyIds(
   query: string,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<number[]> {
   const key = query.trim().toLowerCase();
   const cached = companyCache.get(key);
@@ -263,7 +280,7 @@ async function resolveCompanyIds(
   const payload = await igdbRequest(
     "/companies",
     `search "${escapeApicalypse(query.trim())}"; fields name; limit 10;`,
-    { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /companies" },
+    { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /companies", operation: "filter_resolution", signal },
     source,
   );
   const companies = igdbCompanyListSchema.parse(payload);
@@ -279,12 +296,13 @@ async function resolveCompanyIds(
 async function resolveGenreIds(
   query: string,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<number[]> {
   if (!genreCache) {
     const payload = await igdbRequest(
       "/genres",
       "fields name; limit 100; sort name asc;",
-      { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /genres" },
+      { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /genres", operation: "filter_resolution", signal },
       source,
     );
     genreCache = igdbGenreListSchema.parse(payload);
@@ -301,13 +319,14 @@ async function resolveInvolvementIds(
   companyQuery: string,
   role: "developer" | "publisher",
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<number[]> {
-  const companyIds = await resolveCompanyIds(companyQuery, source);
+  const companyIds = await resolveCompanyIds(companyQuery, source, signal);
   if (companyIds.length === 0) return [];
   const payload = await igdbRequest(
     "/involved_companies",
     `where company = (${companyIds.join(",")}) & ${role} = true; fields id; limit 500;`,
-    { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /involved_companies" },
+    { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /involved_companies", operation: "filter_resolution", signal },
     source,
   );
   return igdbInvolvementListSchema.parse(payload).map((i) => i.id);
@@ -342,7 +361,9 @@ export class IgdbSearchProvider implements SearchProvider {
   async searchGames(
     params: SearchQueryParams,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ) {
+    throwIfAborted(signal);
     const { page, limit } = params;
     const offset = (page - 1) * limit;
 
@@ -383,17 +404,17 @@ export class IgdbSearchProvider implements SearchProvider {
     ];
     if (platformIds.length > 0) clauses.push(`platforms = (${platformIds.join(",")})`);
     if (params.genre !== undefined) {
-      const genreIds = await resolveGenreIds(params.genre, source);
+      const genreIds = await resolveGenreIds(params.genre, source, signal);
       if (genreIds.length === 0) return emptyPage(page, limit);
       clauses.push(`genres = (${genreIds.join(",")})`);
     }
     if (params.developer !== undefined) {
-      const ids = await resolveInvolvementIds(params.developer, "developer", source);
+      const ids = await resolveInvolvementIds(params.developer, "developer", source, signal);
       if (ids.length === 0) return emptyPage(page, limit);
       clauses.push(`involved_companies = (${ids.join(",")})`);
     }
     if (params.publisher !== undefined) {
-      const ids = await resolveInvolvementIds(params.publisher, "publisher", source);
+      const ids = await resolveInvolvementIds(params.publisher, "publisher", source, signal);
       if (ids.length === 0) return emptyPage(page, limit);
       clauses.push(`involved_companies = (${ids.join(",")})`);
     }
@@ -443,7 +464,7 @@ export class IgdbSearchProvider implements SearchProvider {
     const payload = await igdbRequest(
       "/games",
       body,
-      { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /games" },
+      { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /games", operation: "catalog_search", signal },
       source,
     );
     let games: IgdbGame[];
@@ -473,11 +494,13 @@ export class IgdbSearchProvider implements SearchProvider {
         const countPayload = await igdbRequest(
           "/games/count",
           `where ${clauses.join(" & ")};`,
-          { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /games/count" },
+          { timeoutMs: IGDB_SEARCH_TIMEOUT_MS, route: "POST /games/count", operation: "catalog_search", signal },
           source,
         );
         total = igdbCountSchema.parse(countPayload).count;
       } catch {
+        // A cancelled caller gets no fallback pagination: the request is over.
+        if (signal?.aborted) throw cancellationError();
         total = hasNext ? page * limit + 1 : offset + pageGames.length;
       }
     } else {
@@ -510,7 +533,9 @@ export class IgdbSearchProvider implements SearchProvider {
   async getGameDetail(
     id: string,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<Omit<SearchPreview, "manualDuplicate" | "owned">> {
+    throwIfAborted(signal);
     const numericId = parseIgdbId(id);
     if (numericId === undefined) {
       throw new ApiError("IGDB_GAME_NOT_FOUND", "Game not found", 404);
@@ -518,7 +543,7 @@ export class IgdbSearchProvider implements SearchProvider {
     const payload = await igdbRequest(
       "/games",
       `where id = ${numericId}; fields ${GAME_FIELDS}; limit 1;`,
-      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /games" },
+      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /games", operation: "game_detail", signal },
       source,
     );
     const games = igdbGameListSchema.parse(payload);
@@ -526,7 +551,7 @@ export class IgdbSearchProvider implements SearchProvider {
     if (!game) {
       throw new ApiError("IGDB_GAME_NOT_FOUND", "Game not found", 404);
     }
-    const roles = await fetchCompanyRoles(game.involved_companies ?? [], source);
+    const roles = await fetchCompanyRoles(game.involved_companies ?? [], source, signal);
     const releases = (game.release_dates ?? [])
       .map((release) => {
         const platform = release.platform;
@@ -575,13 +600,15 @@ export class IgdbSearchProvider implements SearchProvider {
   async getGameCover(
     id: string,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<SearchCover | null> {
+    throwIfAborted(signal);
     const numericId = parseIgdbId(id);
     if (numericId === undefined) return null;
     const payload = await igdbRequest(
       "/games",
       `where id = ${numericId}; fields cover.image_id; limit 1;`,
-      { timeoutMs: IGDB_COVER_TIMEOUT_MS, route: "POST /games" },
+      { timeoutMs: IGDB_COVER_TIMEOUT_MS, route: "POST /games", operation: "cover_lookup", signal },
       source,
     );
     const games = igdbCoverOnlyListSchema.parse(payload);
@@ -600,7 +627,9 @@ export class IgdbSearchProvider implements SearchProvider {
   async searchCovers(
     params: { q: string; limit: number },
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<SearchCover[]> {
+    throwIfAborted(signal);
     const payload = await igdbRequest(
       "/games",
       [
@@ -609,7 +638,7 @@ export class IgdbSearchProvider implements SearchProvider {
         "fields cover.image_id;",
         `limit ${params.limit};`,
       ].join(" "),
-      { timeoutMs: IGDB_COVER_TIMEOUT_MS, route: "POST /games" },
+      { timeoutMs: IGDB_COVER_TIMEOUT_MS, route: "POST /games", operation: "cover_search", signal },
       source,
     );
     const games = igdbCoverOnlyListSchema.parse(payload);
@@ -632,7 +661,9 @@ export class IgdbSearchProvider implements SearchProvider {
   async listPlatforms(
     params: SearchPlatformListParams,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<SearchPlatformList> {
+    throwIfAborted(signal);
     let entries = [...IGDB_PLATFORM_CATALOG];
     if (params.companyName !== undefined) {
       // Free-text platform match: official name, alias, or manufacturer.
@@ -683,6 +714,7 @@ export class IgdbSearchProvider implements SearchProvider {
     const thumbs = await this.fetchPlatformThumbs(
       pageEntries.map((e) => e.igdbId),
       source,
+      signal,
     );
     return {
       data: pageEntries.map((entry) => toSearchPlatform(entry, thumbs.get(entry.igdbId))),
@@ -693,7 +725,9 @@ export class IgdbSearchProvider implements SearchProvider {
   async getPlatform(
     id: string,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<SearchPlatform> {
+    throwIfAborted(signal);
     const numericId = parseIgdbId(id);
     if (numericId === undefined) {
       throw new ApiError("IGDB_GAME_NOT_FOUND", "Platform not found", 404);
@@ -704,7 +738,7 @@ export class IgdbSearchProvider implements SearchProvider {
       const payload = await igdbRequest(
         "/platforms",
         `where id = ${numericId}; fields name,generation,platform_logo.url; limit 1;`,
-        { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /platforms" },
+        { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /platforms", operation: "platform_detail", signal },
         source,
       );
       const platforms = igdbPlatformListSchema.parse(payload);
@@ -722,19 +756,25 @@ export class IgdbSearchProvider implements SearchProvider {
         type: null,
         generation: platform.generation ?? null,
         thumb: toThumb(platform.platform_logo?.url),
-        gameCount: await this.fetchGameCount(numericId, source),
+        gameCount: await this.fetchGameCount(numericId, source, signal),
       };
     }
-    const thumbs = await this.fetchPlatformThumbs([entry.igdbId], source);
-    return toSearchPlatform(
-      { ...entry, gameCount: await this.fetchGameCount(entry.igdbId, source).catch(() => entry.gameCount) },
-      thumbs.get(entry.igdbId),
-    );
+    const thumbs = await this.fetchPlatformThumbs([entry.igdbId], source, signal);
+    let gameCount = entry.gameCount;
+    try {
+      gameCount = await this.fetchGameCount(entry.igdbId, source, signal);
+    } catch {
+      if (signal?.aborted) throw cancellationError();
+      // Preserve the static catalog count when the live count fails.
+    }
+    return toSearchPlatform({ ...entry, gameCount }, thumbs.get(entry.igdbId));
   }
 
   async listFamilies(
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<SearchFamily[]> {
+    throwIfAborted(signal);
     const families = new Map<string, IgdbCatalogPlatform[]>();
     for (const entry of IGDB_PLATFORM_CATALOG) {
       const group = families.get(entry.family) ?? [];
@@ -742,7 +782,7 @@ export class IgdbSearchProvider implements SearchProvider {
       families.set(entry.family, group);
     }
     const allIds = IGDB_PLATFORM_CATALOG.map((e) => e.igdbId);
-    const thumbs = await this.fetchPlatformThumbs(allIds, source);
+    const thumbs = await this.fetchPlatformThumbs(allIds, source, signal);
     return [...families.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, platforms]) => ({
@@ -758,6 +798,7 @@ export class IgdbSearchProvider implements SearchProvider {
   private async fetchPlatformThumbs(
     ids: number[],
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<Map<number, { logo: string | null; image: string | null }>> {
     const result = new Map<number, { logo: string | null; image: string | null }>();
     if (ids.length === 0) return result;
@@ -765,7 +806,7 @@ export class IgdbSearchProvider implements SearchProvider {
       const payload = await igdbRequest(
         "/platforms",
         `where id = (${ids.join(",")}); fields platform_logo.url; limit ${Math.min(ids.length, 500)};`,
-        { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /platforms" },
+        { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /platforms", operation: "platform_catalog", signal },
         source,
       );
       const platforms = igdbPlatformListSchema.parse(payload);
@@ -776,6 +817,7 @@ export class IgdbSearchProvider implements SearchProvider {
         });
       }
     } catch {
+      if (signal?.aborted) throw cancellationError();
       // Logos degrade to placeholders rather than failing the listing.
     }
     return result;
@@ -784,11 +826,12 @@ export class IgdbSearchProvider implements SearchProvider {
   private async fetchGameCount(
     igdbId: number,
     source?: Record<string, string | undefined>,
+    signal?: AbortSignal,
   ): Promise<number> {
     const payload = await igdbRequest(
       "/games/count",
       `where platforms = (${igdbId});`,
-      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /games/count" },
+      { timeoutMs: IGDB_DETAIL_TIMEOUT_MS, route: "POST /games/count", operation: "platform_detail", signal },
       source,
     );
     return igdbCountSchema.parse(payload).count;

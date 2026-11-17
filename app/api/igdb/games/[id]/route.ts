@@ -20,6 +20,8 @@ export async function GET(
   return handleRoute(async () => {
     const session = await getSessionUser(request);
     const { id } = parseParams(searchIdParamSchema, await params);
-    return ok(await getCatalogDetail(id, session.id, igdbForcedSource()));
+    return ok(
+      await getCatalogDetail(id, session.id, igdbForcedSource(), request.signal),
+    );
   });
 }

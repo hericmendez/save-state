@@ -150,13 +150,18 @@ export interface SearchFamily {
   gameCount: number;
 }
 
+/**
+ * Providers may accept a caller-owned AbortSignal. Cancellation is opt-in:
+ * a provider that cannot honor it simply ignores the parameter, and the
+ * caller must not assume the external work stopped.
+ */
 export interface SearchProvider {
   readonly providerName: SearchProviderName;
-  searchGames(params: SearchQueryParams, source?: Record<string, string | undefined>): Promise<SearchPage>;
-  getGameDetail(id: string, source?: Record<string, string | undefined>): Promise<Omit<SearchPreview, "manualDuplicate" | "owned">>;
-  getGameCover(id: string, source?: Record<string, string | undefined>): Promise<SearchCover | null>;
-  searchCovers(params: { q: string; limit: number }, source?: Record<string, string | undefined>): Promise<SearchCover[]>;
-  listPlatforms(params: SearchPlatformListParams, source?: Record<string, string | undefined>): Promise<SearchPlatformList>;
-  getPlatform(id: string, source?: Record<string, string | undefined>): Promise<SearchPlatform>;
-  listFamilies(source?: Record<string, string | undefined>): Promise<SearchFamily[]>;
+  searchGames(params: SearchQueryParams, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchPage>;
+  getGameDetail(id: string, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<Omit<SearchPreview, "manualDuplicate" | "owned">>;
+  getGameCover(id: string, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchCover | null>;
+  searchCovers(params: { q: string; limit: number }, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchCover[]>;
+  listPlatforms(params: SearchPlatformListParams, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchPlatformList>;
+  getPlatform(id: string, source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchPlatform>;
+  listFamilies(source?: Record<string, string | undefined>, signal?: AbortSignal): Promise<SearchFamily[]>;
 }

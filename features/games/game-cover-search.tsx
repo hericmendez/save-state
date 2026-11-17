@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import RPGUInput from "@/components/RPGUI/Input";
@@ -34,6 +34,10 @@ export function GameCoverSearch({
   const [error, setError] = useState<string | null>(null);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
   const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // A closed dialog/unmounted form must not keep an IGDB lookup alive.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   function openDialog() {
     setSearchText(query);
@@ -46,6 +50,9 @@ export function GameCoverSearch({
   async function runSearch(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
@@ -53,11 +60,13 @@ export function GameCoverSearch({
       const params = new URLSearchParams({ q: trimmed });
       const candidates = await apiRequest<CoverCandidate[]>(
         igdbCoversEndpoint(params.toString()),
+        { signal: controller.signal },
       );
       if (requestId !== requestIdRef.current) return;
       setCandidates(candidates);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof ApiRequestError ? err.message : "Falha na busca");
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -121,6 +130,7 @@ export function GameCoverSearch({
                           type="button"
                           onClick={() => {
                             onSelect(candidate.url);
+                            abortRef.current?.abort();
                             setOpen(false);
                           }}
                           aria-label={`Usar capa de ${candidate.source ?? "fonte desconhecida"}`}
@@ -147,7 +157,14 @@ export function GameCoverSearch({
               </div>
             )}
             <div className="mt-4">
-              <RPGUIButton type="button" title="Fechar" onClick={() => setOpen(false)} />
+              <RPGUIButton
+                type="button"
+                title="Fechar"
+                onClick={() => {
+                  abortRef.current?.abort();
+                  setOpen(false);
+                }}
+              />
             </div>
           </div>
         </div>

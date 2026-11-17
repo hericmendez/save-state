@@ -16,6 +16,6 @@ export async function GET(
     const { id } = parseParams(searchIdParamSchema, await params);
     // Cover resolves here so the preview shows it immediately; a missing
     // cover degrades to null instead of failing the preview.
-    return ok(await getCatalogDetail(id, session.id));
+    return ok(await getCatalogDetail(id, session.id, undefined, request.signal));
   });
 }

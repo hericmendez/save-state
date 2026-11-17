@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const candidates = await new IgdbSearchProvider().searchCovers(
       query,
       igdbForcedSource(),
+      request.signal,
     );
     return ok(candidates);
   });

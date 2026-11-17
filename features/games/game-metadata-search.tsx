@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiRequestError, apiRequest } from "@/lib/api-client";
 import RPGUIButton from "@/components/RPGUI/Button";
 import {
@@ -49,6 +49,10 @@ export function GameMetadataSearch({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // A closed dialog/unmounted form must not keep an IGDB lookup alive.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   function openDialog() {
     setSearchText(query);
@@ -60,6 +64,9 @@ export function GameMetadataSearch({
   async function runSearch(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
@@ -67,11 +74,15 @@ export function GameMetadataSearch({
       // Novo Jogo metadata lookup always uses IGDB directly,
       // independent of the catalog SEARCH_METHOD.
       const params = new URLSearchParams({ q: trimmed, limit: "5" });
-      const page = await apiRequest<SearchPage>(igdbSearchEndpoint(params.toString()));
+      const page = await apiRequest<SearchPage>(
+        igdbSearchEndpoint(params.toString()),
+        { signal: controller.signal },
+      );
       if (requestId !== requestIdRef.current) return;
       setStep({ kind: "results", cards: page.data });
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof ApiRequestError ? err.message : "Falha na busca");
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -79,17 +90,22 @@ export function GameMetadataSearch({
   }
 
   async function runPreview(atpId: string) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
     try {
       const detail = await apiRequest<AtpDetailForForm>(
         igdbDetailEndpoint(atpId),
+        { signal: controller.signal },
       );
       if (requestId !== requestIdRef.current) return;
       setStep({ kind: "preview", detail });
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof ApiRequestError ? err.message : "Falha ao carregar");
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -186,6 +202,7 @@ export function GameMetadataSearch({
                     title="Aplicar"
                     onClick={() => {
                       onApply(atpDetailToFormPatch(step.detail));
+                      abortRef.current?.abort();
                       setOpen(false);
                     }}
                   />
@@ -198,7 +215,14 @@ export function GameMetadataSearch({
               </div>
             )}
             <div className="mt-4">
-              <RPGUIButton type="button" title="Fechar" onClick={() => setOpen(false)} />
+              <RPGUIButton
+                type="button"
+                title="Fechar"
+                onClick={() => {
+                  abortRef.current?.abort();
+                  setOpen(false);
+                }}
+              />
             </div>
           </div>
         </div>

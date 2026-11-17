@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       query,
       session.id,
       igdbForcedSource(),
+      request.signal,
     );
     return NextResponse.json(result, { status: 200 });
   });

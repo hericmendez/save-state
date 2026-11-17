@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
       searchPlatformsQuerySchema,
       searchParamsToObject(request.nextUrl.searchParams),
     );
-    const result = await getSearchProvider().listPlatforms(query);
+    const result = await getSearchProvider().listPlatforms(
+      query,
+      undefined,
+      request.signal,
+    );
     return NextResponse.json(
       {
         data: result.data,

@@ -45,12 +45,16 @@ function redactValue(value: unknown): unknown {
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 function emit(level: LogLevel, message: string, details?: unknown): void {
-  const payload =
-    details === undefined
-      ? { level, message }
-      : { level, message, details: redactValue(details) };
-  // Intentional console usage: this module IS the minimal server logger.
-  console[level](JSON.stringify(payload));
+  try {
+    const payload =
+      details === undefined
+        ? { level, message }
+        : { level, message, details: redactValue(details) };
+    // Intentional console usage: this module IS the minimal server logger.
+    console[level](JSON.stringify(payload));
+  } catch {
+    // Logging is observational and must never break the application path.
+  }
 }
 
 export const logger = {

@@ -20,6 +20,7 @@ const TWITCH_OAUTH_URL = "https://id.twitch.tv/oauth2/token";
 const TOKEN_TIMEOUT_MS = 10_000;
 /** Refresh proactively 60s before expiry to absorb clock skew. */
 const EXPIRY_MARGIN_MS = 60_000;
+const OAUTH_ROUTE = "POST id.twitch.tv/oauth2/token";
 
 interface CachedToken {
   accessToken: string;
@@ -49,6 +50,7 @@ async function fetchNewToken(
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
+  const startedAt = Date.now();
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
@@ -67,9 +69,11 @@ async function fetchNewToken(
       typeof error === "object" &&
       error !== null &&
       (error as { name?: unknown }).name === "TimeoutError";
-    logger.error("Twitch token request failed", {
-      route: "POST id.twitch.tv/oauth2/token",
-      reason: timedOut ? "timeout" : "connection",
+    logger.error("Twitch token refresh", {
+      endpoint: OAUTH_ROUTE,
+      outcome: "failure",
+      failure: timedOut ? "timeout" : "connection",
+      latencyMs: Date.now() - startedAt,
     });
     throw new ApiError(
       "IGDB_UNAVAILABLE",
@@ -77,11 +81,16 @@ async function fetchNewToken(
       503,
     );
   }
-  if (response.status === 400 || response.status === 401 || response.status === 403) {
-    logger.warn("Twitch token rejected", {
-      route: "POST id.twitch.tv/oauth2/token",
+  if (!response.ok) {
+    logger.warn("Twitch token refresh", {
+      endpoint: OAUTH_ROUTE,
+      outcome: "failure",
       status: response.status,
+      statusClass: `${Math.floor(response.status / 100)}xx`,
+      latencyMs: Date.now() - startedAt,
     });
+  }
+  if (response.status === 400 || response.status === 401 || response.status === 403) {
     throw new ApiError(
       "INTERNAL_ERROR",
       "IGDB integration is not configured (invalid Twitch credentials)",
@@ -92,10 +101,6 @@ async function fetchNewToken(
     throw new ApiError("RATE_LIMIT_EXCEEDED", "Too many requests, try again later", 429);
   }
   if (!response.ok) {
-    logger.warn("Twitch token error", {
-      route: "POST id.twitch.tv/oauth2/token",
-      status: response.status,
-    });
     throw new ApiError(
       "IGDB_UNAVAILABLE",
       "The game catalog is temporarily unavailable",
@@ -106,6 +111,14 @@ async function fetchNewToken(
   try {
     payload = await response.json();
   } catch {
+    logger.error("Twitch token refresh", {
+      endpoint: OAUTH_ROUTE,
+      outcome: "failure",
+      failure: "invalid_response",
+      status: response.status,
+      statusClass: `${Math.floor(response.status / 100)}xx`,
+      latencyMs: Date.now() - startedAt,
+    });
     throw new ApiError(
       "INTERNAL_ERROR",
       "The game catalog returned an unexpected response",
@@ -121,6 +134,14 @@ async function fetchNewToken(
       ? (payload as { expires_in?: unknown }).expires_in
       : undefined;
   if (typeof accessToken !== "string" || accessToken === "") {
+    logger.error("Twitch token refresh", {
+      endpoint: OAUTH_ROUTE,
+      outcome: "failure",
+      failure: "missing_token",
+      status: response.status,
+      statusClass: `${Math.floor(response.status / 100)}xx`,
+      latencyMs: Date.now() - startedAt,
+    });
     throw new ApiError(
       "INTERNAL_ERROR",
       "The game catalog returned an unexpected response",
@@ -132,6 +153,13 @@ async function fetchNewToken(
       ? expiresIn * 1000
       : 3_600_000;
   cached = { accessToken, expiresAt: Date.now() + ttlMs - EXPIRY_MARGIN_MS };
+  logger.info("Twitch token refresh", {
+    endpoint: OAUTH_ROUTE,
+    outcome: "success",
+    status: response.status,
+    statusClass: `${Math.floor(response.status / 100)}xx`,
+    latencyMs: Date.now() - startedAt,
+  });
   return accessToken;
 }
 
@@ -139,8 +167,15 @@ async function fetchNewToken(
 export async function getTwitchToken(
   source?: Record<string, string | undefined>,
 ): Promise<string> {
-  if (cached && Date.now() < cached.expiresAt) return cached.accessToken;
-  if (inflight) return inflight;
+  if (cached && Date.now() < cached.expiresAt) {
+    logger.info("Twitch token cache", { outcome: "hit" });
+    return cached.accessToken;
+  }
+  if (inflight) {
+    logger.info("Twitch token cache", { outcome: "single_flight" });
+    return inflight;
+  }
+  logger.info("Twitch token cache", { outcome: "miss" });
   const { clientId, clientSecret } = requireTwitchConfig(source);
   inflight = fetchNewToken(clientId, clientSecret);
   try {
@@ -150,9 +185,29 @@ export async function getTwitchToken(
   }
 }
 
-/** Drop the cached token so the next call refreshes (401 recovery). */
-export function invalidateTwitchToken(): void {
-  cached = null;
+export type TwitchTokenInvalidation =
+  | "invalidated"
+  | "ignored_replaced"
+  | "already_empty";
+
+/**
+ * Invalidate only the token that the upstream request actually used. A late
+ * 401 for an older token must not evict a newer token already in the cache.
+ */
+export function invalidateTwitchToken(
+  rejectedToken: string,
+): TwitchTokenInvalidation {
+  let outcome: TwitchTokenInvalidation;
+  if (cached?.accessToken === rejectedToken) {
+    cached = null;
+    outcome = "invalidated";
+  } else if (cached) {
+    outcome = "ignored_replaced";
+  } else {
+    outcome = "already_empty";
+  }
+  logger.info("Twitch token invalidation", { outcome });
+  return outcome;
 }
 
 /** Test-only hook: clear cache + in-flight state between cases. */

@@ -43,13 +43,27 @@ export function isCatalogUnavailable(error: unknown): boolean {
   );
 }
 
+/**
+ * Stop between provider and Save State reads once the caller went away.
+ * The signal is optional: Server Components and internal reads keep the
+ * existing behavior.
+ */
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  const error = new Error("Request cancelled");
+  error.name = "AbortError";
+  throw error;
+}
+
 export async function searchCatalogPage(
   params: SearchQueryParams,
   userId: string,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<{ data: CatalogCard[]; pagination: SearchPage["pagination"] }> {
   const provider = getSearchProvider(source);
-  const result = await provider.searchGames(params, source);
+  const result = await provider.searchGames(params, source, signal);
+  throwIfAborted(signal);
   // Ownership is Save State display state resolved through the active
   // provider's identity (ownedExternalIds); IGDB cards owned by the user
   // resolve via igdbId → GlobalGame → UserGame.
@@ -76,9 +90,11 @@ export async function getCatalogDetail(
   id: string,
   userId: string,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<SearchPreview & { atpId?: string }> {
   const provider = getSearchProvider(source);
-  const detail = await provider.getGameDetail(id, source);
+  const detail = await provider.getGameDetail(id, source, signal);
+  throwIfAborted(signal);
   await connectDatabase();
   const manualMatch = await GlobalGame.findOne({
     source: "manual",
@@ -86,49 +102,57 @@ export async function getCatalogDetail(
   })
     .select("name")
     .lean();
-    const owned = await ownedExternalIds(userId, [id], source);
-    return {
-      ...detail,
-      manualDuplicate: manualMatch ? { name: manualMatch.name } : null,
-      owned: owned.has(id),
-      atpId: detail.id,
-    };
+  throwIfAborted(signal);
+  const owned = await ownedExternalIds(userId, [id], source);
+  return {
+    ...detail,
+    manualDuplicate: manualMatch ? { name: manualMatch.name } : null,
+    owned: owned.has(id),
+    atpId: detail.id,
+  };
 }
 
 export async function listCatalogPlatforms(
   params: SearchPlatformListParams,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<SearchPlatformList> {
-  return getSearchProvider(source).listPlatforms(params, source);
+  return getSearchProvider(source).listPlatforms(params, source, signal);
 }
 
 export async function getCatalogPlatform(
   id: string,
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<SearchPlatform> {
-  return getSearchProvider(source).getPlatform(id, source);
+  return getSearchProvider(source).getPlatform(id, source, signal);
 }
 
 export async function listCatalogFamilies(
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<SearchFamily[]> {
-  return getSearchProvider(source).listFamilies(source);
+  return getSearchProvider(source).listFamilies(source, signal);
 }
 
 /** Bounded fetch of every catalog platform (consoles enrichment). */
 export async function getAllCatalogPlatforms(
   source?: Record<string, string | undefined>,
+  signal?: AbortSignal,
 ): Promise<SearchPlatform[]> {
   const provider = getSearchProvider(source);
   const first = await provider.listPlatforms(
     { page: 1, limit: 100, showEmptyPlatforms: true },
     source,
+    signal,
   );
   const platforms = [...first.data];
   for (let page = 2; page <= first.pagination.totalPages; page++) {
+    throwIfAborted(signal);
     const next = await provider.listPlatforms(
       { page, limit: 100, showEmptyPlatforms: true },
       source,
+      signal,
     );
     platforms.push(...next.data);
   }

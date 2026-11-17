@@ -168,6 +168,40 @@ describe("Etapa 4 — IGDB import creates GlobalGame + UserGame", () => {
     expect(await UserGame.countDocuments({})).toBe(1);
   });
 
+  it("reuses an existing GlobalGame snapshot without calling IGDB", async () => {
+    const token = await tokenFor();
+    const existing = await GlobalGame.create({
+      slug: "existing-igdb-game",
+      name: "Stored IGDB Snapshot",
+      source: "igdb",
+      igdbId: 4321,
+      genres: ["Stored genre"],
+    });
+    const fetchMock = vi.fn(async () => {
+      throw new Error("IGDB should not be called for an existing snapshot");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { status, body } = await importBody(token, {
+      externalId: "4321",
+      // These arbitrary client values are not a trusted catalog snapshot.
+      name: "Forged browser title",
+      igdbId: 9876,
+      genres: ["Forged genre"],
+    });
+
+    expect(status).toBe(201);
+    expect(body.data.game).toMatchObject({
+      _id: String(existing._id),
+      name: "Stored IGDB Snapshot",
+      igdbId: 4321,
+      genres: ["Stored genre"],
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await GlobalGame.countDocuments({})).toBe(1);
+    expect(await UserGame.countDocuments({})).toBe(1);
+  });
+
   it("shares one GlobalGame across different users without duplication", async () => {
     const tokenA = await tokenFor("a@test.com", "password-123", "User A");
     const tokenB = await tokenFor("b@test.com", "password-123", "User B");

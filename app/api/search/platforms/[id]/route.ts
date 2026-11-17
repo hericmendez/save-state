@@ -14,6 +14,8 @@ export async function GET(
   return handleRoute(async () => {
     await getSessionUser(request);
     const { id } = parseParams(searchIdParamSchema, await params);
-    return ok(await getSearchProvider().getPlatform(id));
+    return ok(
+      await getSearchProvider().getPlatform(id, undefined, request.signal),
+    );
   });
 }

@@ -8,6 +8,6 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   return handleRoute(async () => {
     await getSessionUser(request);
-    return ok(await getSearchProvider().listFamilies());
+    return ok(await getSearchProvider().listFamilies(undefined, request.signal));
   });
 }

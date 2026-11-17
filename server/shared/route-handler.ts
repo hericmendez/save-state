@@ -55,6 +55,19 @@ export function noContent(): NextResponse {
 type RouteHandler = () => Promise<NextResponse> | NextResponse;
 
 /**
+ * Caller cancellation is not a server fault. It keeps the existing error
+ * contract (the client is gone anyway) but must not be logged as an
+ * unhandled failure.
+ */
+function isCancellation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
+
+/**
  * Execute a Route Handler body with contract-safe error translation.
  * Unknown errors are logged (redacted) server-side and never leak.
  */
@@ -62,7 +75,7 @@ export async function handleRoute(handler: RouteHandler): Promise<NextResponse> 
   try {
     return await handler();
   } catch (error) {
-    if (!(error instanceof ApiError)) {
+    if (!(error instanceof ApiError) && !isCancellation(error)) {
       // Observability without leakage: the redacting logger scrubs
       // credentials, tokens, and cookies from these details, while the
       // client still receives only the sanitized INTERNAL_ERROR below.

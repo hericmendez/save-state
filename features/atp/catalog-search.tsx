@@ -319,9 +319,9 @@ export function CatalogSearch({
         if (requestId !== requestIdRef.current) return;
         setResult(page);
       } catch (err) {
-        // Client-side cancellation only: the BFF may still finish its
-        // IGDB work (no signal propagation), but the result is discarded
-        // here and no error is surfaced for an intentional abort.
+        // Client-side cancellation also reaches the Route Handler via
+        // request.signal, so obsolete IGDB work stops at the scheduler;
+        // the result is discarded here and no error is surfaced.
         if (
           typeof err === "object" &&
           err !== null &&

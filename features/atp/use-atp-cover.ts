@@ -27,7 +27,10 @@ export function useAtpCover(
   useEffect(() => {
     if (!shouldResolveCover(knownUrl)) return;
     let cancelled = false;
-    apiRequest<{ coverUrl: string | null }>(searchCoverEndpoint(atpId))
+    const controller = new AbortController();
+    apiRequest<{ coverUrl: string | null }>(searchCoverEndpoint(atpId), {
+      signal: controller.signal,
+    })
       .then((result) => {
         if (!cancelled) setUrl(result.coverUrl);
       })
@@ -36,6 +39,7 @@ export function useAtpCover(
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [atpId, knownUrl]);
   return knownUrl ?? url;

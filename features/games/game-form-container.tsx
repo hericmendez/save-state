@@ -297,11 +297,13 @@ export function GameFormContainer({
   useEffect(() => {
     if (!externalMode || initialGame) return;
     let cancelled = false;
+    const controller = new AbortController();
     setExternalLoading(true);
     setExternalFailed(false);
     setError(null);
     apiRequest<AtpDetailForForm & { id: string }>(
       igdbDetailEndpoint(normalizedExternalId as string),
+      { signal: controller.signal },
     )
       .then((detail) => {
         if (cancelled) return;
@@ -313,6 +315,7 @@ export function GameFormContainer({
       })
       .catch((err) => {
         if (cancelled) return;
+        if (err instanceof Error && err.name === "AbortError") return;
         setExternalFailed(true);
         setError(
           err instanceof ApiRequestError ? err.message : "Falha ao carregar",
@@ -323,6 +326,7 @@ export function GameFormContainer({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [externalMode, normalizedExternalId, initialGame]);
 
