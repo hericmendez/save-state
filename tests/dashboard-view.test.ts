@@ -1,105 +1,81 @@
-/**
- * Fase 5 — dashboard view model: approved labels bound to the existing
- * getGameStats contract. No ATP, no rankings, no new aggregations.
- *
- * Redesign: distributions are status/genre/release-year only (platforms
- * removed), rendered as tables with no arbitrary slicing.
- */
-
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { GameStats } from "@/server/stats/service";
-import {
-  DISTRIBUTIONS,
-  PRIMARY_CARDS,
-  SECONDARY_CARDS,
-  isEmptyDashboard,
-  topEntries,
-} from "@/features/dashboard/dashboard-metrics";
+import { GAME_STATUSES } from "@/schemas/games";
+import { getStatusLabel } from "@/features/games/status-labels";
 
-function statsFixture(overrides: Partial<GameStats> = {}): GameStats {
-  return {
-    totalGames: 0,
-    totalHoursPlayed: 0,
-    totalTimesFinished: 0,
-    averageRating: null,
-    averageHoursPlayed: 0,
-    averageTimesFinished: 0,
-    totalFinished: 0,
-    totalFavorites: 0,
-    totalFullyCompleted: 0,
-    totalAchievementsCompleted: 0,
-    averageAchievementProgress: null,
-    byStatus: {},
-    byGenre: {},
-    byPlatform: {},
-    byDeveloper: {},
-    byPublisher: {},
-    byReleaseYear: {},
-    byRating: {},
-    ...overrides,
-  };
-}
+const view = readFileSync("features/dashboard/dashboard.tsx", "utf8");
+const insightsView = readFileSync("features/dashboard/library-insights.tsx", "utf8");
 
-describe("dashboard labels", () => {
-  it("presents totalGames as Jogos no Backlog", () => {
-    const card = PRIMARY_CARDS.find((c) => c.label === "Jogos no Backlog");
-    expect(card?.format(statsFixture({ totalGames: 42 }))).toBe("42");
+describe("personal statistics view contract", () => {
+  it("renders four approved, semantically named modules", () => {
+    for (const title of [
+      "Status da biblioteca",
+      "Distribuição de notas",
+      "Mais horas registradas",
+      "Mais conclusões registradas",
+    ]) expect(view).toContain(title);
+    expect((view.match(/<section /g) ?? [])).toHaveLength(4);
+    expect(view).not.toContain("gênero mais");
+    expect(view).not.toContain("plataforma mais");
   });
 
-  it("presents totalFavorites as a Jogos Favoritos count", () => {
-    const card = PRIMARY_CARDS.find((c) => c.label === "Jogos Favoritos");
-    expect(card?.format(statsFixture({ totalFavorites: 7 }))).toBe("7");
-  });
-
-  it("preserves the remaining pre-existing metrics", () => {
-    const byLabel = new Map(
-      [...PRIMARY_CARDS, ...SECONDARY_CARDS].map((c) => [c.label, c]),
+  it("renders the library discoveries section above the detailed modules", () => {
+    expect(insightsView).toContain("Descobertas da biblioteca");
+    expect(insightsView).toContain("Ainda não há descobertas suficientes");
+    expect(insightsView).toContain("buildLibraryInsights");
+    expect(view).toContain("<LibraryInsights stats={stats} />");
+    expect(view.indexOf("<LibraryInsights")).toBeLessThan(
+      view.indexOf('grid grid-cols-1 items-start'),
     );
-    const stats = statsFixture({
-      totalHoursPlayed: 120,
-      averageRating: 8.55,
-      totalFinished: 3,
-      totalTimesFinished: 5,
-      totalFullyCompleted: 1,
-      totalAchievementsCompleted: 2,
-    });
-    expect(byLabel.get("Horas jogadas")?.format(stats)).toBe("120");
-    expect(byLabel.get("Nota média")?.format(stats)).toBe("8.6");
-    expect(byLabel.get("Nota média")?.format(statsFixture())).toBe("—");
-    expect(byLabel.get("Jogos zerados")?.format(stats)).toBe("3");
-    expect(byLabel.get("Vezes finalizado")?.format(stats)).toBe("5");
-    expect(byLabel.get("100% completados")?.format(stats)).toBe("1");
-    expect(byLabel.get("Platinas (100%)")?.format(stats)).toBe("2");
-  });
-});
-
-describe("dashboard distributions", () => {
-  it("covers status, genre and platform from existing data", () => {
-    expect(DISTRIBUTIONS.map((d) => d.id).sort()).toEqual([
-      "genre",
-      "platform",
-      "status",
-    ]);
-    const stats = statsFixture({
-      byStatus: { playing: 2, backlog: 1 },
-      byGenre: { RPG: 2 },
-      byPlatform: { N64: 2 },
-    });
-    for (const def of DISTRIBUTIONS) {
-      expect(Object.keys(def.select(stats)).length).toBeGreaterThan(0);
-    }
   });
 
-  it("orders full frequency lists by count without slicing", () => {
-    expect(topEntries({ a: 1, b: 5, c: 3 })).toEqual([
-      ["b", 5],
-      ["c", 3],
-      ["a", 1],
-    ]);
+  it("labels all statuses and describes empty states", () => {
+    expect(GAME_STATUSES).toHaveLength(10);
+    for (const status of GAME_STATUSES) expect(getStatusLabel(status)).not.toBe(status);
+    for (const emptyState of [
+      "Sua biblioteca ainda está vazia.",
+      "Nenhum jogo avaliado ainda.",
+      "Nenhum registro disponível ainda.",
+    ]) expect(view).toContain(emptyState);
   });
 
-  it("detects an empty library", () => {
-    expect(isEmptyDashboard(statsFixture())).toBe(true);
-    expect(isEmptyDashboard(statsFixture({ totalGames: 1 }))).toBe(false);
+  it("uses the library total for status bars and keeps ratings on their own scale", () => {
+    expect(view).toContain("const ratio = stats.totalGames > 0 ? count / stats.totalGames : 0");
+    expect(view).toContain("ratio={ratio}");
+    expect(view).not.toContain("ratio={count / max}");
+    expect(view).not.toContain("const max = Math.max");
+    // Rating distribution keeps its approved denominator (rated games).
+    expect(view).toContain("count / maxRating");
+  });
+
+  it("enriches the modules with coverage, participation and contextual conclusions", () => {
+    expect(view).toContain("Cobertura:");
+    expect(view).toContain("jogos sem nota");
+    expect(view).toContain("Distribuição das notas registradas");
+    expect(view).toContain("Mostrar outros");
+    expect(view).toContain("Total:");
+    expect(view).toContain("Barras proporcionais ao total de horas registradas.");
+    expect(view).toContain("participações exibidas não somam 100%");
+    expect(view).toContain("sem conclusão registrada no contador");
+    expect(view).toContain("permanece editável");
+    expect(view).not.toContain("campos independentes");
+  });
+
+  it("keeps discovery titles balanced and responsive", () => {
+    expect(insightsView).toContain("text-[0.85rem]");
+    expect(insightsView).toContain("text-balance");
+    expect(insightsView).toContain("break-words");
+    expect(insightsView).toContain("items-start");
+    expect(insightsView).toContain("sm:grid-cols-2");
+    expect(insightsView).toContain("lg:grid-cols-3");
+    expect(insightsView).not.toContain("truncate");
+    expect(insightsView).toContain("<h3");
+  });
+
+  it("uses responsive single-to-two-column layout and text labels for chart data", () => {
+    expect(view).toContain("grid-cols-1");
+    expect(view).toContain("lg:grid-cols-2");
+    expect(view).toContain('role="img"');
+    expect(view).toContain("Nota {formatRating(rating)}/10");
   });
 });

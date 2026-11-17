@@ -124,9 +124,11 @@ describe("pickHighlightKinds (two distinct draws)", () => {
     }
   });
 
-  it("covers all ten kinds", () => {
-    expect(HIGHLIGHT_KINDS).toHaveLength(10);
-    expect(new Set(HIGHLIGHT_KINDS).size).toBe(10);
+  it("excludes catalog metadata highlights from Home", () => {
+    expect(HIGHLIGHT_KINDS).toHaveLength(8);
+    expect(new Set(HIGHLIGHT_KINDS).size).toBe(8);
+    expect(HIGHLIGHT_KINDS).not.toContain("top-platform");
+    expect(HIGHLIGHT_KINDS).not.toContain("top-genre");
   });
 
   it("is a genuine draw: every kind can be picked across loads", () => {

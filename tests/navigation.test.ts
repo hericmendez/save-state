@@ -23,6 +23,7 @@ describe("navigation structure (Etapa 5)", () => {
     const atividade = NAV_STRUCTURE.find((entry) => entry.id === "atividade");
     expect(home?.path).toBe("/home");
     expect(dashboard?.path).toBe("/dashboard");
+    expect(dashboard?.title).toBe("Estatísticas");
     expect(atividade?.path).toBe("/diary");
     expect(home?.path).not.toBe(dashboard?.path);
   });

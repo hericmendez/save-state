@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/server/auth/session";
-import { getGameStats } from "@/server/stats/service";
+import { getPersonalStatistics } from "@/server/stats/service";
 import { Dashboard } from "@/features/dashboard/dashboard";
 
 /**
@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   } catch {
     redirect("/login?from=/dashboard");
   }
-  const stats = await getGameStats(session.id, {});
+  const stats = await getPersonalStatistics(session.id);
 
   return <Dashboard stats={stats} />;
 }

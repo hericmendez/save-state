@@ -20,6 +20,7 @@ import {
   type Highlight,
   type HighlightSource,
 } from "@/features/home/home-metrics";
+import type { HighlightKind } from "@/features/home/home-metrics";
 import {
   ContinuePlayingSection,
   HighlightsSection,
@@ -43,7 +44,7 @@ const SHORTCUTS: Array<{ title: string; description: string; href: string }> = [
     href: "/backlog/lists",
   },
   {
-    title: "Dashboard",
+    title: "Estatísticas",
     description: "Estatísticas e métricas da biblioteca.",
     href: "/dashboard",
   },
@@ -109,11 +110,12 @@ export default async function HomePage() {
       drawOne(highlightData.buchaPool.map((game) => toPlainGame(game))) ??
       null,
   };
+  const eligibleKinds: HighlightKind[] = [...HIGHLIGHT_KINDS];
   const built = new Map(
-    HIGHLIGHT_KINDS.map((kind) => [kind, buildHighlight(kind, highlightSource)]),
+    eligibleKinds.map((kind) => [kind, buildHighlight(kind, highlightSource)]),
   );
   const highlights: Highlight[] = pickHighlightKinds(
-    HIGHLIGHT_KINDS.filter((kind) => built.get(kind) !== null),
+    eligibleKinds.filter((kind) => built.get(kind) !== null),
   ).map((kind) => built.get(kind)!);
 
   return (

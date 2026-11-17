@@ -13,7 +13,7 @@ export interface NavEntry {
 
 export const NAV_STRUCTURE: NavEntry[] = [
   { id: "home", title: "Home", path: "/home" },
-  { id: "dashboard", title: "Dashboard", path: "/dashboard" },
+  { id: "dashboard", title: "Estatísticas", path: "/dashboard" },
   // Etapa 5: "Diário" renamed to "Atividade". Route /diary unchanged.
   { id: "atividade", title: "Atividade", path: "/diary" },
   {

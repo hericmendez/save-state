@@ -40,8 +40,6 @@ export const HIGHLIGHT_KINDS = [
   "most-hours",
   "top-rated",
   "most-finished",
-  "top-platform",
-  "top-genre",
   "random-favorite",
   "recent-finish",
   "recently-added",
@@ -49,7 +47,10 @@ export const HIGHLIGHT_KINDS = [
   "bucha",
 ] as const;
 
-export type HighlightKind = (typeof HIGHLIGHT_KINDS)[number];
+export type HighlightKind =
+  | (typeof HIGHLIGHT_KINDS)[number]
+  | "top-platform"
+  | "top-genre";
 
 export interface HighlightCategory {
   name: string;
