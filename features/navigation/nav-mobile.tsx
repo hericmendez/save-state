@@ -25,7 +25,7 @@ export function NavMobile({ isOpen, toggleSidebar }: NavMobileProps) {
         transition-transform
         duration-300
         z-20
-        h-screen
+        mobile-nav-height
         ${
           isOpen
             ? "translate-x-0"

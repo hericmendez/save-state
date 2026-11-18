@@ -32,7 +32,6 @@ export function AppShell({
         flex-col
         md:flex-row
         w-full
-        min-h-screen
         m-auto
         layout-shell
       `}

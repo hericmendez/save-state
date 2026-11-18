@@ -13,7 +13,7 @@ export default async function AuthLayout({
     redirect("/home");
   }
   return (
-    <main className="rpgui-container framed-grey flex min-h-screen items-center justify-center">
+    <main className="rpgui-container framed-grey flex viewport-min-height items-center justify-center">
       <div className="rpgui-container framed-golden w-full max-w-md p-6">
         {children}
       </div>

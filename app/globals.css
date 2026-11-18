@@ -105,6 +105,7 @@ body {
 @media screen and (min-width: 768px) {
   .pixel-frame-height {
     height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
     margin-top: 30px;
     margin-bottom: 30px;
   }
@@ -121,6 +122,12 @@ body {
  */
 .layout-shell {
   max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.viewport-min-height {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 @media screen and (min-width: 768px) {
   .layout-shell {
@@ -138,13 +145,16 @@ html[data-layout-mode="pixel-perfect"] .layout-shell {
 
 .layout-shell-inner {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 html[data-layout-mode="pixel-perfect"] .layout-shell-inner {
   min-height: auto;
 }
 
 .layout-frame {
+  box-sizing: border-box;
   height: 100vh;
+  height: 100dvh;
 }
 html[data-layout-mode="pixel-perfect"] .layout-frame {
   height: auto;
@@ -152,9 +162,16 @@ html[data-layout-mode="pixel-perfect"] .layout-frame {
 @media screen and (min-width: 768px) {
   html[data-layout-mode="pixel-perfect"] .layout-frame {
     height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
     margin-top: 30px;
     margin-bottom: 30px;
   }
+}
+
+.mobile-nav-height {
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .layout-zoom {
