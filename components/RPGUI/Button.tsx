@@ -24,21 +24,33 @@ type BaseProps = {
   className?: string;
 };
 
+/** Icon-only controls must always provide a non-visual accessible name. */
+type RPGUIButtonSizeProps =
+  | { size?: "default" | "compact" }
+  | { size: "icon"; "aria-label": string };
+
 /** Pure class computation — unit-tested without a DOM. */
 export function rpguiButtonClasses({
   golden = false,
   framed,
+  size = "default",
   className = "",
 }: {
   golden?: boolean;
   framed?: "grey";
+  size?: "default" | "compact" | "icon";
   className?: string;
 }): string {
+  const responsiveClasses =
+    size === "default"
+      ? ""
+      : `ss-rpgui-button--${size}${size === "icon" ? " ss-rpgui-button--icon-only" : ""}`;
   if (framed === "grey") {
-    return `rpgui-container framed-grey ${className}`;
+    return `rpgui-container framed-grey ${responsiveClasses} ${className}`;
   }
   return `rpgui-button
         ${golden ? "golden" : ""}
+        ${responsiveClasses}
 
         ${className}
           text-sm
@@ -53,36 +65,55 @@ export function rpguiButtonClasses({
 }
 
 type RPGUIButtonProps =
-  | (BaseProps & {
+  | (BaseProps & RPGUIButtonSizeProps & {
       as?: "button";
-    } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title">)
-  | (BaseProps & {
+    } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title" | "size">)
+  | (BaseProps & RPGUIButtonSizeProps & {
       as: "a";
     } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "title">)
-  | (BaseProps & {
+  | (BaseProps & RPGUIButtonSizeProps & {
       as: "link";
     } & Omit<
       React.ComponentProps<typeof Link>,
-      "children" | "className" | "title"
+      "children" | "className" | "title" | "size"
     >);
 
 export default function RPGUIButton({
   title,
   golden = false,
   framed,
+  size = "default",
   children,
   className = "",
+  "aria-label": ariaLabel,
   ...props
 }: RPGUIButtonProps) {
-  const buttonClassName = rpguiButtonClasses({ golden, framed, className });
+  const iconOnly = size === "icon";
+  const buttonClassName = rpguiButtonClasses({
+    golden,
+    framed,
+    size,
+    className,
+  });
+  const accessibleName =
+    ariaLabel ??
+    (iconOnly && typeof title === "string" ? title : undefined);
   const content = framed === "grey" ? (
     <>
-      {title}
+      {iconOnly ? (
+        <span className="ss-rpgui-button__label">{title}</span>
+      ) : (
+        title
+      )}
       {children}
     </>
   ) : (
     <>
-      <p>{title}</p>
+      {iconOnly ? (
+        <p className="ss-rpgui-button__label">{title}</p>
+      ) : (
+        <p>{title}</p>
+      )}
       {children}
     </>
   );
@@ -91,7 +122,7 @@ export default function RPGUIButton({
     const { as: _as, ...anchorProps } = props;
 
     return (
-      <a {...anchorProps} className={buttonClassName}>
+      <a {...anchorProps} aria-label={accessibleName} className={buttonClassName}>
         {content}
       </a>
     );
@@ -101,7 +132,7 @@ export default function RPGUIButton({
     const { as: _as, ...linkProps } = props;
 
     return (
-      <Link {...linkProps} className={buttonClassName}>
+      <Link {...linkProps} aria-label={accessibleName} className={buttonClassName}>
         {content}
       </Link>
     );
@@ -110,7 +141,7 @@ export default function RPGUIButton({
   const { as: _as, ...buttonProps } = props;
 
   return (
-    <button {...buttonProps} className={buttonClassName}>
+    <button {...buttonProps} aria-label={accessibleName} className={buttonClassName}>
       {content}
     </button>
   );

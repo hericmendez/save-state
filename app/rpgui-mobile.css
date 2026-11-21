@@ -1,0 +1,354 @@
+/*
+ * Save State-owned, opt-in RPGUI mobile foundation.
+ * Legacy RPGUI components keep their existing geometry unless a semantic
+ * class/prop below is selected by a consumer.
+ */
+
+:root {
+  --ss-mobile-font-body: var(--font-body-name, var(--font-body));
+  --ss-mobile-font-pixel: var(--font-display-name, var(--font-display));
+  --ss-mobile-font-functional: var(--ss-mobile-font-body);
+  --ss-mobile-text: #f4efe4;
+  --ss-mobile-text-muted: #cfc7b8;
+  --ss-mobile-gold: #fbbf24;
+  --ss-mobile-space-1: 4px;
+  --ss-mobile-space-2: 8px;
+  --ss-mobile-space-3: 12px;
+  --ss-mobile-space-4: 16px;
+  --ss-mobile-touch-target: 44px;
+  --ss-mobile-shadow-title: 0 2px 0 #000, 0 0 6px rgb(0 0 0 / 65%);
+  --ss-mobile-shadow-small: 0 1px 0 #000;
+}
+
+/* An explicit saved choice wins; absence/invalid/legacy data uses mono. */
+html[data-font-display-explicit="true"] {
+  --ss-mobile-font-functional: var(--ss-mobile-font-display, var(--font-display-name));
+}
+
+html[data-font-display-explicit="true"][data-font-display="press-start-2p"] {
+  --ss-mobile-font-display: var(--font-display);
+}
+
+html[data-font-display-explicit="true"][data-font-display="jetbrains-mono"] {
+  --ss-mobile-font-display: var(--font-body);
+}
+
+html[data-font-display-explicit="true"][data-font-display="roboto"] {
+  --ss-mobile-font-display: var(--font-roboto), system-ui, sans-serif;
+}
+
+.ss-page-title,
+.ss-section-title,
+.ss-card-title,
+.ss-pixel-title {
+  min-width: 0;
+  margin-block: 0;
+  color: var(--ss-mobile-text);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.ss-page-title,
+.ss-section-title,
+.ss-card-title {
+  font-family: var(--ss-mobile-font-functional);
+  font-weight: 700;
+}
+
+.ss-page-title {
+  font-size: clamp(1.15rem, 5.5vw, 1.6rem);
+  line-height: 1.22;
+  text-shadow: var(--ss-mobile-shadow-title);
+}
+
+.ss-section-title {
+  font-size: clamp(1rem, 4.4vw, 1.3rem);
+  line-height: 1.28;
+  text-shadow: var(--ss-mobile-shadow-title);
+}
+
+.ss-card-title {
+  font-size: clamp(0.9375rem, 4vw, 1.0625rem);
+  line-height: 1.35;
+  text-shadow: var(--ss-mobile-shadow-small);
+}
+
+.ss-pixel-title {
+  font-family: var(--ss-mobile-font-pixel);
+  font-size: clamp(0.75rem, 3.2vw, 1rem);
+  font-weight: 400;
+  line-height: 1.7;
+  text-shadow: var(--ss-mobile-shadow-title);
+}
+
+.ss-body-text {
+  min-width: 0;
+  margin: 0;
+  color: var(--ss-mobile-text-muted);
+  font-family: var(--ss-mobile-font-body);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.ss-metadata {
+  min-width: 0;
+  margin: 0;
+  color: #9f988c;
+  font-family: var(--ss-mobile-font-body);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ss-rpgui-button--compact,
+.ss-rpgui-button--icon {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--ss-mobile-touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: var(--ss-mobile-space-2);
+  padding: 0 var(--ss-mobile-space-3);
+  border-radius: 3px;
+  font-family: var(--ss-mobile-font-functional);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: var(--ss-mobile-shadow-small);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rpgui-button.ss-rpgui-button--compact,
+.rpgui-button.ss-rpgui-button--icon,
+.rpgui-container.ss-rpgui-button--compact,
+.rpgui-container.ss-rpgui-button--icon {
+  display: inline-flex;
+  height: auto;
+  overflow: visible;
+  outline: none;
+  background-position: center;
+  background-size: 100% 100%;
+  padding-block: 0;
+}
+
+.rpgui-container.ss-rpgui-button--compact,
+.rpgui-container.ss-rpgui-button--icon {
+  text-decoration: none;
+}
+
+.rpgui-button.golden.ss-rpgui-button--compact,
+.rpgui-button.golden.ss-rpgui-button--icon {
+  --ss-golden-plate-height: 36px;
+  min-width: 0;
+  background-image: url("../styles/vendor/rpgui/img/button-golden.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% var(--ss-golden-plate-height);
+  padding-inline: var(--ss-mobile-space-3);
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 0 4px rgb(0 0 0 / 55%);
+}
+
+.rpgui-button.golden.ss-rpgui-button--compact::before,
+.rpgui-button.golden.ss-rpgui-button--compact::after,
+.rpgui-button.golden.ss-rpgui-button--icon::before,
+.rpgui-button.golden.ss-rpgui-button--icon::after {
+  display: none;
+  content: none;
+}
+
+.rpgui-button.golden.ss-rpgui-button--compact:hover,
+.rpgui-button.golden.ss-rpgui-button--icon:hover {
+  background-image: url("../styles/vendor/rpgui/img/button-golden-hover.png");
+}
+
+.rpgui-button.golden.ss-rpgui-button--compact:active,
+.rpgui-button.golden.ss-rpgui-button--icon:active {
+  background-image: url("../styles/vendor/rpgui/img/button-golden-down.png");
+  transform: translateY(1px);
+}
+
+.rpgui-button.golden.ss-rpgui-button--compact:disabled,
+.rpgui-button.golden.ss-rpgui-button--icon:disabled,
+.rpgui-button.golden.ss-rpgui-button--compact[aria-disabled="true"],
+.rpgui-button.golden.ss-rpgui-button--icon[aria-disabled="true"] {
+  background-image: url("../styles/vendor/rpgui/img/button-golden.png");
+  transform: none;
+  cursor: not-allowed;
+  filter: grayscale(0.65) saturate(0.5);
+  opacity: 0.5;
+}
+
+.rpgui-button.ss-rpgui-button--compact:focus-visible,
+.rpgui-button.ss-rpgui-button--icon:focus-visible,
+a.rpgui-container.ss-rpgui-button--compact:focus-visible,
+a.rpgui-container.ss-rpgui-button--icon:focus-visible {
+  outline: 2px solid var(--ss-mobile-gold);
+  outline-offset: 2px;
+}
+
+html .rpgui-button.ss-rpgui-button--compact > p,
+html .rpgui-button.ss-rpgui-button--icon > p {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+}
+
+.rpgui-button.ss-rpgui-button--icon,
+.rpgui-container.ss-rpgui-button--icon {
+  width: var(--ss-mobile-touch-target);
+  min-width: var(--ss-mobile-touch-target);
+  padding-inline: 0;
+  font-size: 1rem;
+}
+
+.ss-rpgui-button__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.rpgui-button.ss-rpgui-button--icon-only > p {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  padding: 0;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.ss-rpgui-button--compact:disabled,
+.ss-rpgui-button--icon:disabled,
+.ss-rpgui-button--compact[aria-disabled="true"],
+.ss-rpgui-button--icon[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+html .rpgui-container.ss-rpgui-control--compact {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ss-mobile-touch-target);
+  padding: 8px 10px;
+  font-family: var(--ss-mobile-font-body);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+html input.rpgui-container.ss-rpgui-control--compact {
+  height: auto;
+}
+
+html select.rpgui-container.ss-rpgui-control--compact {
+  padding-right: 28px;
+}
+
+html .rpgui-container.ss-rpgui-control--compact:focus-visible {
+  outline: 2px solid var(--ss-mobile-gold);
+  outline-offset: 2px;
+}
+
+.ss-surface {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--ss-mobile-space-3);
+}
+
+.ss-surface--flat {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ss-surface--panel {
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 3.5%);
+}
+
+.ss-surface--framed,
+.ss-surface--framed-golden,
+.ss-surface--framed-grey {
+  border-style: solid;
+  border-radius: 0;
+  background-repeat: repeat;
+}
+
+.ss-surface--framed {
+  border: 8px solid transparent;
+  border-image: url("../styles/vendor/rpgui/img/border-image.png") 6 repeat;
+  border-image-width: 8px;
+  background-image: url("../styles/vendor/rpgui/img/background-image.png");
+}
+
+.ss-surface--framed-golden {
+  border: 8px solid transparent;
+  border-image: url("../styles/vendor/rpgui/img/border-image-golden.png") 4 repeat;
+  border-image-width: 8px;
+  background-image: url("../styles/vendor/rpgui/img/background-image-golden.png");
+}
+
+.ss-surface--framed-grey {
+  border: 5px solid transparent;
+  border-image: url("../styles/vendor/rpgui/img/border-image-grey.png") 3 repeat;
+  border-image-width: 5px;
+  background-image: url("../styles/vendor/rpgui/img/background-image-grey.png");
+}
+
+.ss-surface--compact {
+  padding: var(--ss-mobile-space-2);
+}
+
+html .rpgui-container.ss-surface--framed,
+html .rpgui-container.ss-surface--framed-golden,
+html .rpgui-container.ss-surface--framed-grey {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--ss-mobile-space-3);
+}
+
+html .rpgui-container.ss-surface--framed {
+  border-width: 8px;
+  border-image-width: 8px;
+}
+
+html .rpgui-container.ss-surface--framed-golden {
+  border-width: 8px;
+  border-image-width: 8px;
+}
+
+html .rpgui-container.ss-surface--framed-grey {
+  border-width: 5px;
+  border-image-width: 5px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --ss-mobile-font-functional: var(--font-display-name, var(--font-display));
+  }
+
+  .ss-page-title {
+    font-size: 1.6rem;
+  }
+
+  .ss-section-title {
+    font-size: 1.3rem;
+  }
+
+  .ss-surface--compact {
+    padding: var(--ss-mobile-space-3);
+  }
+}

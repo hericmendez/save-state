@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import mongoose from "mongoose";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -301,17 +303,22 @@ describe("collections migration command guards", () => {
 
 describe("direct-execution gate", () => {
   it("does not run a CLI entrypoint when imported by another module", () => {
+    const entrypointPath = resolve("scripts", "seed-atlas.ts");
+    const entrypointUrl = pathToFileURL(entrypointPath).href;
+    const importingModulePath = resolve(
+      "node_modules",
+      "vitest",
+      "vitest.mjs",
+    );
+
     expect(
       isDirectExecution(
-        "file:///project/scripts/seed-atlas.ts",
-        "/project/node_modules/vitest/vitest.mjs",
+        entrypointUrl,
+        importingModulePath,
       ),
     ).toBe(false);
     expect(
-      isDirectExecution(
-        "file:///project/scripts/seed-atlas.ts",
-        "/project/scripts/seed-atlas.ts",
-      ),
+      isDirectExecution(entrypointUrl, entrypointPath),
     ).toBe(true);
   });
 

@@ -6,9 +6,11 @@
  */
 
 import { readFileSync } from "fs";
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyFontAttributes,
+  applyFontBodyAttribute,
   applyLayoutModeAttribute,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
@@ -330,6 +332,20 @@ describe("applyFontAttributes", () => {
       "data-font-body",
       "jetbrains-mono",
     );
+    expect(setAttribute).toHaveBeenCalledWith(
+      "data-font-display-explicit",
+      "true",
+    );
+  });
+});
+
+describe("applyFontBodyAttribute", () => {
+  it("does not make the display font preference explicit", () => {
+    const setAttribute = vi.fn();
+    vi.stubGlobal("document", { documentElement: { setAttribute } });
+    applyFontBodyAttribute("roboto");
+    expect(setAttribute).toHaveBeenCalledTimes(1);
+    expect(setAttribute).toHaveBeenCalledWith("data-font-body", "roboto");
   });
 });
 
@@ -399,6 +415,16 @@ describe("font preferences — store persistence (same system)", () => {
     expect(saved.state?.layoutMode).toBe("fullscreen");
   });
 
+  it("changing only the body font does not mark display choice as explicit", async () => {
+    stubUiStorage(JSON.stringify({ state: { layoutMode: "fullscreen" } }));
+    const setAttribute = vi.fn();
+    vi.stubGlobal("document", { documentElement: { setAttribute } });
+    const store = await freshStore();
+    store.getState().setFontBody("roboto");
+    expect(setAttribute).toHaveBeenCalledTimes(1);
+    expect(setAttribute).toHaveBeenCalledWith("data-font-body", "roboto");
+  });
+
   it("falls back to defaults on invalid saved fonts", async () => {
     stubUiStorage(
       JSON.stringify({
@@ -465,6 +491,9 @@ describe("font preferences — wiring (source level)", () => {
     for (const value of ["press-start-2p", "jetbrains-mono", "roboto"]) {
       expect(script).toContain(`s.fontDisplay==="${value}"`);
     }
+    expect(script).toContain('data-font-display-explicit');
+    expect(script).toContain('String(explicitDisplay)');
+    expect(script).toContain('explicitDisplay=true');
   });
 
   it("drives fonts from centralized variables in CSS", () => {
@@ -543,5 +572,65 @@ describe("font preferences — wiring (source level)", () => {
     };
     expect(saved.state?.fontDisplay).toBe("jetbrains-mono");
     expect(saved.state?.fontBody).toBe("roboto");
+  });
+});
+
+describe("pre-paint display preference intent", () => {
+  function runInitScript(stored: string | null | "throw") {
+    const attributes: Record<string, string> = {};
+    const windowStub = {
+      innerWidth: 390,
+      matchMedia: () => ({ matches: true }),
+      localStorage: {
+        getItem: () => {
+          if (stored === "throw") throw new Error("storage unavailable");
+          return stored;
+        },
+      },
+    };
+    const documentStub = {
+      documentElement: {
+        setAttribute: (name: string, value: string) => {
+          attributes[name] = value;
+        },
+      },
+    };
+    runInNewContext(LAYOUT_INIT_SCRIPT, {
+      window: windowStub,
+      document: documentStub,
+    });
+    return attributes;
+  }
+
+  it("marks only valid stored display preferences as explicit", () => {
+    expect(runInitScript(null)["data-font-display-explicit"]).toBe("false");
+    expect(
+      runInitScript(JSON.stringify({ state: { fontDisplay: "roboto" } }))[
+        "data-font-display-explicit"
+      ],
+    ).toBe("true");
+    expect(
+      runInitScript(JSON.stringify({ state: { fontDisplay: "invalid" } }))[
+        "data-font-display-explicit"
+      ],
+    ).toBe("false");
+    expect(runInitScript("throw")["data-font-display-explicit"]).toBe("false");
+  });
+});
+
+describe("mobile typography defaults", () => {
+  it("uses mono for new semantic functional titles unless a valid display choice exists", () => {
+    const css = readFileSync("app/rpgui-mobile.css", "utf8");
+    expect(css).toContain("--ss-mobile-font-functional: var(--ss-mobile-font-body)");
+    expect(css).toContain('html[data-font-display-explicit="true"]');
+    for (const display of ["press-start-2p", "jetbrains-mono", "roboto"]) {
+      expect(css).toContain(`data-font-display="${display}"`);
+    }
+    expect(css).toContain(".ss-page-title");
+    expect(css).toContain(".ss-section-title");
+    expect(css).toContain(".ss-card-title");
+    expect(css).toContain(".ss-pixel-title");
+    expect(css).toContain(".ss-body-text");
+    expect(css).toContain(".ss-metadata");
   });
 });

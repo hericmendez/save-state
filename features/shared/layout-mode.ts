@@ -130,7 +130,7 @@ export function applyLayoutModeAttribute(mode: LayoutMode): void {
  * so no FOUC and no hydration mismatch (the markup itself is neutral;
  * only these attributes plus CSS decide frame geometry and fonts).
  */
-export const LAYOUT_INIT_SCRIPT = `(function(){try{var narrow=window.matchMedia?window.matchMedia("(max-width: 767px)").matches:window.innerWidth<768;var stored=null;var fd="press-start-2p";var fb="jetbrains-mono";var gd=6;try{var raw=window.localStorage.getItem("save-state-ui");if(raw){var p=JSON.parse(raw);var s=p&&p.state;if(s){var v=s.layoutMode;if(v==="pixel-perfect"||v==="fullscreen"){stored=v;}if(s.fontDisplay==="press-start-2p"||s.fontDisplay==="jetbrains-mono"||s.fontDisplay==="roboto"){fd=s.fontDisplay;}if(s.fontBody==="jetbrains-mono"||s.fontBody==="roboto"){fb=s.fontBody;}if(s.gridDensity===6||s.gridDensity===8||s.gridDensity===10||s.gridDensity===12){gd=s.gridDensity;}}}}catch(e){}var de=document.documentElement;de.setAttribute("data-layout-mode",narrow?"fullscreen":(stored||"fullscreen"));de.setAttribute("data-font-display",fd);de.setAttribute("data-font-body",fb);de.setAttribute("data-grid-density",String(gd));}catch(e){}})();`;
+export const LAYOUT_INIT_SCRIPT = `(function(){try{var narrow=window.matchMedia?window.matchMedia("(max-width: 767px)").matches:window.innerWidth<768;var stored=null;var fd="press-start-2p";var fb="jetbrains-mono";var gd=6;var explicitDisplay=false;try{var raw=window.localStorage.getItem("save-state-ui");if(raw){var p=JSON.parse(raw);var s=p&&p.state;if(s){var v=s.layoutMode;if(v==="pixel-perfect"||v==="fullscreen"){stored=v;}if(s.fontDisplay==="press-start-2p"||s.fontDisplay==="jetbrains-mono"||s.fontDisplay==="roboto"){fd=s.fontDisplay;explicitDisplay=true;}if(s.fontBody==="jetbrains-mono"||s.fontBody==="roboto"){fb=s.fontBody;}if(s.gridDensity===6||s.gridDensity===8||s.gridDensity===10||s.gridDensity===12){gd=s.gridDensity;}}}}catch(e){}var de=document.documentElement;de.setAttribute("data-layout-mode",narrow?"fullscreen":(stored||"fullscreen"));de.setAttribute("data-font-display",fd);de.setAttribute("data-font-display-explicit",String(explicitDisplay));de.setAttribute("data-font-body",fb);de.setAttribute("data-grid-density",String(gd));}catch(e){}})();`;
 
 /* ---- Preferências tipográficas (mesmo sistema, ver cabeçalho) ---- */
 
@@ -177,6 +177,17 @@ export function applyFontAttributes(display: FontDisplay, body: FontBody): void 
     const root = document.documentElement;
     root.setAttribute("data-font-display", display);
     root.setAttribute("data-font-body", body);
+    root.setAttribute("data-font-display-explicit", "true");
+  } catch {
+    // DOM unavailable (SSR) — neutral markup keeps rendering safe.
+  }
+}
+
+/** Updates body preference without turning a legacy display default explicit. */
+export function applyFontBodyAttribute(body: FontBody): void {
+  try {
+    if (typeof document === "undefined") return;
+    document.documentElement.setAttribute("data-font-body", body);
   } catch {
     // DOM unavailable (SSR) — neutral markup keeps rendering safe.
   }

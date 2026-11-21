@@ -9,6 +9,7 @@ import "./globals.css";
 // drawers and keyboard navigation are native React/DOM. The file is preserved
 // on disk as a reference; see docs/FRONTEND_PERFORMANCE_PHASE_4_REPORT.md.
 import "../styles/vendor/rpgui/rpgui.css";
+import "./rpgui-mobile.css";
 import { LAYOUT_INIT_SCRIPT } from "@/features/shared/layout-mode";
 
 const displayFont = Press_Start_2P({

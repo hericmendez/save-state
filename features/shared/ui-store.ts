@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   applyFontAttributes,
+  applyFontBodyAttribute,
   applyLayoutModeAttribute,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
@@ -82,7 +83,7 @@ export const useUiStore = create<UiState>()(
         set({ fontDisplay: font });
       },
       setFontBody: (font) => {
-        applyFontAttributes(get().fontDisplay, font);
+        applyFontBodyAttribute(font);
         set({ fontBody: font });
       },
       setGridDensity: (density) => {

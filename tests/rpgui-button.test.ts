@@ -30,6 +30,19 @@ describe("RpguiButton framed-grey variant (Etapa 5.1)", () => {
     );
   });
 
+  it("keeps the old class output unless responsive sizing is opted in", () => {
+    expect(rpguiButtonClasses({})).not.toContain("ss-rpgui-button--");
+    expect(rpguiButtonClasses({ size: "compact", golden: true })).toContain(
+      "ss-rpgui-button--compact",
+    );
+    expect(rpguiButtonClasses({ size: "icon" })).toContain(
+      "ss-rpgui-button--icon-only",
+    );
+    expect(rpguiButtonClasses({ framed: "grey", size: "compact" })).toContain(
+      "ss-rpgui-button--compact",
+    );
+  });
+
   it("supports action and navigation elements through one component", () => {
     const source = readFileSync(
       path.resolve("components/RPGUI/Button.tsx"),
@@ -37,6 +50,8 @@ describe("RpguiButton framed-grey variant (Etapa 5.1)", () => {
     );
     expect(source).toContain('as: "link"');
     expect(source).toContain("framed-grey");
+    expect(source).toContain('size: "icon"; "aria-label": string');
+    expect(source).toContain('aria-label={accessibleName}');
     // Framed mode renders the title verbatim (typography comes from the
     // caller's classes, exactly like the manual submenu buttons).
     expect(source).toContain("framed === ");
