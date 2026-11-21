@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Protótipo D — Composições mobile</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <header class="demo-header">
+        <p class="demo-eyebrow">SAVE STATE // PROTÓTIPO D</p>
+        <h1 class="demo-title">Composições mobile</h1>
+        <p class="demo-intro">
+          Seis composições representativas, com conteúdo real e nomes longos.
+          Elas demonstram que os tokens funcionam juntos — não apenas como
+          componentes isolados com rótulos curtos.
+        </p>
+        <nav class="demo-nav" aria-label="Protótipos">
+          <a href="index.html">Início</a>
+          <a href="typography.html">A — Tipografia</a>
+          <a href="buttons.html">B — Botões</a>
+          <a href="containers.html">C — Containers</a>
+          <a href="compositions.html" aria-current="page">D — Composições mobile</a>
+        </nav>
+      </header>
+
+      <section class="demo-card">
+        <h2 class="ss-title ss-title--h2">1 — Cabeçalho com menu sem sobreposição</h2>
+        <div class="ss-topbar">
+          <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Abrir menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+          </button>
+          <p class="ss-topbar__title">Bem-vindo, Guilherme Augusto Amanini</p>
+        </div>
+        <p class="ss-body">
+          O gatilho do menu ocupa uma faixa própria no topo. O título começa
+          depois dele e quebra por palavra; nunca fica coberto por um elemento
+          <code>fixed</code>.
+        </p>
+        <p class="demo-note">
+          No shell atual, o gatilho é um <code>div</code> fixo de 48 × 48 px em
+          <code>top-5 left-5</code> e o conteúdo começa em <code>pt-5</code>.
+          A correção precisa reservar a faixa no fluxo — não apenas mover o
+          ícone.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">2 — Busca com botão compacto</h2>
+        <div class="ss-search-row" role="search">
+          <input
+            class="ss-input"
+            type="search"
+            placeholder="Buscar no catálogo geral…"
+            aria-label="Buscar no catálogo geral"
+          />
+          <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Buscar" title="Buscar">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.4" />
+              <path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <p class="demo-note">
+          Campo flexível + botão de 44 × 44 px. O texto “Buscar” pode
+          permanecer como <code>aria-label</code>/<code>title</code> sem ocupar
+          a linha. Em larguras maiores, a mesma composição aceita o rótulo
+          textual.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">3 — Filtros progressivos</h2>
+        <div class="ss-filter-summary">
+          <span class="ss-chip">Status: Jogando</span>
+          <span class="ss-chip">2020–2026</span>
+          <button class="ss-btn ss-btn--ghost">Limpar</button>
+        </div>
+        <details class="ss-details" open>
+          <summary>
+            Filtros
+            <span class="ss-meta">4 ativos</span>
+          </summary>
+          <div class="ss-details__body ss-details__body--two">
+            <label class="ss-field">
+              <span class="ss-label">Plataforma</span>
+              <input class="ss-input" placeholder="Ex.: Nintendo Switch" />
+            </label>
+            <label class="ss-field">
+              <span class="ss-label">Status</span>
+              <select class="ss-select">
+                <option>Jogando</option>
+                <option>Backlog</option>
+                <option>Zerado</option>
+              </select>
+            </label>
+            <label class="ss-field">
+              <span class="ss-label">Ano de</span>
+              <input class="ss-input" inputmode="numeric" placeholder="2020" />
+            </label>
+            <label class="ss-field">
+              <span class="ss-label">Ano até</span>
+              <input class="ss-input" inputmode="numeric" placeholder="2026" />
+            </label>
+          </div>
+        </details>
+        <p class="demo-note">
+          O resumo mantém os filtros ativos visíveis. O disclosure preserva
+          todas as opções e não esconde o botão Limpar. O seletor de “por
+          página” fica fora do resumo, em uma linha própria quando necessário.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">4 — Item de lista com ações explícitas</h2>
+        <ul class="ss-list">
+          <li>
+            <div class="ss-list-row">
+              <div style="min-width: 0">
+                <p class="ss-game-name">The Legend of Zelda: Tears of the Kingdom — Edição Especial</p>
+                <p class="ss-list-row__meta">
+                  <span>Jogando</span><span>Nintendo Switch</span><span>★ 9,5</span>
+                </p>
+              </div>
+              <div class="ss-action-menu">
+                <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mais ações" title="Mais ações">…</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <div class="ss-list-row">
+              <div style="min-width: 0">
+                <p class="ss-game-name">Final Fantasy Tactics: The War of the Lions</p>
+                <p class="ss-list-row__meta">
+                  <span>Backlog</span><span>PlayStation Portable</span>
+                </p>
+              </div>
+              <div class="ss-action-menu">
+                <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mais ações" title="Mais ações">…</button>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <p class="demo-note">
+          Um toque no título abre os detalhes. O botão <strong>…</strong> abre o
+          menu de contexto com Editar, Excluir, Favoritar e coleções. O
+          <code>contextmenu</code> do desktop continua disponível; o toque
+          longo deixa de ser o único caminho.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">5 — Linha compacta de Top 10</h2>
+        <div class="ss-panel ss-panel--framed-grey ss-panel--compact">
+          <div class="ss-section-head">
+            <h3 class="ss-title ss-title--h3">Ranking</h3>
+            <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Recarregar" title="Recarregar">↻</button>
+          </div>
+          <ol class="ss-list" style="margin: 0; padding: 0; list-style: none">
+            <li>
+              <div class="ss-rank">
+                <span class="ss-rank__pos">#1</span>
+                <div class="ss-rank__body">
+                  <p class="ss-game-name">The Legend of Zelda: Ocarina of Time</p>
+                  <p class="ss-meta">Nintendo 64</p>
+                </div>
+                <div class="ss-rank__actions">
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Abrir The Legend of Zelda: Ocarina of Time">▸</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mover para cima">↑</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mover para baixo">↓</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon ss-btn--danger" aria-label="Remover do Top 10">×</button>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="ss-rank">
+                <span class="ss-rank__pos">#2</span>
+                <div class="ss-rank__body">
+                  <p class="ss-game-name">Final Fantasy Tactics: The War of the Lions</p>
+                  <p class="ss-meta">PlayStation Portable</p>
+                </div>
+                <div class="ss-rank__actions">
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Abrir Final Fantasy Tactics">▸</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mover para cima">↑</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mover para baixo">↓</button>
+                  <button class="ss-btn ss-btn--secondary ss-btn--icon ss-btn--danger" aria-label="Remover do Top 10">×</button>
+                </div>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <p class="demo-note">
+          Quatro ações preservadas, sem quatro molduras de 30 px. Cada alvo tem
+          44 px de altura; a linha usa <code>grid</code> com
+          <code>minmax(0,1fr)</code>. O recipiente externo é
+          <code>framed-grey</code>; não há moldura por item.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">6 — Modal com fechamento acessível</h2>
+        <div class="ss-modal-demo" role="dialog" aria-modal="true" aria-label="Detalhes do jogo">
+          <div class="ss-modal-demo__head">
+            <h3 class="ss-modal-demo__title">
+              The Legend of Zelda: Tears of the Kingdom — Edição Especial
+            </h3>
+            <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Fechar" title="Fechar">×</button>
+          </div>
+          <div class="ss-modal-demo__body">
+            <p class="ss-game-name" style="font-size: 0.9375rem">
+              The Legend of Zelda: Tears of the Kingdom — Edição Especial
+            </p>
+            <p class="ss-body" style="margin-top: 8px">
+              Status: Jogando · Plataforma: Nintendo Switch · Nota: 9,5 ·
+              Horas jogadas: 87,5 h
+            </p>
+            <hr class="ss-divider" />
+            <h4 class="ss-title ss-title--h3">Sua avaliação</h4>
+            <p class="ss-body">Sem review por enquanto.</p>
+            <hr class="ss-divider" />
+            <h4 class="ss-title ss-title--h3">Anotações</h4>
+            <textarea class="ss-input" rows="3" style="height: auto; padding: 8px 10px" placeholder="Nova anotação"></textarea>
+            <p class="ss-meta">2000 caracteres restantes</p>
+            <button class="ss-btn ss-btn--golden" style="margin-top: 8px">Salvar anotação</button>
+            <hr class="ss-divider" />
+            <p class="ss-body">
+              Conteúdo longo para forçar rolagem interna. O cabeçalho permanece
+              fixo no topo do modal durante o scroll e o botão Fechar continua
+              alcançável. Em telas com teclado virtual, a altura usa
+              <code>100dvh</code> com fallback <code>100vh</code>.
+            </p>
+            <p class="ss-body">
+              Plataformas: Android, iOS, PlayStation Portable, Nintendo
+              Entertainment System, Super Nintendo, Nintendo 64, Nintendo
+              GameCube, Wii, Nintendo Switch, PC.
+            </p>
+            <p class="ss-body">
+              Publicadoras: Square Enix, Nintendo, The Pokémon Company. Este
+              texto existe apenas para demonstrar rolagem; nenhum dado real é
+              usado.
+            </p>
+          </div>
+          <div class="ss-modal-demo__foot">
+            <button class="ss-btn ss-btn--golden">Editar</button>
+            <button class="ss-btn ss-btn--secondary">Fechar</button>
+          </div>
+        </div>
+        <p class="demo-note">
+          Cabeçalho e rodapé não rolam com o conteúdo. O botão de fechar tem
+          44 × 44 px, <code>aria-label</code> e permanece visível. Em desktop,
+          a mesma estrutura pode voltar ao drawer lateral.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Protótipo B — Botões mobile</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <header class="demo-header">
+        <p class="demo-eyebrow">SAVE STATE // PROTÓTIPO B</p>
+        <h1 class="demo-title">Botões mobile</h1>
+        <p class="demo-intro">
+          Comparação entre o botão RPGUI atual (140 × 60 px) e uma família
+          compacta que reutiliza os sprites dourados existentes sem as bordas
+          laterais ornamentais. As alturas pintadas são experimentais; todos os
+          botões compactos mantêm alvos de pelo menos 44 px.
+        </p>
+        <nav class="demo-nav" aria-label="Protótipos">
+          <a href="index.html">Início</a>
+          <a href="typography.html">A — Tipografia</a>
+          <a href="buttons.html" aria-current="page">B — Botões</a>
+          <a href="containers.html">C — Containers</a>
+          <a href="compositions.html">D — Composições mobile</a>
+        </nav>
+      </header>
+
+      <section class="demo-card">
+        <span class="demo-label">1 — RPGUI golden tradicional (estado atual)</span>
+        <div class="legacy-stage">
+          <button class="legacy-golden">Buscar</button>
+          <button class="legacy-golden">Adicionar</button>
+        </div>
+        <p class="demo-note">
+          <code>min-width: 140px</code>, <code>height: 60px</code>,
+          <code>padding: 5px 35px</code> e pseudo-elementos laterais de 34 px.
+          Em um telefone de 320 px, dois desses botões não cabem na mesma linha
+          útil.
+        </p>
+      </section>
+
+      <div class="demo-grid" style="margin-top: 24px">
+        <section class="demo-card">
+          <span class="demo-label">2 — Golden compacto com texto</span>
+          <div class="demo-row">
+            <button class="ss-btn ss-btn--golden">Buscar</button>
+            <button class="ss-btn ss-btn--golden">Aplicar</button>
+            <button class="ss-btn ss-btn--golden ss-btn--grow">Salvar anotação</button>
+          </div>
+          <p class="demo-note">
+            Amostra-base atual: placa visual de 36 px dentro de um alvo de pelo
+            menos 44 px. O tamanho pintado ainda não está aprovado.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">3 — Golden compacto com ícone</span>
+          <div class="demo-row">
+            <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Buscar">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.4" />
+                <path d="M15 15l6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Adicionar jogo">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button class="ss-btn ss-btn--golden ss-btn--icon" aria-label="Mais ações">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" fill="currentColor" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+                <circle cx="19" cy="12" r="2" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <p class="demo-note">
+            <strong>+</strong> executa adição direta; <strong>…</strong> abre um
+            menu com múltiplas ações; lupa busca. Todo botão somente-ícone exige
+            <code>aria-label</code>; <code>title</code> é complementar, não
+            requisito de acessibilidade.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">Experimento de altura da placa — alvo fixo 44 px</span>
+          <div class="demo-row">
+            <button class="ss-btn ss-btn--golden ss-btn--plate-28">28 px</button>
+            <button class="ss-btn ss-btn--golden ss-btn--plate-32">32 px</button>
+            <button class="ss-btn ss-btn--golden">36 px</button>
+            <button class="ss-btn ss-btn--golden ss-btn--plate-40">40 px</button>
+          </div>
+          <p class="demo-note">
+            Comparação exploratória do sprite central de 74 × 24 px escalado
+            verticalmente. A escolha deve considerar legibilidade, textura,
+            proporção e pixel density; 36 px não é decisão final.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">4 — Secundário compacto</span>
+          <div class="demo-row">
+            <button class="ss-btn ss-btn--secondary">Limpar filtros</button>
+            <button class="ss-btn ss-btn--secondary">Fechar</button>
+            <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Recarregar">
+              ↻
+            </button>
+            <button class="ss-btn ss-btn--secondary ss-btn--danger">Excluir</button>
+          </div>
+          <p class="demo-note">
+            Ações secundárias não competem com o CTA dourado. A variante de
+            perigo mantém confirmação existente; a cor não substitui o diálogo.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">5 — Grupos em linha estreita (320 px)</span>
+          <div class="demo-row demo-row--tight">
+            <button class="ss-btn ss-btn--golden">Timeline</button>
+            <button class="ss-btn ss-btn--secondary">Lista</button>
+            <label class="ss-field" style="margin-left: auto">
+              <span class="ss-meta">Por página</span>
+              <select class="ss-select" style="width: 76px">
+                <option>10</option>
+                <option>25</option>
+                <option>50</option>
+              </select>
+            </label>
+          </div>
+          <div class="ss-toolbar demo-row--tight" style="margin-top: 8px">
+            <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mais ações">…</button>
+            <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Editar">✎</button>
+            <button class="ss-btn ss-btn--secondary ss-btn--icon ss-btn--danger" aria-label="Excluir">×</button>
+            <span class="ss-meta">Ações contextuais com 44 px de alvo.</span>
+          </div>
+          <p class="demo-note">
+            Usar <code>flex-wrap</code> e <code>min-width: 0</code>. Nunca
+            reduzir o alvo abaixo de 44 px para “caber” — a quebra de linha é
+            preferível à imprecisão.
+          </p>
+        </section>
+      </div>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Estados interativos</h2>
+        <div class="demo-grid" style="margin-top: 12px">
+          <div>
+            <span class="demo-label">Repouso</span>
+            <button class="ss-btn ss-btn--golden">Salvar</button>
+          </div>
+          <div>
+            <span class="demo-label">Hover</span>
+            <button class="ss-btn ss-btn--golden is-forced-hover">Salvar</button>
+          </div>
+          <div>
+            <span class="demo-label">Pressionado</span>
+            <button class="ss-btn ss-btn--golden is-forced-active">Salvar</button>
+          </div>
+          <div>
+            <span class="demo-label">Foco visível</span>
+            <button class="ss-btn ss-btn--golden is-forced-focus">Salvar</button>
+          </div>
+          <div>
+            <span class="demo-label">Desabilitado</span>
+            <button class="ss-btn ss-btn--golden" disabled>Salvando…</button>
+          </div>
+        </div>
+        <p class="demo-note">
+          O CSS vendorizado remove <code>outline</code> de
+          <code>.rpgui-button</code>. A proposta adiciona
+          <code>:focus-visible</code> com contraste de 2 px e
+          <code>outline-offset: 2px</code>, sem alterar o arquivo vendorizado.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Composição de sprites — o que foi verificado</h2>
+        <p class="ss-body">
+          Arquivos reais encontrados em
+          <code>styles/vendor/rpgui/img/</code>:
+        </p>
+        <ul class="ss-list">
+          <li><code>button-golden.png</code> — 74 × 24 px, RGBA</li>
+          <li><code>button-golden-hover.png</code> — 74 × 24 px, RGBA</li>
+          <li><code>button-golden-down.png</code> — 74 × 24 px, RGBA</li>
+          <li><code>button-golden-left.png</code> e <code>-right.png</code> — 12 × 22 px</li>
+        </ul>
+        <p class="ss-body">
+          O botão compacto usa o sprite central como
+          a altura-base experimental definida no seletor acima e dispensa os
+          sprites laterais. O botão tradicional continua disponível para CTAs de
+          identidade e desktop.
+        </p>
+        <p class="demo-note">
+          Limitação: o sprite tem apenas 24 px de altura nativa. Escalar para
+          28–40 CSS px pode interpolar ou distorcer a textura, sobretudo em
+          diferentes <code>devicePixelRatio</code>. As amostras precisam de
+          aprovação visual; a captura desktop não substitui teste em aparelho.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Regra de decisão</h2>
+        <ul class="ss-list">
+          <li><strong>Default:</strong> CTA principal de uma tela ou marca; mantém o botão RPGUI completo.</li>
+          <li><strong>Compact:</strong> filtros, buscas, formulários, paginação, ações secundárias.</li>
+          <li><strong>Icon:</strong> ações contextuais com nome acessível; nunca a única representação de uma ação destrutiva sem confirmação.</li>
+          <li><strong>Nunca:</strong> trocar todos os botões por ícones ou remover rótulos de fluxos ambíguos.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

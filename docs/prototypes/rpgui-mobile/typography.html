@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Protótipo A — Tipografia mobile</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <header class="demo-header">
+        <p class="demo-eyebrow">SAVE STATE // PROTÓTIPO A</p>
+        <h1 class="demo-title">Tipografia mobile</h1>
+        <p class="demo-intro">
+          Comparação entre a escala atual (Press Start 2P + utilitários
+          <code>text-2xl</code>) e a proposta mobile com JetBrains Mono em papéis
+          semânticos. Os blocos usam largura real de 320 px para evidenciar
+          quebra de linha e altura de linha.
+        </p>
+        <nav class="demo-nav" aria-label="Protótipos">
+          <a href="index.html">Início</a>
+          <a href="typography.html" aria-current="page">A — Tipografia</a>
+          <a href="buttons.html">B — Botões</a>
+          <a href="containers.html">C — Containers</a>
+          <a href="compositions.html">D — Composições mobile</a>
+        </nav>
+      </header>
+
+        <div class="demo-grid">
+        <section class="demo-card">
+          <span class="demo-label">Estado atual — HOME-01</span>
+          <div class="demo-ruler" style="width: 320px; padding: 8px;">
+            <p
+              style="
+                margin: 0;
+                font-family: var(--ss-font-pixel);
+                font-size: 28.8px;
+                line-height: 1.6;
+                overflow-wrap: anywhere;
+                color: #fff;
+                text-shadow:
+                  -2px 0 #000,
+                  0 2px #000,
+                  2px 0 #000,
+                  0 -2px #000;
+              "
+            >
+              Bem-vindo, Guilherme Augusto Amanini.
+            </p>
+            <p class="ss-body" style="margin-top: 8px">O que vamos jogar hoje?</p>
+          </div>
+          <p class="demo-note">
+            A fonte pixel tem caracteres largos; um nome completo ocupa várias
+            linhas e domina o primeiro viewport. Medida: 320 px de largura.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">Proposta — mesma mensagem</span>
+          <div class="demo-ruler" style="width: 320px; padding: 8px;">
+            <h1 class="ss-title ss-title--h1" style="font-size: 21px">
+              Bem-vindo, Guilherme Augusto Amanini.
+            </h1>
+            <p class="ss-body" style="margin-top: 6px">O que vamos jogar hoje?</p>
+          </div>
+          <p class="demo-note">
+            JetBrains Mono 700, 21 px, line-height 1.22 e sombra controlada. A
+            hierarquia vem de peso, tamanho e contraste — não apenas da fonte
+            pixelada.
+          </p>
+        </section>
+      </div>
+
+        <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Hierarquia semântica</h2>
+        <div class="ss-section">
+          <span class="demo-label">h1 — título de página</span>
+          <h1 class="ss-title ss-title--h1">Atividade</h1>
+          <p class="ss-meta">
+            token: <code>--ss-title-h1</code> · 18,4–24 px · peso 700
+          </p>
+        </div>
+        <div class="ss-section">
+          <span class="demo-label">h2 — título de seção</span>
+          <h2 class="ss-title ss-title--h2">Filtros da biblioteca</h2>
+          <p class="ss-meta">
+            token: <code>--ss-title-h2</code> · 16–20 px · peso 700
+          </p>
+        </div>
+        <div class="ss-section">
+          <span class="demo-label">h3 — título de card</span>
+          <h3 class="ss-title ss-title--h3">Adicionar favorito</h3>
+          <p class="ss-meta">
+            token: <code>--ss-title-h3</code> · 15–17 px · sombra curta
+          </p>
+        </div>
+        <div class="ss-section">
+          <span class="demo-label">Nome de jogo (2 linhas, truncado)</span>
+          <p class="ss-game-name" style="max-width: 260px">
+            The Legend of Zelda: Tears of the Kingdom — Edição Especial
+          </p>
+          <p class="ss-meta">
+            <code>overflow-wrap: anywhere</code> +
+            <code>-webkit-line-clamp: 2</code>. O nome completo continua no
+            atributo <code>title</code> e na tela de detalhes.
+          </p>
+        </div>
+        <div class="ss-section">
+          <span class="demo-label">Corpo e metadados</span>
+          <p class="ss-body">
+            Você adicionou <strong>Front Mission 3</strong> à coleção
+            “Zerados”. O texto de corpo não usa fonte display nem sombra forte.
+          </p>
+          <p class="ss-meta">02:11 · 19 de novembro de 2026</p>
+        </div>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Comparação direta — títulos longos</h2>
+        <div class="demo-grid">
+          <div class="ss-section">
+            <span class="demo-label">Press Start 2P — display tradicional</span>
+            <p class="ss-title ss-title--pixel">
+              Pesquisar metadados do jogo
+            </p>
+          </div>
+          <div class="ss-section">
+            <span class="demo-label">JetBrains Mono — sem sombra</span>
+            <p class="ss-title ss-title--h2" style="text-shadow: none">
+              Pesquisar metadados do jogo
+            </p>
+          </div>
+          <div class="ss-section">
+            <span class="demo-label">JetBrains Mono — sombra RPGUI controlada</span>
+            <p class="ss-title ss-title--h2">
+              Pesquisar metadados do jogo
+            </p>
+          </div>
+        </div>
+        <p class="demo-note">
+          A escolha final de papel/fonte precisa respeitar a preferência
+          existente. Esta comparação visual não simula nem grava as preferências
+          persistidas do aplicativo.
+        </p>
+      </section>
+
+      <div class="demo-grid" style="margin-top: 24px">
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Press Start 2P — uso pontual</h2>
+          <p class="ss-title ss-title--pixel">SAVE STATE</p>
+          <p class="ss-eyebrow" style="margin-top: 12px">MENU PRINCIPAL</p>
+          <div class="ss-toolbar" style="margin-top: 12px">
+            <button class="ss-btn ss-btn--golden">Jogos</button>
+            <button class="ss-btn ss-btn--golden">Listas</button>
+          </div>
+          <p class="demo-note">
+            A fonte pixelada permanece em marca, menu principal e títulos
+            decorativos curtos. Ela não é usada em formulários, filtros, tabelas,
+            modais, rankings ou descrições.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Sombra de título</h2>
+          <p class="ss-title ss-title--h2">Sem sombra</p>
+          <p class="ss-title ss-title--h2" style="text-shadow: var(--ss-shadow-title)">
+            Com sombra controlada
+          </p>
+          <p
+            class="ss-title ss-title--h2"
+            style="
+              color: #fff;
+              text-shadow:
+                -2px 0 #000,
+                0 2px #000,
+                2px 0 #000,
+                0 -2px #000;
+            "
+          >
+            Sombra 4-way atual (evitar em texto pequeno)
+          </p>
+          <p class="demo-note">
+            A sombra 4-way de 2 px é aceitável em títulos grandes. Em textos
+            pequenos,use no máximo <code>0 1px 0 #000</code>.
+          </p>
+        </section>
+      </div>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Interação com as preferências existentes</h2>
+        <p class="ss-body">
+          O Save State já persiste <code>fontDisplay</code> e
+          <code>fontBody</code> (<code>press-start-2p</code>,
+          <code>jetbrains-mono</code>, <code>roboto</code>) e aplica
+          <code>data-font-display</code>/<code>data-font-body</code> antes da
+          primeira pintura. Esta etapa não altera essas preferências nem cria
+          outra opção.
+        </p>
+        <ul class="ss-list">
+          <li>
+            <strong>Preferência existente:</strong> os valores já escolhidos
+            pelo usuário permanecem intactos. O protótipo mostra alternativas
+            tipográficas, mas não tenta sobrepor essa configuração.
+          </li>
+          <li>
+            <strong>Direção visual:</strong> JetBrains Mono predominante em
+            títulos, formulários, filtros, tabelas, modais e rankings; Press
+            Start 2P pontual em marca e elementos curtos de identidade.
+          </li>
+          <li>
+            <strong>Limite desta fase:</strong> não criar a preferência
+            “Automático”, não alterar `fontDisplay`/`fontBody` e não aplicar
+            overrides globais.
+          </li>
+        </ul>
+        <p class="demo-note">
+          Os nomes de token são locais ao protótipo. Como as preferências
+          controlam fontes em papéis usados atualmente em várias partes da UI,
+          a regra exata de precedência entre preferência explícita e papel
+          mobile deve ser aprovada antes da integração.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

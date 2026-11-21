@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>RPGUI Mobile — protótipos isolados</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <header class="demo-header">
+        <p class="demo-eyebrow">SAVE STATE // MOBILE-02</p>
+        <h1 class="demo-title">RPGUI Mobile — protótipos isolados</h1>
+        <p class="demo-intro">
+          Página de entrada dos protótipos de tipografia, botões, containers e
+          composições mobile. Nada aqui é importado pelas rotas reais da
+          aplicação. Os arquivos são estáticos e servem apenas para avaliação
+          visual e medição de largura antes de qualquer alteração em
+          componentes compartilhados.
+        </p>
+        <nav class="demo-nav" aria-label="Protótipos">
+          <a href="typography.html">A — Tipografia</a>
+          <a href="buttons.html">B — Botões</a>
+          <a href="containers.html">C — Containers</a>
+          <a href="compositions.html">D — Composições mobile</a>
+        </nav>
+      </header>
+
+      <div class="demo-grid">
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Como visualizar</h2>
+          <p class="ss-body">
+            A partir da raiz do repositório, execute um servidor estático e abra
+            o endereço indicado. Não há dependências, build ou variáveis de
+            ambiente.
+          </p>
+          <code class="demo-code">python3 -m http.server 8080
+# http://localhost:8080/docs/prototypes/rpgui-mobile/</code>
+          <p class="demo-note">
+            Abrir via <code>file://</code> também funciona na maioria dos
+            navegadores, mas um servidor local garante o carregamento das fontes
+            WOFF2 copiadas para <code>assets/fonts/</code>.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Viewports de avaliação</h2>
+          <ul class="ss-list">
+            <li><strong>320 px</strong> — celular estreito; pior caso de largura útil.</li>
+            <li><strong>360 px</strong> — Android compacto.</li>
+            <li><strong>390 px</strong> — mobile principal.</li>
+            <li><strong>412 px</strong> — Android maior.</li>
+            <li><strong>768 px</strong> — tablet / transição para desktop.</li>
+            <li><strong>1366 px</strong> — regressão desktop.</li>
+          </ul>
+        </section>
+
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Princípio orientador</h2>
+          <p class="ss-body">
+            Desktop mantém a experiência RPGUI completa. Mobile mantém a mesma
+            identidade, mas prioriza conteúdo, legibilidade e funcionalidade em
+            vez de ornamentação. A fonte pixelada permanece como assinatura da
+            marca; a leitura cotidiana passa a usar JetBrains Mono.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <h2 class="ss-title ss-title--h2">Limites deste diretório</h2>
+          <p class="ss-body">
+            Protótipos estáticos, sem <code>"use client"</code>, sem Zustand,
+            sem componentes de produção e sem novas rotas. Os assets são os
+            mesmos sprites vendorizados, referenciados por caminho relativo e
+            nunca editados.
+          </p>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

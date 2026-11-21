@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Protótipo C — Containers mobile</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <header class="demo-header">
+        <p class="demo-eyebrow">SAVE STATE // PROTÓTIPO C</p>
+        <h1 class="demo-title">Containers e molduras</h1>
+        <p class="demo-intro">
+          O mesmo conteúdo renderizado com cinco estratégias. O
+          objetivo é comparar largura interna útil e hierarquia, não apenas
+          estética. As medidas abaixo usam um retângulo de referência com 320px
+          de largura.
+        </p>
+        <nav class="demo-nav" aria-label="Protótipos">
+          <a href="index.html">Início</a>
+          <a href="typography.html">A — Tipografia</a>
+          <a href="buttons.html">B — Botões</a>
+          <a href="containers.html" aria-current="page">C — Containers</a>
+          <a href="compositions.html">D — Composições mobile</a>
+        </nav>
+      </header>
+
+      <section class="demo-card">
+        <h2 class="ss-title ss-title--h2">Cálculo da largura útil atual</h2>
+        <p class="ss-body">
+          Em uma região de 320 px, a moldura tradicional usa
+          <code>border: 15px</code> e <code>padding: 12px</code> em cada lado.
+          Reduzir a espessura não é a única estratégia: filtros, feeds e itens
+          contínuos podem não precisar de moldura.
+        </p>
+        <code class="demo-code">320 − (15 × 2) − (12 × 2) = 266 px de largura útil</code>
+        <p class="demo-note">
+          Referência para comparação em 320 px: framed tradicional = 266 px;
+          framed compacto (8 + 12) = 280 px; framed-grey (5 + 8) = 294 px;
+          painel plano (1 + 12) = 294 px; sem moldura = 320 px. Valores
+          ilustrativos de largura útil antes de gaps/conteúdo interno.
+        </p>
+      </section>
+
+      <div class="demo-grid" style="margin-top: 24px">
+        <section class="demo-card">
+          <span class="demo-label">1 — Moldura tradicional (atual)</span>
+          <div style="width: 320px; max-width: 100%; border: 15px solid transparent; border-image: url('../../../styles/vendor/rpgui/img/border-image.png') 6 repeat; border-image-width: 18px; background: url('../../../styles/vendor/rpgui/img/background-image.png') repeat;">
+            <div style="padding: 12px">
+              <h3 class="ss-title ss-title--h3">Atividade recente</h3>
+              <p class="ss-body">
+                Você adicionou Front Mission 3 à coleção “Zerados”.
+              </p>
+            </div>
+          </div>
+          <p class="demo-note">
+            Identidade forte, mas 54 px de cromo horizontal. Aninhar outra
+            moldura dentro desta reduz ainda mais a leitura.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">2 — Moldura compacta proposta</span>
+            <div class="ss-panel ss-panel--framed" style="width: 320px; max-width: 100%; padding: 12px;">
+            <h3 class="ss-title ss-title--h3">Atividade recente</h3>
+            <p class="ss-body">
+              Você adicionou Front Mission 3 à coleção “Zerados”.
+            </p>
+          </div>
+          <p class="demo-note">
+            8 px de borda + 12 px de padding em cada lado. O ganho vem de
+            reduzir a espessura da moldura, não eliminar a hierarquia.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">3 — Framed-grey</span>
+          <div class="ss-panel ss-panel--framed-grey" style="width: 320px; max-width: 100%; padding: 8px;">
+            <h3 class="ss-title ss-title--h3">Atividade recente</h3>
+            <p class="ss-body">
+              Você adicionou Front Mission 3 à coleção “Zerados”.
+            </p>
+          </div>
+          <p class="demo-note">
+            Borda de 5 px + padding de 8 px. Usar como hierarquia secundária
+            somente quando o agrupamento precisar mesmo de moldura.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">4 — Painel sem moldura decorativa</span>
+          <div class="ss-panel" style="width: 320px; max-width: 100%;">
+            <h3 class="ss-title ss-title--h3">Atividade recente</h3>
+            <p class="ss-body">
+              Você adicionou Front Mission 3 à coleção “Zerados”.
+            </p>
+          </div>
+          <p class="demo-note">
+            Fundo levemente elevado, borda de 1 px. Ideal para filtros simples,
+            feeds e agrupamentos que não precisam competir com o conteúdo.
+          </p>
+        </section>
+
+        <section class="demo-card">
+          <span class="demo-label">5 — Apenas espaço e tipografia</span>
+          <div style="width: 320px; max-width: 100%;">
+            <h3 class="ss-title ss-title--h3">Atividade recente</h3>
+            <p class="ss-body">
+              Você adicionou Front Mission 3 à coleção “Zerados”.
+            </p>
+            <hr class="ss-divider" />
+            <p class="ss-meta">02:11 · 19 de novembro de 2026</p>
+          </div>
+          <p class="demo-note">
+            Nenhum container. A separação vem de espaçamento, peso e
+            divisores. Recomendado para itens de lista e formulários contínuos.
+          </p>
+        </section>
+      </div>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Molduras aninhadas — antes e depois</h2>
+        <div class="demo-grid" style="margin-top: 12px">
+          <div>
+            <span class="demo-label">Aninhamento atual</span>
+            <div class="ss-panel ss-panel--framed-golden" style="padding: 8px">
+              <div class="ss-panel ss-panel--framed-grey" style="padding: 6px">
+                <div class="ss-panel ss-panel--framed-grey" style="padding: 6px">
+                  <p class="ss-body">Conteúdo com três camadas de moldura.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="demo-label">Hierarquia proposta</span>
+            <div class="ss-panel ss-panel--framed-golden" style="padding: 8px">
+              <div style="padding: 8px">
+                <h3 class="ss-title ss-title--h3">Título da região</h3>
+                <p class="ss-body">Conteúdo com uma única moldura funcional.</p>
+                <hr class="ss-divider" />
+                <p class="ss-meta">Metadados separados por divisor.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="demo-note">
+          Regra: uma moldura deve delimitar uma região funcional importante
+          (modal, destaque, card selecionado). Filtros simples, itens de feed e
+          formulários contínuos não precisam de moldura própria.
+        </p>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Quando usar cada superfície</h2>
+        <ul class="ss-list">
+          <li>
+            <strong>framed-golden:</strong> modal, detalhe de jogo, destaque
+            selecionado, card de identidade. Não usar em cada item de uma lista.
+          </li>
+          <li>
+            <strong>framed (clássico):</strong> conteúdo principal do shell e
+            regiões que precisam da moldura histórica. Reduzir a geometria no
+            mobile.
+          </li>
+          <li>
+            <strong>framed-grey:</strong> submenus e agrupamentos secundários.
+            Evitar dentro de outra moldura quando o divisor já comunica o grupo.
+          </li>
+          <li>
+            <strong>painel sem moldura:</strong> filtros, feed, seções de
+            formulário, blocos de estatísticas.
+          </li>
+          <li>
+            <strong>sem container:</strong> itens de lista, linhas de tabela,
+            metadados e ações contextuais.
+          </li>
+        </ul>
+      </section>
+
+      <section class="demo-card" style="margin-top: 24px">
+        <h2 class="ss-title ss-title--h2">Densidade não é ausência de hierarquia</h2>
+        <div class="ss-section">
+          <div class="ss-section-head">
+            <h3 class="ss-title ss-title--h3">Jogos</h3>
+            <span class="ss-meta">128 títulos</span>
+          </div>
+          <ul class="ss-list">
+            <li>
+              <div class="ss-list-row">
+                <div style="min-width: 0">
+                  <p class="ss-game-name">The Legend of Zelda: Tears of the Kingdom</p>
+                  <p class="ss-list-row__meta"><span>Jogando</span><span>Nintendo Switch</span></p>
+                </div>
+                <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mais ações">…</button>
+              </div>
+            </li>
+            <li>
+              <div class="ss-list-row">
+                <div style="min-width: 0">
+                  <p class="ss-game-name">Final Fantasy Tactics: The War of the Lions</p>
+                  <p class="ss-list-row__meta"><span>Backlog</span><span>PSP</span></p>
+                </div>
+                <button class="ss-btn ss-btn--secondary ss-btn--icon" aria-label="Mais ações">…</button>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <p class="demo-note">
+          Sem molduras individuais, a lista ainda tem título de seção, contador,
+          separadores e ações explícitas.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

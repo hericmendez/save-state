@@ -1,0 +1,988 @@
+/*
+ * RPGUI Mobile — MOBILE-02 isolated prototype styles.
+ *
+ * This file is documentation-only. It is NOT imported by the application.
+ * It must never be treated as production CSS; it exists to evaluate the
+ * proposed tokens and component geometry before any shared component change.
+ */
+
+@font-face {
+  font-family: "SS JetBrains Mono";
+  src: url("assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SS Press Start 2P";
+  src: url("assets/fonts/press-start-2p-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Font roles. The production app already exposes font preferences; these
+   * tokens intentionally resolve through the *same* preference variables
+   * once promoted (see the design-system document, section 6). */
+  --ss-font-body: "SS JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  --ss-font-pixel: "SS Press Start 2P", monospace;
+  --ss-font-title: var(--ss-font-body);
+
+  /* Colour and surface tokens */
+  --ss-bg: #0e0f11;
+  --ss-bg-2: #15171a;
+  --ss-surface: #1e2022;
+  --ss-surface-2: #26282b;
+  --ss-line: rgba(255, 255, 255, 0.14);
+  --ss-line-strong: rgba(255, 255, 255, 0.28);
+  --ss-text: #f4efe4;
+  --ss-text-2: #cfc7b8;
+  --ss-text-3: #9f988c;
+  --ss-gold: #e3b341;
+  --ss-gold-strong: #fbbf24;
+  --ss-danger: #e36b6b;
+
+  /* Spacing and geometry */
+  --ss-space-1: 4px;
+  --ss-space-2: 8px;
+  --ss-space-3: 12px;
+  --ss-space-4: 16px;
+  --ss-space-5: 24px;
+  --ss-radius: 4px;
+  --ss-touch: 44px;
+
+  /* Typography. Mobile-first; no rule below 16px for form controls. */
+  --ss-text-body: 0.875rem; /* 14px */
+  --ss-text-small: 0.75rem; /* 12px */
+  --ss-title-h1: clamp(1.15rem, 5.5vw, 1.5rem);
+  --ss-title-h2: clamp(1rem, 4.4vw, 1.25rem);
+  --ss-title-h3: clamp(0.9375rem, 4vw, 1.0625rem);
+  --ss-shadow-title: 0 2px 0 #000, 0 0 6px rgba(0, 0, 0, 0.65);
+  --ss-shadow-small: 0 1px 0 #000;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--ss-bg);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ss-text);
+  font-family: var(--ss-font-body);
+  font-size: var(--ss-text-body);
+  line-height: 1.55;
+  background:
+    radial-gradient(circle at 20% 0%, #2d2a24 0, transparent 38%),
+    radial-gradient(circle at 100% 30%, #1d2430 0, transparent 42%),
+    var(--ss-bg);
+}
+
+a {
+  color: var(--ss-gold);
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+/* ------------------------------------------------------------------ */
+/* Demo chrome (not part of the proposal)                              */
+/* ------------------------------------------------------------------ */
+
+.demo-page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--ss-space-4);
+}
+
+.demo-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin-bottom: var(--ss-space-5);
+  padding-bottom: var(--ss-space-4);
+  border-bottom: 1px solid var(--ss-line);
+}
+
+.demo-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+.demo-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-touch);
+  padding: 0 10px;
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius);
+  color: var(--ss-text-2);
+  font-size: var(--ss-text-small);
+  text-decoration: none;
+}
+
+.demo-nav a[aria-current="page"] {
+  border-color: var(--ss-gold);
+  color: var(--ss-gold-strong);
+}
+
+.demo-nav a:focus-visible {
+  outline: 2px solid var(--ss-gold-strong);
+  outline-offset: 2px;
+}
+
+.demo-eyebrow {
+  margin: 0;
+  color: var(--ss-gold);
+  font-family: var(--ss-font-pixel);
+  font-size: 10px;
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+}
+
+.demo-title {
+  margin: 0;
+  font-size: var(--ss-title-h1);
+  line-height: 1.2;
+}
+
+.demo-intro {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--ss-text-2);
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ss-space-5);
+}
+
+@media (min-width: 900px) {
+  .demo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .demo-grid--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.demo-card {
+  min-width: 0;
+  padding: var(--ss-space-4);
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.demo-card > h2 {
+  margin-top: 0;
+}
+
+.demo-label {
+  display: block;
+  margin-bottom: var(--ss-space-2);
+  color: var(--ss-text-3);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.demo-note {
+  margin: var(--ss-space-3) 0 0;
+  padding-left: var(--ss-space-3);
+  border-left: 2px solid var(--ss-gold);
+  color: var(--ss-text-2);
+  font-size: var(--ss-text-small);
+}
+
+.demo-code {
+  display: block;
+  overflow-x: auto;
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius);
+  background: #0b0c0e;
+  color: #d8d2c4;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.demo-ruler {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+  margin: var(--ss-space-3) 0;
+  padding: 6px 8px;
+  border: 1px dashed var(--ss-gold);
+  color: var(--ss-gold);
+  font-size: 10px;
+}
+
+.demo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+}
+
+.demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.demo-row--tight {
+  max-width: 320px;
+  padding: var(--ss-space-2);
+  border: 1px dashed var(--ss-line-strong);
+}
+
+/* ------------------------------------------------------------------ */
+/* Typography system                                                   */
+/* ------------------------------------------------------------------ */
+
+.ss-title {
+  margin: 0;
+  color: var(--ss-text);
+  font-family: var(--ss-font-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.ss-title--h1 {
+  font-size: var(--ss-title-h1);
+  line-height: 1.22;
+  text-shadow: var(--ss-shadow-title);
+}
+
+.ss-title--h2 {
+  font-size: var(--ss-title-h2);
+  line-height: 1.28;
+  text-shadow: var(--ss-shadow-title);
+}
+
+.ss-title--h3 {
+  font-size: var(--ss-title-h3);
+  line-height: 1.35;
+  text-shadow: var(--ss-shadow-small);
+}
+
+/* Identity-only display face: brand, main menu, very short decorative
+ * titles. Never used for paragraphs, forms, filters or table headers. */
+.ss-title--pixel {
+  font-family: var(--ss-font-pixel);
+  font-size: clamp(0.75rem, 3.2vw, 1rem);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0;
+  text-shadow: var(--ss-shadow-title);
+}
+
+.ss-label {
+  display: block;
+  margin-bottom: var(--ss-space-1);
+  color: var(--ss-text-2);
+  font-size: var(--ss-text-small);
+  font-weight: 700;
+  line-height: 1.4;
+  text-shadow: var(--ss-shadow-small);
+}
+
+.ss-body {
+  margin: 0;
+  color: var(--ss-text-2);
+  font-size: var(--ss-text-body);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.ss-meta {
+  margin: 0;
+  color: var(--ss-text-3);
+  font-size: var(--ss-text-small);
+  line-height: 1.5;
+  /* Deliberately no text-shadow on small text. */
+  text-shadow: none;
+}
+
+.ss-game-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-shadow: var(--ss-shadow-small);
+}
+
+.ss-truncate-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.ss-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Button system                                                       */
+/* ------------------------------------------------------------------ */
+
+.ss-btn {
+  --ss-btn-min-h: var(--ss-touch);
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  min-height: var(--ss-btn-min-h);
+  align-items: center;
+  justify-content: center;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: 0 var(--ss-space-4);
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ss-text);
+  font-family: var(--ss-font-title);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: var(--ss-shadow-small);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ss-btn:focus-visible {
+  outline: 2px solid var(--ss-gold-strong);
+  outline-offset: 2px;
+}
+
+.ss-btn:disabled,
+.ss-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  filter: grayscale(0.65) saturate(0.5);
+  opacity: 0.5;
+}
+
+/* Compact golden: same sprite family, no left/right ornamental
+ * extensions. The painted plate is 36px high inside a 44px hit box. */
+.ss-btn--golden {
+  --ss-golden-plate-height: 36px;
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% var(--ss-golden-plate-height);
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.55);
+}
+
+/* Experimental painted-plate sizes; all retain the same 44px hit target. */
+.ss-btn--plate-28 {
+  --ss-golden-plate-height: 28px;
+}
+
+.ss-btn--plate-32 {
+  --ss-golden-plate-height: 32px;
+}
+
+.ss-btn--plate-40 {
+  --ss-golden-plate-height: 40px;
+}
+
+.ss-btn--golden:hover {
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden-hover.png");
+}
+
+.ss-btn--golden:active {
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden-down.png");
+  transform: translateY(1px);
+}
+
+.ss-btn--golden:disabled {
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden.png");
+  transform: none;
+}
+
+/* Compact secondary: dense, not ornamental. */
+.ss-btn--secondary {
+  border: 1px solid var(--ss-line-strong);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
+  color: var(--ss-text);
+}
+
+.ss-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ss-btn--secondary:active {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ss-btn--ghost {
+  padding: 0 var(--ss-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--ss-text-2);
+}
+
+.ss-btn--ghost:hover {
+  color: var(--ss-text);
+}
+
+.ss-btn--icon {
+  width: var(--ss-touch);
+  min-width: var(--ss-touch);
+  padding: 0;
+  font-size: 1.05rem;
+}
+
+.ss-btn--danger {
+  color: var(--ss-danger);
+}
+
+.ss-btn--pixel-label {
+  font-family: var(--ss-font-pixel);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.ss-btn--grow {
+  flex: 1 1 auto;
+}
+
+/* Legacy reproduction: exactly the current vendor geometry
+ * (min-width 140px / height 60px / 35px side padding + side ornaments). */
+.legacy-golden {
+  position: relative;
+  display: inline-flex;
+  min-width: 140px;
+  height: 60px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 35px;
+  border: 0;
+  background: url("../../../styles/vendor/rpgui/img/button-golden.png")
+    center / 100% 80% no-repeat;
+  color: #fff;
+  font-family: var(--ss-font-title);
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: 0 1px 0 #000;
+}
+
+.legacy-golden::before,
+.legacy-golden::after {
+  position: absolute;
+  top: -5%;
+  width: 34px;
+  height: 110%;
+  background-size: 100% 100%;
+  content: "";
+}
+
+.legacy-golden::before {
+  left: 0;
+  background: url("../../../styles/vendor/rpgui/img/button-golden-left.png")
+    right center / 100% 100% no-repeat;
+}
+
+.legacy-golden::after {
+  right: 0;
+  background: url("../../../styles/vendor/rpgui/img/button-golden-right.png")
+    left center / 100% 100% no-repeat;
+}
+
+/* The legacy ornaments are anchored to the button edges in this isolated
+ * reproduction, so the comparison cannot create page overflow. */
+.legacy-stage {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ss-space-3);
+  padding: 0;
+}
+
+/* Forced states for screenshots */
+.is-forced-hover.ss-btn--golden {
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden-hover.png");
+}
+
+.is-forced-active.ss-btn--golden {
+  background-image: url("../../../styles/vendor/rpgui/img/button-golden-down.png");
+  transform: translateY(1px);
+}
+
+.is-forced-focus {
+  outline: 2px solid var(--ss-gold-strong);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Form controls                                                       */
+/* ------------------------------------------------------------------ */
+
+.ss-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-1);
+  min-width: 0;
+}
+
+.ss-input,
+.ss-select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ss-touch);
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #6b666b;
+  border-radius: 3px;
+  background: #4e4a4e;
+  color: #fff;
+  font-family: var(--ss-font-body);
+  /* 16px avoids the iOS focus zoom; never shrink below this on mobile. */
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.ss-select {
+  padding-right: 28px;
+}
+
+.ss-input::placeholder {
+  color: #c9c2b7;
+}
+
+.ss-input:focus-visible,
+.ss-select:focus-visible {
+  outline: 2px solid var(--ss-gold-strong);
+  outline-offset: 1px;
+}
+
+.ss-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
+
+.ss-search-row .ss-input {
+  flex: 1 1 auto;
+}
+
+.ss-search-row .ss-btn {
+  flex: 0 0 auto;
+}
+
+.ss-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-width: 0;
+}
+
+.ss-toolbar--end {
+  justify-content: flex-end;
+}
+
+.ss-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ss-line);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.ss-segmented .ss-btn {
+  min-height: var(--ss-touch);
+  padding: 0 12px;
+  border-radius: 2px;
+}
+
+.ss-segmented .ss-btn[aria-pressed="true"] {
+  background: rgba(227, 179, 65, 0.2);
+  box-shadow: inset 0 0 0 1px var(--ss-gold);
+  color: var(--ss-gold-strong);
+}
+
+/* ------------------------------------------------------------------ */
+/* Container system                                                    */
+/* ------------------------------------------------------------------ */
+
+.ss-panel {
+  min-width: 0;
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ss-panel--flush {
+  padding: 0;
+}
+
+.ss-panel--framed {
+  border: 8px solid transparent;
+  border-image: url("../../../styles/vendor/rpgui/img/border-image.png") 6
+    repeat;
+  border-image-width: 8px;
+  border-radius: 0;
+  background: url("../../../styles/vendor/rpgui/img/background-image.png") repeat;
+}
+
+.ss-panel--framed-golden {
+  border: 8px solid transparent;
+  border-image: url("../../../styles/vendor/rpgui/img/border-image-golden.png") 4
+    repeat;
+  border-image-width: 8px;
+  border-radius: 0;
+  background: url("../../../styles/vendor/rpgui/img/background-image-golden.png")
+    repeat;
+}
+
+.ss-panel--framed-grey {
+  border: 5px solid transparent;
+  border-image: url("../../../styles/vendor/rpgui/img/border-image-grey.png") 3
+    repeat;
+  border-image-width: 5px;
+  border-radius: 0;
+  background: url("../../../styles/vendor/rpgui/img/background-image-grey.png")
+    repeat;
+}
+
+.ss-panel--compact {
+  padding: var(--ss-space-2);
+}
+
+.ss-section {
+  min-width: 0;
+  padding: var(--ss-space-3) 0;
+}
+
+.ss-section + .ss-section {
+  border-top: 1px solid var(--ss-line);
+}
+
+.ss-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ss-space-2);
+  margin-bottom: var(--ss-space-2);
+}
+
+.ss-divider {
+  width: 100%;
+  height: 1px;
+  margin: var(--ss-space-3) 0;
+  border: 0;
+  background: var(--ss-line);
+}
+
+.ss-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-list > li {
+  min-width: 0;
+  padding: var(--ss-space-3) 0;
+  border-bottom: 1px solid var(--ss-line);
+}
+
+.ss-list > li:last-child {
+  border-bottom: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Representative compositions                                         */
+/* ------------------------------------------------------------------ */
+
+.ss-topbar {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin: 0 0 var(--ss-space-4);
+  padding: 6px var(--ss-space-3);
+  border-bottom: 1px solid var(--ss-line);
+  background: rgba(14, 15, 17, 0.96);
+  backdrop-filter: blur(6px);
+}
+
+.ss-topbar__title {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--ss-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-shadow: var(--ss-shadow-small);
+}
+
+.ss-topbar__meta {
+  color: var(--ss-text-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ss-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+  margin-bottom: var(--ss-space-3);
+  padding-top: var(--ss-space-1);
+}
+
+.ss-page-head__text {
+  min-width: 0;
+}
+
+.ss-action-menu {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.ss-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ss-space-3);
+  min-width: 0;
+}
+
+.ss-list-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 2px;
+  color: var(--ss-text-3);
+  font-size: var(--ss-text-small);
+}
+
+.ss-rank {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.ss-rank__pos {
+  color: var(--ss-gold-strong);
+  font-family: var(--ss-font-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: var(--ss-shadow-small);
+}
+
+.ss-rank__body {
+  min-width: 0;
+}
+
+.ss-rank__actions {
+  display: flex;
+  gap: 2px;
+}
+
+.ss-rank__actions .ss-btn {
+  width: var(--ss-touch);
+  min-width: var(--ss-touch);
+  min-height: var(--ss-touch);
+  padding: 0;
+  font-size: 1rem;
+}
+
+/* Narrow phones: keep every action, but move the action bar under the
+ * title instead of sacrificing the game name or the 44px target. */
+@media (max-width: 479px) {
+  .ss-rank {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .ss-rank__actions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+}
+
+.ss-modal-demo {
+  display: flex;
+  max-height: 460px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 8px solid transparent;
+  border-image: url("../../../styles/vendor/rpgui/img/border-image-golden.png") 4
+    repeat;
+  border-image-width: 8px;
+  background: url("../../../styles/vendor/rpgui/img/background-image-golden.png")
+    repeat;
+}
+
+.ss-modal-demo__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-3);
+  background: #2a2119;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.ss-modal-demo__title {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-shadow: var(--ss-shadow-small);
+}
+
+.ss-modal-demo__body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--ss-space-3);
+}
+
+.ss-modal-demo__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-3);
+  border-top: 1px solid rgba(0, 0, 0, 0.4);
+  background: #2a2119;
+}
+
+.ss-filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2) 0;
+}
+
+.ss-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--ss-line);
+  border-radius: 999px;
+  color: var(--ss-text-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ss-details {
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ss-details > summary {
+  display: flex;
+  min-height: var(--ss-touch);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-2);
+  padding: 0 var(--ss-space-3);
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ss-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ss-details[open] > summary {
+  border-bottom: 1px solid var(--ss-line);
+}
+
+.ss-details__body {
+  display: grid;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-3);
+}
+
+@media (min-width: 480px) {
+  .ss-details__body--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop regression sample: the same markup must remain dense but not
+ * collapse into the mobile 44px rhythm. */
+@media (min-width: 768px) {
+  .ss-title--h1 {
+    font-size: 1.6rem;
+  }
+
+  .ss-title--h2 {
+    font-size: 1.3rem;
+  }
+
+  .ss-btn {
+    font-size: 0.875rem;
+  }
+
+  .ss-modal-demo {
+    max-height: 520px;
+  }
+}
+
+/* Visible debug outline for the "no overflow" validation script. The
+ * script removes it before screenshots. */
+.ss-debug-overflow * {
+  outline: 1px solid rgba(255, 0, 0, 0.35);
+}
