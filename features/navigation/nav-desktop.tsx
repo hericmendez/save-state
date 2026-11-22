@@ -27,7 +27,13 @@ function useSidebarKeyboard(paths: string[]) {
 
 const ALL_NAV_PATHS = flattenNavPaths(NAV_STRUCTURE);
 
-export function LogoutLink({ onDone }: { onDone?: () => void }) {
+export function LogoutLink({
+  onDone,
+  mobile = false,
+}: {
+  onDone?: () => void;
+  mobile?: boolean;
+}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,7 +61,7 @@ export function LogoutLink({ onDone }: { onDone?: () => void }) {
 
   return (
     <a
-      className="text-sm!"
+      className={`${mobile ? "inline-flex min-h-11 items-center" : ""} text-sm!`}
       href="#"
       onClick={handleLogout}
       aria-busy={isLoading}

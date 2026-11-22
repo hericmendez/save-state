@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaBars } from "react-icons/fa";
 import type { SafeUser } from "@/features/shared/types";
 import { Content } from "./content";
@@ -18,12 +18,34 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const desktopNavigationRef = useRef<HTMLSpanElement>(null);
+  const wasSidebarOpen = useRef(false);
 
   useResponsiveLayout();
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);
   };
+
+  useEffect(() => {
+    if (wasSidebarOpen.current && !sidebarOpen) {
+      if (window.innerWidth < 768) {
+        menuTriggerRef.current?.focus();
+      } else {
+        desktopNavigationRef.current?.querySelector<HTMLElement>("nav a[href]")?.focus();
+      }
+    }
+    wasSidebarOpen.current = sidebarOpen;
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    const closeDrawerOnDesktop = () => {
+      if (window.innerWidth >= 768) setSidebarOpen(false);
+    };
+    window.addEventListener("resize", closeDrawerOnDesktop);
+    return () => window.removeEventListener("resize", closeDrawerOnDesktop);
+  }, []);
 
   return (
     <main
@@ -48,39 +70,31 @@ export function AppShell({
           layout-shell-inner
         `}
       >
-        <span className="hidden md:contents">
+        <span ref={desktopNavigationRef} className="hidden md:contents">
           <NavDesktop user={user} />
         </span>
         <span className="contents md:hidden">
-          <NavMobile isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+          <NavMobile
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            user={user}
+          />
         </span>
 
         <Content>
-          <div
+          <button
+            ref={menuTriggerRef}
+            type="button"
             onClick={toggleSidebar}
-            className="
-              !fixed
-              flex
-              justify-center
-              items-center
-              rpgui-container
-              framed-golden
-              h-12
-              w-12
-              opacity-75
-              hover:opacity-100
-              top-5
-              left-5
-              z-[999]
-              md:hidden
-            "
+            aria-label="Abrir menu de navegação"
+            aria-expanded={sidebarOpen}
+            aria-controls="mobile-navigation"
+            className="rpgui-button ss-rpgui-button--icon ss-rpgui-button--compact !fixed left-3 top-3 z-30 md:!hidden"
           >
-            <span className="flex justify-center items-center !text-amber-300">
-              <FaBars />
-            </span>
-          </div>
+            <FaBars aria-hidden="true" />
+          </button>
 
-          {children}
+          <div className="ss-shell-mobile-content">{children}</div>
         </Content>
       </div>
     </main>

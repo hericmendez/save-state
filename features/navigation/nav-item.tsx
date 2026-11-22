@@ -15,13 +15,30 @@ function NavLink({
   isChild,
   pathname,
   onNavigate,
+  mobile,
 }: {
   entry: NavEntry;
   isChild?: boolean;
   pathname: string;
   onNavigate?: () => void;
+  mobile?: boolean;
 }) {
   const isActive = entry.path === pathname;
+
+  if (mobile) {
+    return (
+      <RPGUIButton
+        as="link"
+        href={entry.path ?? "#"}
+        title={entry.title}
+        size="compact"
+        golden
+        aria-current={isActive ? "page" : undefined}
+        onClick={onNavigate}
+        className={`ss-mobile-nav__primary w-full ${isActive ? "down" : ""}`}
+      />
+    );
+  }
 
   return (
     <Link href={entry.path ?? "#"} onClick={onNavigate} className="w-full">
@@ -41,11 +58,13 @@ export function NavItem({
   pathname,
   onNavigate,
   isChild = false,
+  mobile = false,
 }: {
   entry: NavEntry;
   pathname: string;
   onNavigate?: () => void;
   isChild?: boolean;
+  mobile?: boolean;
 }) {
   const openCollectionModal = useCollectionModalStore((state) => state.open);
 
@@ -55,7 +74,8 @@ export function NavItem({
         type="button"
         title={entry.title}
         golden={!isChild}
-        className="w-full"
+        size={mobile ? "compact" : "default"}
+        className={`${mobile ? "ss-mobile-nav__primary" : "w-full"} w-full`}
         onClick={() => {
           onNavigate?.();
           openCollectionModal();
@@ -74,6 +94,7 @@ export function NavItem({
         isChild={isChild}
         pathname={pathname}
         onNavigate={onNavigate}
+        mobile={mobile}
       />
     );
   }
@@ -89,6 +110,7 @@ export function NavItem({
       onNavigate={onNavigate}
       hasActiveChild={!!hasActiveChild}
       isChild={isChild}
+      mobile={mobile}
     />
   );
 }
@@ -100,12 +122,14 @@ function NavItemGroup({
   onNavigate,
   hasActiveChild,
   isChild,
+  mobile,
 }: {
   entry: NavEntry;
   pathname: string;
   onNavigate?: () => void;
   hasActiveChild: boolean;
   isChild: boolean;
+  mobile: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(hasActiveChild);
   const openCollectionModal = useCollectionModalStore((state) => state.open);
@@ -115,23 +139,36 @@ function NavItemGroup({
       <RPGUIButton
         type="button"
         title={entry.title}
-        
+        size={mobile ? "compact" : "default"}
+        golden={mobile}
         onClick={() => setIsOpen((previous) => !previous)}
-        className={`w-full whitespace-nowrap !text-sm ${hasActiveChild ? "down" : ""}`}
+        className={`${mobile ? "ss-mobile-nav__primary" : "w-full whitespace-nowrap !text-sm"} w-full ${hasActiveChild ? "down" : ""}`}
         style={{ minWidth: 0, paddingLeft: "12px", paddingRight: "12px" }}
       >
         {isOpen ? "⌃" : "⌄"}
       </RPGUIButton>
 
       {isOpen && (
-        <div className="mt-2 mx-4 space-y-2">
-          <ul >
+        <div className={mobile ? "ss-mobile-nav__submenu" : "mt-2 mx-4 space-y-2"}>
+          <ul className={mobile ? "ss-mobile-nav__sublist" : ""}>
             {(entry.children ?? []).map((child) =>
               // Action children (e.g. Nova Coleção) keep the original
               // framed-grey look but dispatch the modal instead of
               // navigating. Both variants render through RpguiButton.
               child.action === "create-collection" ? (
                 <li key={child.id}>
+                  {mobile ? (
+                    <button
+                      type="button"
+                      className="ss-mobile-nav__subitem"
+                      onClick={() => {
+                        onNavigate?.();
+                        openCollectionModal();
+                      }}
+                    >
+                      {child.title}
+                    </button>
+                  ) : (
                   <RPGUIButton
                     type="button"
                     framed="grey"
@@ -146,10 +183,20 @@ function NavItemGroup({
                       </p>
                     }
                   />
+                  )}
                 </li>
               ) : (
                 <li key={child.id}>
-                  <RPGUIButton
+                  {mobile ? (
+                    <Link
+                      href={child.path ?? "#"}
+                      onClick={onNavigate}
+                      className="ss-mobile-nav__subitem"
+                      aria-current={child.path === pathname ? "page" : undefined}
+                    >
+                      {child.title}
+                    </Link>
+                  ) : <RPGUIButton
                     as="link"
                     framed="grey"
                     className="block w-full text-lg text-white text-bold"
@@ -160,13 +207,13 @@ function NavItemGroup({
                         {child.title}
                       </p>
                     }
-                  />
+                  />}
                 </li>
               ),
             )}
           </ul>
           {entry.id === "colecoes" ? (
-            <CollectionNavItems onNavigate={onNavigate} />
+            <CollectionNavItems onNavigate={mobile ? onNavigate : undefined} />
           ) : null}
         </div>
       )}

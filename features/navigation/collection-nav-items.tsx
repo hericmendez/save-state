@@ -169,24 +169,24 @@ export function CollectionNavItems({
 
   return (
     <>
-      <ul className="space-y-2" aria-label="Coleções do usuário">
+      <ul className={`${onNavigate ? "ss-mobile-nav__collection-list" : "space-y-2"}`} aria-label="Coleções do usuário">
         {collections.map((collection) => (
           <li
             key={collection._id}
-            className="rpgui-container framed-grey"
+            className={onNavigate ? "ss-mobile-nav__collection" : "rpgui-container framed-grey"}
             title={collection.name}
           >
             <div className="flex items-center gap-1">
               {typeof collection.gameCount === "number" ? (
                 <span
-                  className="shrink-0 pl-2 text-sm text-white/70 font-display tabular-nums"
+                  className={`shrink-0 pl-2 text-sm text-white/70 tabular-nums ${onNavigate ? "ss-mobile-nav__collection-count" : "font-display"}`}
                   aria-hidden="true"
                 >
                   [{collection.gameCount}]
                 </span>
               ) : null}
               <Link
-                className="block min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] px-2 py-1 text-base text-white hover:text-amber-300 hover:underline"
+                className={`block min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] px-2 py-1 text-base text-white hover:text-amber-300 hover:underline ${onNavigate ? "ss-mobile-nav__collection-link" : ""}`}
                 href={`/backlog/lists/${encodeURIComponent(collection._id)}`}
                 onClick={onNavigate}
                 aria-label={
@@ -202,7 +202,7 @@ export function CollectionNavItems({
                 aria-label={`Opções de ${collection.name}`}
                 aria-haspopup="menu"
                 aria-expanded={menuFor?._id === collection._id}
-                className="shrink-0 px-3 py-2 text-lg leading-none text-white/70 hover:text-amber-300"
+                className={`shrink-0 px-3 py-2 text-lg leading-none text-white/70 hover:text-amber-300 ${onNavigate ? "ss-mobile-nav__collection-actions" : ""}`}
                 onClick={(event) => openMenu(event, collection)}
               >
                 ⋯

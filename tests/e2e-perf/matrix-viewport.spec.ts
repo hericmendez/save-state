@@ -38,6 +38,31 @@ test.describe("matriz mobile touch (Pixel 7)", () => {
     await expect(input).toHaveValue("mario");
   });
 
+  test("mobile: drawer abre, fecha com Escape e mantém alvos acessíveis", async ({
+    page,
+  }) => {
+    await page.goto("/home");
+    const trigger = page.getByRole("button", { name: "Abrir menu de navegação" });
+    await expect(trigger).toBeVisible();
+    const triggerBox = await trigger.boundingBox();
+    expect(triggerBox?.width).toBeGreaterThanOrEqual(44);
+    expect(triggerBox?.height).toBeGreaterThanOrEqual(44);
+
+    await trigger.tap();
+    const drawer = page.getByRole("dialog", { name: "Navegação principal" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText(/Bem-vindo,/)).toBeVisible();
+    await expect(drawer.getByRole("link", { name: "Sair" })).toBeVisible();
+    const close = drawer.getByRole("button", { name: "Fechar menu" });
+    const closeBox = await close.boundingBox();
+    expect(closeBox?.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test("mobile: review editor cria rascunho por toque sem overflow", async ({
     page,
   }) => {
