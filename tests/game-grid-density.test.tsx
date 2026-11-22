@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Collection } from "@/features/games/collection";
 import { GameCardFrame } from "@/features/games/game-card-frame";
 import { useUiStore } from "@/features/shared/ui-store";
+import { PREFERENCE_STYLESHEET_ID } from "@/features/shared/layout-mode";
 import type { CollectionViewMode } from "@/features/collection/collection-query";
 
 const longTitle =
@@ -64,12 +65,16 @@ function TestCollection() {
 describe("shared game grid density control", () => {
   beforeEach(() => {
     localStorage.clear();
+    const preferenceStyles = document.createElement("style");
+    preferenceStyles.id = PREFERENCE_STYLESHEET_ID;
+    document.head.append(preferenceStyles);
     useUiStore.getState().setGridDensity(6);
   });
 
   afterEach(() => {
     cleanup();
     localStorage.clear();
+    document.getElementById(PREFERENCE_STYLESHEET_ID)?.remove();
     useUiStore.getState().setGridDensity(6);
   });
 
@@ -81,7 +86,7 @@ describe("shared game grid density control", () => {
     expect(styles).toMatch(/\.game-card-title\s*\{[^}]*font-family:\s*var\(--font-body-name\)/s);
     expect(styles).toMatch(/\.game-card-title\s*\{[^}]*color:\s*white/s);
     expect(styles).toMatch(/\.game-card-title\s*\{[^}]*text-shadow:/s);
-    expect(styles).toContain("html[data-font-body=\"roboto\"]");
+    expect(styles).toContain("font-family: var(--font-body-name)");
   });
 
   it("defaults to six, persists selection, and preserves grid/table controls", async () => {
@@ -105,7 +110,12 @@ describe("shared game grid density control", () => {
 
     fireEvent.change(density, { target: { value: "10" } });
     expect(useUiStore.getState().gridDensity).toBe(10);
-    expect(document.documentElement.getAttribute("data-grid-density")).toBe("10");
+    const preferenceSheet = document.getElementById(
+      PREFERENCE_STYLESHEET_ID,
+    ) as HTMLStyleElement;
+    expect(
+      preferenceSheet.sheet?.cssRules[0].cssText,
+    ).toContain("--ss-pref-grid-columns-1476: 10");
     const stored = JSON.parse(localStorage.getItem("save-state-ui") ?? "{}") as {
       state?: { gridDensity?: number };
     };

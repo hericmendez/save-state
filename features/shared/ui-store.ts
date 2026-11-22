@@ -3,21 +3,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  applyFontAttributes,
-  applyFontBodyAttribute,
-  applyLayoutModeAttribute,
+  applyPreferenceStyles,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
   DEFAULT_GRID_DENSITY,
   LAYOUT_STORAGE_KEY,
-  applyGridDensityAttribute,
+  PREFERENCE_STYLESHEET_ID,
   parseFontBody,
   parseFontDisplay,
   parseGridDensity,
+  readUiPreferenceSnapshot,
   resolveInitialFontBody,
   resolveInitialFontDisplay,
   resolveInitialGridDensity,
   resolveInitialLayoutMode,
+  type UiPreferenceSnapshot,
   type FontBody,
   type FontDisplay,
   type GridDensity,
@@ -46,6 +46,16 @@ function isMobileDevice(): boolean {
   return window.innerWidth < 768;
 }
 
+function applyPreferenceOverrides(
+  overrides: Partial<UiPreferenceSnapshot>,
+): void {
+  const current = readUiPreferenceSnapshot();
+  applyPreferenceStyles(
+    { ...current, ...overrides },
+    PREFERENCE_STYLESHEET_ID,
+  );
+}
+
 /**
  * Genuine client UI state only. No server data, no session: authentication
  * comes from the server session (httpOnly cookie), never from this store.
@@ -55,8 +65,8 @@ function isMobileDevice(): boolean {
  * `persist` merge re-derives it, so even a late rehydration can never
  * flip the visible layout. Font preferences are validated on merge
  * (invalid or absent values fall back to the current defaults without
- * touching the layout mode). Every change also syncs the pre-paint
- * attributes that own the frame geometry and the fonts in CSS.
+ * touching the layout mode). Every change also updates the preference
+ * CSSOM sheet that owns frame geometry, typography and grid density.
  */
 export const useUiStore = create<UiState>()(
   persist(
@@ -68,26 +78,30 @@ export const useUiStore = create<UiState>()(
       isLoading: false,
       setLayoutMode: (mode) => {
         const next = isMobileDevice() ? "fullscreen" : mode;
-        applyLayoutModeAttribute(next);
+        applyPreferenceOverrides({ layoutMode: next });
         set({ layoutMode: next });
       },
       toggleLayoutMode: () => {
         if (isMobileDevice()) return;
         const next =
           get().layoutMode === "pixel-perfect" ? "fullscreen" : "pixel-perfect";
-        applyLayoutModeAttribute(next);
+        applyPreferenceOverrides({ layoutMode: next });
         set({ layoutMode: next });
       },
       setFontDisplay: (font) => {
-        applyFontAttributes(font, get().fontBody);
+        applyPreferenceOverrides({
+          fontDisplay: font,
+          fontDisplayExplicit: true,
+          fontBody: get().fontBody,
+        });
         set({ fontDisplay: font });
       },
       setFontBody: (font) => {
-        applyFontBodyAttribute(font);
+        applyPreferenceOverrides({ fontBody: font });
         set({ fontBody: font });
       },
       setGridDensity: (density) => {
-        applyGridDensityAttribute(density);
+        applyPreferenceOverrides({ gridDensity: density });
         set({ gridDensity: density });
       },
       showLoading: () => set({ isLoading: true }),

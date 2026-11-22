@@ -20,23 +20,6 @@
   --ss-mobile-shadow-small: 0 1px 0 #000;
 }
 
-/* An explicit saved choice wins; absence/invalid/legacy data uses mono. */
-html[data-font-display-explicit="true"] {
-  --ss-mobile-font-functional: var(--ss-mobile-font-display, var(--font-display-name));
-}
-
-html[data-font-display-explicit="true"][data-font-display="press-start-2p"] {
-  --ss-mobile-font-display: var(--font-display);
-}
-
-html[data-font-display-explicit="true"][data-font-display="jetbrains-mono"] {
-  --ss-mobile-font-display: var(--font-body);
-}
-
-html[data-font-display-explicit="true"][data-font-display="roboto"] {
-  --ss-mobile-font-display: var(--font-roboto), system-ui, sans-serif;
-}
-
 .ss-page-title,
 .ss-section-title,
 .ss-card-title,

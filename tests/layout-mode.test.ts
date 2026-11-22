@@ -1,6 +1,6 @@
 /**
  * Layout-mode preference: parsing, first-paint resolution, and the
- * no-flash wiring (pre-paint script + attribute-driven CSS).
+ * no-flash wiring (pre-paint CSSOM + hydration-stable root markup).
  * No DOM test infrastructure in the repo — logic is unit-tested with
  * stubbed globals, wiring is asserted at source level.
  */
@@ -9,9 +9,7 @@ import { readFileSync } from "fs";
 import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  applyFontAttributes,
-  applyFontBodyAttribute,
-  applyLayoutModeAttribute,
+  applyPreferenceStyles,
   DEFAULT_FONT_BODY,
   DEFAULT_FONT_DISPLAY,
   DEFAULT_GRID_DENSITY,
@@ -26,7 +24,9 @@ import {
   parseLayoutMode,
   resolveInitialGridDensity,
   readStoredLayoutMode,
-  applyGridDensityAttribute,
+  PREFERENCE_STYLESHEET_ID,
+  readUiPreferenceSnapshot,
+  resolveUiPreferences,
   resolveInitialFontBody,
   resolveInitialFontDisplay,
   resolveInitialLayoutMode,
@@ -35,6 +35,43 @@ import {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+function stubPreferenceStylesheet() {
+  const cssRules: Array<{
+    selectorText: string;
+    cssText: string;
+    style: {
+      getPropertyValue: (property: string) => string;
+      setProperty: (property: string, value: string) => void;
+    };
+  }> = [];
+  const sheet = {
+    cssRules,
+    deleteRule(index: number) {
+      cssRules.splice(index, 1);
+    },
+    insertRule(cssText: string, index: number) {
+      const declarations = new Map<string, string>();
+      const rule = {
+        selectorText: cssText.slice(0, cssText.indexOf("{")).trim(),
+        cssText,
+        style: {
+          getPropertyValue: (property: string) => declarations.get(property) ?? "",
+          setProperty: (property: string, value: string) => {
+            declarations.set(property, value);
+          },
+        },
+      };
+      cssRules.splice(index, 0, rule);
+      return index;
+    },
+  };
+  vi.stubGlobal("document", {
+    getElementById: (id: string) =>
+      id === PREFERENCE_STYLESHEET_ID ? { sheet } : null,
+  });
+  return sheet;
+}
 
 function stubBrowser(options: {
   innerWidth: number;
@@ -137,28 +174,174 @@ describe("resolveInitialLayoutMode", () => {
   });
 });
 
-describe("applyLayoutModeAttribute", () => {
-  it("is a no-op without a DOM", () => {
-    expect(() => applyLayoutModeAttribute("fullscreen")).not.toThrow();
+describe("resolveUiPreferences", () => {
+  it("preserves valid preferences and forces fullscreen below 768px", () => {
+    const stored = JSON.stringify({
+      state: {
+        layoutMode: "pixel-perfect",
+        fontDisplay: "roboto",
+        fontBody: "jetbrains-mono",
+        gridDensity: 12,
+      },
+    });
+    expect(resolveUiPreferences(stored, 1366)).toEqual({
+      layoutMode: "pixel-perfect",
+      fontDisplay: "roboto",
+      fontDisplayExplicit: true,
+      fontBody: "jetbrains-mono",
+      gridDensity: 12,
+    });
+    expect(resolveUiPreferences(stored, 390).layoutMode).toBe("fullscreen");
   });
 
-  it("writes the attribute on manual changes", () => {
-    const setAttribute = vi.fn();
-    vi.stubGlobal("document", { documentElement: { setAttribute } });
-    applyLayoutModeAttribute("pixel-perfect");
-    expect(setAttribute).toHaveBeenCalledWith(
-      "data-layout-mode",
-      "pixel-perfect",
-    );
+  it("uses defaults for missing, invalid, corrupt, and unavailable storage", () => {
+    expect(resolveUiPreferences(null, 1366)).toMatchObject({
+      layoutMode: "fullscreen",
+      fontDisplay: "press-start-2p",
+      fontDisplayExplicit: false,
+      fontBody: "jetbrains-mono",
+      gridDensity: 6,
+    });
+    expect(resolveUiPreferences("{invalid", 1366).fontDisplayExplicit).toBe(false);
+    expect(
+      resolveUiPreferences(
+        JSON.stringify({
+          state: {
+            layoutMode: "bad",
+            fontDisplay: "comic-sans",
+            fontBody: "bad",
+            gridDensity: 7,
+          },
+        }),
+        1366,
+      ),
+    ).toMatchObject({
+      layoutMode: "fullscreen",
+      fontDisplay: "press-start-2p",
+      fontDisplayExplicit: false,
+      fontBody: "jetbrains-mono",
+      gridDensity: 6,
+    });
   });
 });
 
-describe("applyGridDensityAttribute", () => {
-  it("writes the persisted density to the root CSS attribute", () => {
-    const setAttribute = vi.fn();
-    vi.stubGlobal("document", { documentElement: { setAttribute } });
-    applyGridDensityAttribute(12);
-    expect(setAttribute).toHaveBeenCalledWith("data-grid-density", "12");
+describe("applyPreferenceStyles", () => {
+  it("does not mutate root attributes and installs selected rules into CSSOM", () => {
+    const sheet = stubPreferenceStylesheet();
+    expect(
+      applyPreferenceStyles(
+        {
+          layoutMode: "pixel-perfect",
+          fontDisplay: "roboto",
+          fontDisplayExplicit: true,
+          fontBody: "roboto",
+          gridDensity: 12,
+        },
+        PREFERENCE_STYLESHEET_ID,
+      ),
+    ).toBe(true);
+    expect(sheet.cssRules[0].selectorText).toBe(":root");
+    expect(sheet.cssRules[0].style.getPropertyValue("--ss-pref-layout-zoom"))
+      .toBe("80%");
+    expect(sheet.cssRules[0].style.getPropertyValue("--ss-pref-grid-columns-1476"))
+      .toBe("12");
+    expect(sheet.cssRules[0].style.getPropertyValue("--font-display-name"))
+      .toContain("var(--font-roboto)");
+    expect(sheet.cssRules[0].style.getPropertyValue("--font-body-name"))
+      .toContain("var(--font-roboto)");
+    expect(sheet.cssRules.some((rule) => rule.selectorText.includes(".rpgui-button")))
+      .toBe(true);
+
+    const fontCases = [
+      {
+        fontDisplay: "press-start-2p",
+        fontDisplayExplicit: false,
+        fontBody: "jetbrains-mono",
+        expectedDisplay: "var(--font-display), system-ui",
+        expectedMobileOverride: "",
+        expectedRuleCount: 2,
+      },
+      {
+        fontDisplay: "jetbrains-mono",
+        fontDisplayExplicit: true,
+        fontBody: "roboto",
+        expectedDisplay: "var(--font-body)",
+        expectedMobileOverride: "var(--font-display-name, var(--font-display))",
+        expectedRuleCount: 1,
+      },
+      {
+        fontDisplay: "roboto",
+        fontDisplayExplicit: true,
+        fontBody: "jetbrains-mono",
+        expectedDisplay: "var(--font-roboto), system-ui, sans-serif",
+        expectedMobileOverride: "var(--font-display-name, var(--font-display))",
+        expectedRuleCount: 3,
+      },
+    ] as const;
+    for (const fontCase of fontCases) {
+      applyPreferenceStyles(
+        {
+          layoutMode: "fullscreen",
+          gridDensity: 6,
+          ...fontCase,
+        },
+        PREFERENCE_STYLESHEET_ID,
+      );
+      expect(sheet.cssRules[0].style.getPropertyValue("--font-display-name"))
+        .toBe(fontCase.expectedDisplay);
+      expect(
+        sheet.cssRules[0].style.getPropertyValue("--ss-mobile-font-functional"),
+      ).toBe(fontCase.expectedMobileOverride);
+      expect(sheet.cssRules.length).toBe(fontCase.expectedRuleCount);
+    }
+  });
+
+  it("replaces the current CSSOM rule set on preference changes", () => {
+    const sheet = stubPreferenceStylesheet();
+    const preferences = resolveUiPreferences(null, 1366);
+    applyPreferenceStyles(preferences, PREFERENCE_STYLESHEET_ID);
+    expect(sheet.cssRules.length).toBe(2);
+    applyPreferenceStyles(
+      { ...preferences, fontDisplay: "jetbrains-mono", gridDensity: 8 },
+      PREFERENCE_STYLESHEET_ID,
+    );
+    expect(sheet.cssRules.length).toBe(1);
+    expect(sheet.cssRules[0].style.getPropertyValue("--ss-pref-grid-columns-856"))
+      .toBe("7");
+
+    const densities = {
+      6: [6, 6, 6, 6, 6, 6],
+      8: [7, 8, 8, 8, 8, 8],
+      10: [7, 8, 9, 10, 10, 10],
+      12: [7, 8, 9, 10, 11, 12],
+    } as const;
+    const breakpoints = [856, 980, 1104, 1228, 1352, 1476];
+    for (const density of GRID_DENSITIES) {
+      applyPreferenceStyles(
+        { ...preferences, fontDisplay: "jetbrains-mono", gridDensity: density },
+        PREFERENCE_STYLESHEET_ID,
+      );
+      const root = sheet.cssRules[0].style;
+      expect(
+        breakpoints.map((breakpoint) =>
+          Number(root.getPropertyValue(`--ss-pref-grid-columns-${breakpoint}`)),
+        ),
+      ).toEqual(densities[density]);
+    }
+  });
+
+  it("returns false if the server-rendered preference sheet is unavailable", () => {
+    vi.stubGlobal("document", { getElementById: () => null });
+    expect(
+      applyPreferenceStyles(resolveUiPreferences(null, 1366), PREFERENCE_STYLESHEET_ID),
+    ).toBe(false);
+  });
+
+  it("is a safe no-op when no DOM exists", () => {
+    vi.stubGlobal("document", undefined);
+    expect(
+      applyPreferenceStyles(resolveUiPreferences(null, 1366), PREFERENCE_STYLESHEET_ID),
+    ).toBe(false);
   });
 });
 
@@ -174,17 +357,17 @@ describe("no-flash wiring (source level)", () => {
     expect(store).not.toContain("layoutMode: isMobileDevice()");
   });
 
-  it("inlines a parser-blocking init script in the root layout", () => {
+  it("inlines a parser-blocking CSSOM bootstrap without root preference attributes", () => {
     expect(LAYOUT_INIT_SCRIPT).toContain("save-state-ui");
-    expect(LAYOUT_INIT_SCRIPT).toContain("data-layout-mode");
-    expect(LAYOUT_INIT_SCRIPT).toContain("data-grid-density");
-    for (const density of ["6", "8", "10", "12"]) {
-      expect(LAYOUT_INIT_SCRIPT).toContain(`s.gridDensity===${density}`);
-    }
-    expect(LAYOUT_INIT_SCRIPT).toContain("fullscreen");
+    expect(LAYOUT_INIT_SCRIPT).toContain("insertRule");
+    expect(LAYOUT_INIT_SCRIPT).toContain("save-state-preference-styles");
+    expect(LAYOUT_INIT_SCRIPT).not.toContain("setAttribute");
     const layout = readFileSync("app/layout.tsx", "utf8");
     expect(layout).toContain("LAYOUT_INIT_SCRIPT");
+    expect(layout).toContain("PREFERENCE_STYLESHEET_ID");
     expect(layout).toContain("<head>");
+    expect(layout.indexOf("PREFERENCE_STYLESHEET_ID"))
+      .toBeLessThan(layout.indexOf("dangerouslySetInnerHTML"));
   });
 
   it("uses container width and the root preference to size the shared game grid", () => {
@@ -193,7 +376,8 @@ describe("no-flash wiring (source level)", () => {
     expect(css).toContain(".game-card-grid");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
-    expect(css).toContain('html[data-grid-density="12"] .game-card-grid');
+    expect(css).toContain("--ss-pref-grid-columns-1476");
+    expect(css).not.toContain("data-grid-density");
     for (const threshold of [360, 484, 608, 732, 856, 980, 1104, 1228, 1352, 1476]) {
       expect(css).toContain(`@container game-grid (min-width: ${threshold}px)`);
     }
@@ -203,9 +387,11 @@ describe("no-flash wiring (source level)", () => {
     expect(collection).toContain('viewMode === "grid"');
   });
 
-  it("drives frame geometry from the attribute in CSS", () => {
+  it("drives frame geometry from preference CSS variables in CSS", () => {
     const css = readFileSync("app/globals.css", "utf8");
-    expect(css).toContain('html[data-layout-mode="pixel-perfect"]');
+    expect(css).toContain("--ss-pref-layout-max-width");
+    expect(css).toContain("--ss-pref-layout-zoom");
+    expect(css).not.toContain("data-layout-mode");
     for (const marker of [
       ".layout-shell",
       ".layout-shell-inner",
@@ -316,39 +502,6 @@ describe("font preferences — parsing and resolution", () => {
   });
 });
 
-describe("applyFontAttributes", () => {
-  it("is a no-op without a DOM", () => {
-    expect(() =>
-      applyFontAttributes("roboto", "roboto"),
-    ).not.toThrow();
-  });
-
-  it("writes both font attributes on manual changes", () => {
-    const setAttribute = vi.fn();
-    vi.stubGlobal("document", { documentElement: { setAttribute } });
-    applyFontAttributes("roboto", "jetbrains-mono");
-    expect(setAttribute).toHaveBeenCalledWith("data-font-display", "roboto");
-    expect(setAttribute).toHaveBeenCalledWith(
-      "data-font-body",
-      "jetbrains-mono",
-    );
-    expect(setAttribute).toHaveBeenCalledWith(
-      "data-font-display-explicit",
-      "true",
-    );
-  });
-});
-
-describe("applyFontBodyAttribute", () => {
-  it("does not make the display font preference explicit", () => {
-    const setAttribute = vi.fn();
-    vi.stubGlobal("document", { documentElement: { setAttribute } });
-    applyFontBodyAttribute("roboto");
-    expect(setAttribute).toHaveBeenCalledTimes(1);
-    expect(setAttribute).toHaveBeenCalledWith("data-font-body", "roboto");
-  });
-});
-
 describe("font preferences — store persistence (same system)", () => {
   function stubUiStorage(saved: string | null) {
     let value = saved;
@@ -399,30 +552,50 @@ describe("font preferences — store persistence (same system)", () => {
     const storage = stubUiStorage(
       JSON.stringify({ state: { layoutMode: "fullscreen" } }),
     );
+    const sheet = stubPreferenceStylesheet();
     const store = await freshStore();
     expect(store.getState().fontDisplay).toBe("press-start-2p");
     store.getState().setFontDisplay("roboto");
     store.getState().setFontBody("roboto");
+    store.getState().setLayoutMode("pixel-perfect");
+    store.getState().setGridDensity(12);
     expect(store.getState().fontDisplay).toBe("roboto");
     expect(store.getState().fontBody).toBe("roboto");
-    // Layout mode untouched by font changes.
-    expect(store.getState().layoutMode).toBe("fullscreen");
+    expect(store.getState().layoutMode).toBe("pixel-perfect");
+    expect(store.getState().gridDensity).toBe(12);
+    expect(sheet.cssRules[0].style.getPropertyValue("--ss-pref-layout-zoom"))
+      .toBe("80%");
+    expect(sheet.cssRules[0].style.getPropertyValue("--ss-pref-grid-columns-1476"))
+      .toBe("12");
+    expect(sheet.cssRules[0].style.getPropertyValue("--font-display-name"))
+      .toContain("var(--font-roboto)");
+    expect(sheet.cssRules[0].style.getPropertyValue("--font-body-name"))
+      .toContain("var(--font-roboto)");
     const saved = JSON.parse(storage.getItem(LAYOUT_STORAGE_KEY) ?? "{}") as {
       state?: Record<string, unknown>;
     };
     expect(saved.state?.fontDisplay).toBe("roboto");
     expect(saved.state?.fontBody).toBe("roboto");
-    expect(saved.state?.layoutMode).toBe("fullscreen");
+    expect(saved.state?.layoutMode).toBe("pixel-perfect");
+    const reloadedStore = await freshStore();
+    expect(reloadedStore.getState()).toMatchObject({
+      layoutMode: "pixel-perfect",
+      fontDisplay: "roboto",
+      fontBody: "roboto",
+      gridDensity: 12,
+    });
   });
 
   it("changing only the body font does not mark display choice as explicit", async () => {
     stubUiStorage(JSON.stringify({ state: { layoutMode: "fullscreen" } }));
-    const setAttribute = vi.fn();
-    vi.stubGlobal("document", { documentElement: { setAttribute } });
+    const sheet = stubPreferenceStylesheet();
     const store = await freshStore();
     store.getState().setFontBody("roboto");
-    expect(setAttribute).toHaveBeenCalledTimes(1);
-    expect(setAttribute).toHaveBeenCalledWith("data-font-body", "roboto");
+    expect(sheet.cssRules[0].style.getPropertyValue("--font-body-name"))
+      .toContain("var(--font-roboto)");
+    expect(
+      sheet.cssRules[0].style.getPropertyValue("--ss-mobile-font-functional"),
+    ).toBe("");
   });
 
   it("falls back to defaults on invalid saved fonts", async () => {
@@ -480,55 +653,34 @@ describe("font preferences — wiring (source level)", () => {
     expect(layout).toContain("LAYOUT_INIT_SCRIPT");
   });
 
-  it("sets both font attributes before first paint", () => {
-    expect(LAYOUT_INIT_SCRIPT).toContain("data-font-display");
-    expect(LAYOUT_INIT_SCRIPT).toContain("data-font-body");
+  it("sets font variables before first paint without root attributes", () => {
+    expect(LAYOUT_INIT_SCRIPT).toContain("--font-display-name");
+    expect(LAYOUT_INIT_SCRIPT).toContain("--font-body-name");
     expect(LAYOUT_INIT_SCRIPT).toContain("press-start-2p");
     expect(LAYOUT_INIT_SCRIPT).toContain("jetbrains-mono");
     expect(LAYOUT_INIT_SCRIPT).toContain("roboto");
-    // All three title fonts validate in the pre-paint script.
-    const script = LAYOUT_INIT_SCRIPT;
-    for (const value of ["press-start-2p", "jetbrains-mono", "roboto"]) {
-      expect(script).toContain(`s.fontDisplay==="${value}"`);
-    }
-    expect(script).toContain('data-font-display-explicit');
-    expect(script).toContain('String(explicitDisplay)');
-    expect(script).toContain('explicitDisplay=true');
+    expect(LAYOUT_INIT_SCRIPT).not.toContain("setAttribute");
   });
 
   it("drives fonts from centralized variables in CSS", () => {
     const css = readFileSync("app/globals.css", "utf8");
     expect(css).toContain("--font-body-name");
     expect(css).toContain("--font-display-name");
-    expect(css).toContain('html[data-font-body="roboto"]');
-    expect(css).toContain('html[data-font-display="roboto"]');
+    expect(css).not.toContain("data-font-body");
+    expect(css).not.toContain("data-font-display");
+    expect(LAYOUT_INIT_SCRIPT).toContain("--font-roboto");
     expect(css).toContain("font-family: var(--font-body-name)");
     expect(css).toContain("font-family: var(--font-display-name)");
     // No hardcoded display family remains in app CSS.
     expect(css).not.toContain('"Press Start 2P"');
   });
 
-  it("scales titles only under explicit display fonts", () => {
+  it("preserves selected display font title scaling", () => {
     const css = readFileSync("app/globals.css", "utf8");
-    // Compensation tokens exist and default to neutral (Roboto untouched).
-    expect(css).toContain("--font-display-title-scale: 1;");
-    expect(css).toContain("--font-display-title-leading:");
-    // Press Start 2P compensation is preserved exactly (1.2, headings).
-    expect(css).toContain("--font-display-title-scale: 1.2;");
-    for (const heading of ["h1.font-display", "h2.font-display", "h3.font-display"]) {
-      expect(css).toContain(`html[data-font-display="press-start-2p"] ${heading}`);
-    }
-    // Roboto gets its own milder compensation; never scale() transforms.
-    // (The pre-existing layout `zoom:` in .layout-zoom is unrelated.)
-    expect(css).toContain("--font-display-title-scale: 1.1;");
-    expect(css).toContain('html[data-font-display="roboto"] h1.font-display');
-    expect(css).toContain('html[data-font-display="roboto"] .rpgui-button');
-    expect(css).not.toContain("scale(");
-    expect(css).not.toContain("transform:");
-    // JetBrains Mono display reuses the loaded body stack, unscaled.
-    expect(css).toContain('html[data-font-display="jetbrains-mono"]');
-    expect(css).toContain("--font-display-name: var(--font-body);");
-    expect(css).not.toContain('html[data-font-display="jetbrains-mono"] h1');
+    expect(css).toContain(".font-display");
+    expect(LAYOUT_INIT_SCRIPT).toContain("calc(1em * 1.2)");
+    expect(LAYOUT_INIT_SCRIPT).toContain("calc(1em * 1.1)");
+    expect(LAYOUT_INIT_SCRIPT).not.toContain("transform:");
   });
 
   it("renders both font selects in the appearance section", () => {
@@ -577,10 +729,34 @@ describe("font preferences — wiring (source level)", () => {
 
 describe("pre-paint display preference intent", () => {
   function runInitScript(stored: string | null | "throw") {
-    const attributes: Record<string, string> = {};
+    const rules: Array<{
+      selectorText: string;
+      style: {
+        values: Record<string, string>;
+        setProperty: (key: string, value: string) => void;
+      };
+    }> = [];
+    const sheet = {
+      cssRules: rules,
+      deleteRule(index: number) {
+        rules.splice(index, 1);
+      },
+      insertRule(text: string, index: number) {
+        const rule = {
+          selectorText: text.slice(0, text.indexOf("{")).trim(),
+          style: {
+            values: {} as Record<string, string>,
+            setProperty(key: string, value: string) {
+              this.values[key] = value;
+            },
+          },
+        };
+        rules.splice(index, 0, rule);
+        return index;
+      },
+    };
     const windowStub = {
       innerWidth: 390,
-      matchMedia: () => ({ matches: true }),
       localStorage: {
         getItem: () => {
           if (stored === "throw") throw new Error("storage unavailable");
@@ -589,32 +765,32 @@ describe("pre-paint display preference intent", () => {
       },
     };
     const documentStub = {
-      documentElement: {
-        setAttribute: (name: string, value: string) => {
-          attributes[name] = value;
-        },
-      },
+      getElementById: (id: string) =>
+        id === PREFERENCE_STYLESHEET_ID ? { sheet } : null,
     };
     runInNewContext(LAYOUT_INIT_SCRIPT, {
       window: windowStub,
       document: documentStub,
     });
-    return attributes;
+    return rules;
   }
 
   it("marks only valid stored display preferences as explicit", () => {
-    expect(runInitScript(null)["data-font-display-explicit"]).toBe("false");
     expect(
-      runInitScript(JSON.stringify({ state: { fontDisplay: "roboto" } }))[
-        "data-font-display-explicit"
-      ],
-    ).toBe("true");
+      runInitScript(null)[0].style.values["--ss-mobile-font-functional"],
+    ).toBeUndefined();
+    expect(
+      runInitScript(JSON.stringify({ state: { fontDisplay: "roboto" } }))[0]
+        .style.values["--ss-mobile-font-functional"],
+    ).toBe("var(--font-display-name, var(--font-display))");
     expect(
       runInitScript(JSON.stringify({ state: { fontDisplay: "invalid" } }))[
-        "data-font-display-explicit"
-      ],
-    ).toBe("false");
-    expect(runInitScript("throw")["data-font-display-explicit"]).toBe("false");
+        0
+      ].style.values["--ss-mobile-font-functional"],
+    ).toBeUndefined();
+    expect(
+      runInitScript("throw")[0].style.values["--ss-mobile-font-functional"],
+    ).toBeUndefined();
   });
 });
 
@@ -622,9 +798,9 @@ describe("mobile typography defaults", () => {
   it("uses mono for new semantic functional titles unless a valid display choice exists", () => {
     const css = readFileSync("app/rpgui-mobile.css", "utf8");
     expect(css).toContain("--ss-mobile-font-functional: var(--ss-mobile-font-body)");
-    expect(css).toContain('html[data-font-display-explicit="true"]');
+    expect(LAYOUT_INIT_SCRIPT).toContain("--ss-mobile-font-functional");
     for (const display of ["press-start-2p", "jetbrains-mono", "roboto"]) {
-      expect(css).toContain(`data-font-display="${display}"`);
+      expect(LAYOUT_INIT_SCRIPT).toContain(display);
     }
     expect(css).toContain(".ss-page-title");
     expect(css).toContain(".ss-section-title");

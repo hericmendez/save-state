@@ -10,7 +10,10 @@ import "./globals.css";
 // on disk as a reference; see docs/FRONTEND_PERFORMANCE_PHASE_4_REPORT.md.
 import "../styles/vendor/rpgui/rpgui.css";
 import "./rpgui-mobile.css";
-import { LAYOUT_INIT_SCRIPT } from "@/features/shared/layout-mode";
+import {
+  LAYOUT_INIT_SCRIPT,
+  PREFERENCE_STYLESHEET_ID,
+} from "@/features/shared/layout-mode";
 
 const displayFont = Press_Start_2P({
   weight: "400",
@@ -47,12 +50,11 @@ export default function RootLayout({
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${robotoFont.variable}`}>
       <head>
         {/*
-          Parser-blocking preference init: sets html[data-layout-mode]
-          plus html[data-font-display]/html[data-font-body] before first
-          paint (stored values, current defaults). Must stay a raw sync
-          script — deferred/async strategies paint first and would
-          reintroduce the flash this removes.
+          This empty, server-rendered style node is mutated through CSSOM only.
+          The parser-blocking bootstrap installs preference rules before paint
+          without changing any DOM attributes React will hydrate.
         */}
+        <style id={PREFERENCE_STYLESHEET_ID} />
         <script dangerouslySetInnerHTML={{ __html: LAYOUT_INIT_SCRIPT }} />
       </head>
       <body>
