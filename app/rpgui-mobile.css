@@ -456,6 +456,18 @@ html .rpgui-button.ss-rpgui-button--icon > p {
   padding-top: 16px;
 }
 
+@media (max-width: 359px) {
+  .ss-home-content {
+    margin-inline: -12px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .ss-home-content .ss-home-shortcut-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 768px) {
   .ss-shell-mobile-content {
     padding-top: 0;

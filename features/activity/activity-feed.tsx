@@ -79,22 +79,24 @@ function ExpandToggle({
 function GroupSpan({
   item,
   timeZone,
+  variant,
 }: {
   item: Extract<FeedItem, { kind: "group" }>;
   timeZone: string;
+  variant: "default" | "home";
 }) {
   const from = formatFeedTime(item.span.from, timeZone);
   const to = formatFeedTime(item.span.to, timeZone);
   return (
-    <span className="text-sm opacity-70">
+    <span className={variant === "home" ? "ss-metadata" : "text-sm opacity-70"}>
       {from === to ? from : `${from} — ${to}`}
     </span>
   );
 }
 
-function ItemTime({ iso, timeZone }: { iso: string | Date; timeZone: string }) {
+function ItemTime({ iso, timeZone, variant = "default" }: { iso: string | Date; timeZone: string; variant?: "default" | "home" }) {
   return (
-    <span className="text-sm opacity-70 font-display">{formatFeedTime(iso, timeZone)}</span>
+    <span className={variant === "home" ? "ss-metadata" : "text-sm opacity-70 font-display"}>{formatFeedTime(iso, timeZone)}</span>
   );
 }
 
@@ -118,18 +120,20 @@ function GroupCard({
   item,
   timeZone,
   onOpenGame,
+  variant,
 }: {
   item: Extract<FeedItem, { kind: "group" }>;
   timeZone: string;
   onOpenGame?: (userGameId: string) => void;
+  variant: "default" | "home";
 }) {
   const [expanded, setExpanded] = useState(false);
   const gameId = groupUserGameId(item);
   return (
-    <article className="rpgui-container framed-grey p-3">
-      <h3 className="font-display text-sm">{item.title}</h3>
+    <article className={variant === "home" ? "min-w-0 border-b border-white/10 px-1 py-2 last:border-b-0" : "rpgui-container framed-grey p-3"}>
+      <h3 className={variant === "home" ? "ss-body-text font-bold" : "font-display text-sm"}>{item.title}</h3>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <GroupSpan item={item} timeZone={timeZone} />
+        <GroupSpan item={item} timeZone={timeZone} variant={variant} />
         <ExpandToggle
           expanded={expanded}
           onToggle={() => setExpanded((value) => !value)}
@@ -172,10 +176,12 @@ function SingleRow({
   item,
   timeZone,
   onOpenGame,
+  variant,
 }: {
   item: Extract<FeedItem, { kind: "single" }>;
   timeZone: string;
   onOpenGame?: (userGameId: string) => void;
+  variant: "default" | "home";
 }) {
   const first = item.members[0];
   if (first.type === "top10.reordered" && hasTop1Move(first)) {
@@ -183,9 +189,9 @@ function SingleRow({
   }
   return (
     <article className="px-1 py-1 ">
-      <p className="text-md">
+      <p className={variant === "home" ? "ss-body-text" : "text-md"}>
         {" "}
-        <ItemTime iso={item.span.from} timeZone={timeZone} /> • {item.title}{" "}
+        <ItemTime iso={item.span.from} timeZone={timeZone} variant={variant} /> • {item.title}{" "}
         {onOpenGame && first.userGameId && (
           <a
             className=" text-amber-400 hover:underline font-bold cursor-pointer"
@@ -203,16 +209,18 @@ function FeedEntry({
   item,
   timeZone,
   onOpenGame,
+  variant,
 }: {
   item: FeedItem;
   timeZone: string;
   onOpenGame?: (userGameId: string) => void;
+  variant: "default" | "home";
 }) {
   if (item.kind === "group")
     return (
-      <GroupCard item={item} timeZone={timeZone} onOpenGame={onOpenGame} />
+      <GroupCard item={item} timeZone={timeZone} onOpenGame={onOpenGame} variant={variant} />
     );
-  return <SingleRow item={item} timeZone={timeZone} onOpenGame={onOpenGame} />;
+  return <SingleRow item={item} timeZone={timeZone} onOpenGame={onOpenGame} variant={variant} />;
 }
 
 export function ActivityFeed({
@@ -220,6 +228,7 @@ export function ActivityFeed({
   timeZone,
   footer,
   onOpenGame,
+  variant = "default",
 }: {
   items: FeedItem[];
   timeZone: string;
@@ -227,14 +236,15 @@ export function ActivityFeed({
   footer?: ReactNode;
   /** When provided, single-item rows expose an "Abrir jogo" action. */
   onOpenGame?: (userGameId: string) => void;
+  variant?: "default" | "home";
 }) {
   const sections = groupItemsByDay(items, timeZone);
   return (
     <div className="flex flex-col gap-4">
       {sections.map((section) => (
-        <section key={section.key} aria-label={section.heading} className="rpgui-container framed-grey p-3">
-          <h2 className="font-display text-md ps-2 mt-2 ">{section.heading}</h2>
-                    <hr className="my-4 golden" />
+        <section key={section.key} aria-label={section.heading} className={variant === "home" ? "min-w-0 border-t border-white/20 pt-3" : "rpgui-container framed-grey p-3"}>
+          <h2 className={variant === "home" ? "ss-metadata font-bold" : "font-display text-md ps-2 mt-2"}>{section.heading}</h2>
+          {variant !== "home" && <hr className="my-4 golden" />}
           <div className="flex flex-col gap-2">
             {section.items.map((item) => (
               <FeedEntry
@@ -242,6 +252,7 @@ export function ActivityFeed({
                 item={item}
                 timeZone={timeZone}
                 onOpenGame={onOpenGame}
+                variant={variant}
               />
             ))}
           </div>

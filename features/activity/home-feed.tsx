@@ -159,7 +159,7 @@ export function HomeFeed({ limit = FEED_PAGE_LIMIT }: { limit?: number }) {
 
   return (
     <>
-      <h2 className="font-display mb-2 ms-2 text-xl">Atividade recente</h2>
+      <h2 className="ss-section-title mb-2">Atividade recente</h2>
       {openGameError && (
         <p role="alert" className="rpgui-container framed-grey p-3 text-sm">
           {openGameError}
@@ -170,6 +170,7 @@ export function HomeFeed({ limit = FEED_PAGE_LIMIT }: { limit?: number }) {
       {status === "ready" && items.length === 0 && <FeedEmpty />}
       {status === "ready" && items.length > 0 && (
         <ActivityFeed
+          variant="home"
           items={items}
           timeZone={timeZone}
           onOpenGame={(userGameId) => void openGameFromActivity(userGameId)}

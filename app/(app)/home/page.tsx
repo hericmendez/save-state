@@ -119,15 +119,15 @@ export default async function HomePage() {
   ).map((kind) => built.get(kind)!);
 
   return (
-    <main className="flex flex-col gap-4">
+    <main className="ss-home-content flex flex-col gap-4">
       {/* Nível 1 — conteúdo principal */}
-      <header className="rpgui-container framed-grey p-4">
-        <h1 className="font-display text-2xl">Bem-vindo, {username}.</h1>
-        <p className="mt-1 text-lg">O que vamos jogar hoje?</p>
+      <header className="rpgui-container framed-grey min-w-0 p-4">
+        <h1 className="ss-page-title">Bem-vindo, {username}.</h1>
+        <p className="ss-body-text mt-1 text-base">O que vamos jogar hoje?</p>
         <HomeSearchForm />
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="ss-home-shortcut-grid grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {SHORTCUTS.map((shortcut) => (
           <Link
             key={shortcut.href}
@@ -152,7 +152,7 @@ export default async function HomePage() {
       </div>
 
       {/* Nível 3 — histórico (implementação atual preservada) */}
-      <section className="m-5" aria-label="Atividade recente">
+      <section className="min-w-0" aria-label="Atividade recente">
         <HomeFeed />
       </section>
     </main>

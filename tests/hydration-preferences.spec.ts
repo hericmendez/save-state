@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { normalizeFontFamilyList } from "./hydration-font-family";
 
 const widths = [390, 768, 1366];
 
@@ -115,9 +116,23 @@ for (const width of widths) {
       )
       .toBeGreaterThan(0);
 
-    // Let the browser deliver paint entries and MutationObserver records. The
-    // preference snapshot itself was captured inside the parser-blocking
-    // bootstrap, before these paints could occur.
+    // Wait for the real Paint Timing entry instead of assuming two animation
+    // frames are enough for every headless/headful browser scheduling cycle.
+    // The finite timeout still fails the test if the browser never paints.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() =>
+            performance
+              .getEntriesByType("paint")
+              .some((entry) => entry.name === "first-paint"),
+          ),
+        { timeout: 5_000 },
+      )
+      .toBe(true);
+
+    // Let the browser deliver Paint Timing and MutationObserver records. The
+    // preference snapshot was captured inside the parser-blocking bootstrap.
     await page.evaluate(
       () =>
         new Promise<void>((resolve) =>
@@ -247,12 +262,12 @@ for (const width of widths) {
     expect(hydrated.bootstrap?.displayFont).toContain("Roboto");
     expect(hydrated.bootstrap?.bodyFont).toContain("Roboto");
     expect(hydrated.bootstrap?.ruleCount).toBeGreaterThan(0);
-    expect(hydrated.bootstrap?.displayFont?.replaceAll("'", "")).toBe(
-      hydrated.displayFont.replaceAll('"', ""),
-    );
-    expect(hydrated.bootstrap?.bodyFont?.replaceAll("'", "")).toBe(
-      hydrated.bodyFont.replaceAll('"', ""),
-    );
+    expect(
+      normalizeFontFamilyList(hydrated.bootstrap!.displayFont),
+    ).toEqual(normalizeFontFamilyList(hydrated.displayFont));
+    expect(
+      normalizeFontFamilyList(hydrated.bootstrap!.bodyFont),
+    ).toEqual(normalizeFontFamilyList(hydrated.bodyFont));
     expect(hydrated.bootstrap?.layoutZoom).toBe(hydrated.layoutZoom);
     expect(hydrated.bootstrap?.ruleCount).toBe(1);
     expect(hydrated.inlineBootstrapIsParserBlocking).toBe(true);
